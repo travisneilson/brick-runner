@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Brick Runner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="click-to-start-overlay">
+    <span id="loading-emoji">😀</span>
+    <div>Click to Begin</div>
+  </div>
+  <div id="start-screen" style="display: none;">
+    <h1 id="game-title"></h1>
+    <div class="start-prompt"></div>
+  </div>
+  <div id="game-area" class="hidden">
+    <div id="scoreboard">
+      Score: <span id="score">0</span> | Lives: <span id="lives-display">3</span> | High: <span id="high-score-display">0</span>
+    </div>
+    <div id="notifications-container"></div>
+    <div id="status-indicators"></div>
+    <div id="game-message"></div>
+    <div id="bricks-container"></div>
+    <div id="paddle"></div>
+    <div id="ball"></div>
+    <button id="reset-button">Reset</button>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
