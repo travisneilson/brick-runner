@@ -200,8 +200,9 @@ function initGame() {
 function createBricks(){const e=50*GAME_SCALE,t=(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2;for(let o=0;o<BRICK_ROWS;o++)for(let r=0;r<BRICK_COLS;r++){const n=document.createElement("div");n.classList.add("brick",`brick-row-${o}`);let a=null;.35>Math.random()&&(a=POWER_UP_SPAWN_CHANCES[Math.floor(Math.random()*POWER_UP_SPAWN_CHANCES.length)]);const l={element:n,x:t+r*(BRICK_WIDTH+BRICK_GAP),y:e+o*(BRICK_HEIGHT+BRICK_GAP),width:BRICK_WIDTH,height:BRICK_HEIGHT,isBroken:!1,hitsRequired:1,hitsTaken:0,powerUpType:a};.25>Math.random()&&(l.hitsRequired=2,n.classList.add("multihit")),l.powerUpType&&(()=>{const c=document.createElement("span");c.className="power-up-indicator",c.textContent=POWER_UP_TYPES[l.powerUpType].emoji,n.appendChild(c)})(),n.style.width=`${BRICK_WIDTH}px`,n.style.height=`${BRICK_HEIGHT}px`,bricksContainer.appendChild(n),bricks.push(l)}}
 
 function setupGame() {
-    updateHighScoreDisplay();
+    // Show only the click-to-start overlay
     startScreen.style.display = 'none';
+    gameArea.classList.add('hidden');
     clickToStartOverlay.style.display = 'flex';
 
     const allEmojis = [BALL_EMOJI, ...Object.values(POWER_UP_TYPES).map(p => p.emoji)];
@@ -213,28 +214,26 @@ function setupGame() {
         }
     }, 500);
 
-    clickToStartOverlay.addEventListener('click', () => {
-        clearInterval(emojiCycleInterval);
-        if (loadingEmoji) loadingEmoji.style.display = 'none';
-        clickToStartOverlay.style.opacity = '0';
-        setTimeout(() => {
-            clickToStartOverlay.style.display = 'none';
-        }, 500);
-
-        soundManager.init();
+    clickToStartOverlay.onclick = () => {
+        // Hide overlay, show start screen
+        clickToStartOverlay.style.display = 'none';
         startScreen.style.display = 'flex';
-        startPrompt.textContent = "Loading...";
-        startPrompt.classList.add('loading');
-        
-        soundManager.loadAll(soundsToLoad).then(() => {
-            assetsReady = true;
-            startPrompt.textContent = "Press SPACE to Begin";
-            startPrompt.classList.remove('loading');
-        });
-    }, { once: true });
-    
-    initGame();
+        // Animate title, show "Press SPACE to Begin"
+        // (Do NOT call initGame() here!)
+    };
 }
+
+// Listen for SPACE on the start screen to actually start the game
+document.addEventListener('keydown', (e) => {
+    if (
+        e.key === " " &&
+        startScreen.style.display === 'flex'
+    ) {
+        startScreen.style.display = 'none';
+        gameArea.classList.remove('hidden');
+        initGame(); // <-- Only call here!
+    }
+});
 
 function startGame() {
     if (gameOver && assetsReady) {
@@ -286,7 +285,35 @@ function renderGame(){ball.style.left=`${ballX}px`,ball.style.top=`${ballY}px`;c
 function endGame(e){gameOver=!0,gameRunning=!1,cancelAnimationFrame(animationFrameId),soundManager.stopAll(),e?soundManager.play("winSong"):soundManager.play("loseSong");const t=getHighScore();let o=!1;score>t&&(saveHighScore(score),o=!0);const r=getHighScore(),n=getRating(score,e),a=e?"Mission Complete!":"System Failure!";gameMessage.innerHTML=`<span class="title">${a}</span><span class="name rating">${n}</span><span class="description">Final Score: ${score}</span><span class="high-score">${o?"New High Score!":""}</span><p class="game-message-prompt">Press SPACE to Restart</p>`,gameMessage.style.display="block",gameArea.classList.remove("hide-cursor")}
 function launchStuckBall(){if(ballIsStuck){clearTimeout(autoLaunchTimeout),soundManager.stop("winSong"),ballIsStuck=!1,ballSpeedY=-INITIAL_BALL_SPEED;const e=paddleWidth/2,t=(ballX+BALL_SIZE/2-paddleX)/e*INITIAL_BALL_SPEED*1.5;ballSpeedX=t,soundManager.play("magLaunch")}}
 function fireLaser(){if(!canFire||!isLaserActive)return;canFire=!1,soundManager.play("laserFire"),(()=>{const e=6,t=20,o=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,r={x:paddleX-e/2,y:o-t,width:e,height:t},n=document.createElement("div");n.className="laser-bolt",n.style.left=`${r.x}px`,n.style.top=`${r.y}px`,gameArea.appendChild(n),r.element=n,lasers.push(r)})(),setTimeout(()=>{canFire=!0},FIRE_COOLDOWN)}
-function spawnDisruptiveBricks(e){const t=new Set;bricks.forEach(e=>{if(!e.isBroken){const o=Math.floor((e.x-(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2)/(BRICK_WIDTH+BRICK_GAP)),r=Math.floor((e.y-50*GAME_SCALE)/(BRICK_HEIGHT+BRICK_GAP));t.add(`${o},${r}`)}});const o=[];for(let r=-2;r<BRICK_ROWS+2;r++)for(let n=0;n<BRICK_COLS;n++)t.has(`${n},${r}`)||o.push({c:n,r:r});for(let a=o.length-1;0<a;a--){const l=Math.floor(Math.random()*(a+1));[o[a],o[l]]=[o[l],o[a]]}for(let c=0;c<Math.min(e,o.length);c++){const d=o[c],s=document.createElement("div");s.classList.add("brick","extra",`brick-row-${d.r%5}`);const i=(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2+d.c*(BRICK_WIDTH+BRICK_GAP),u=50*GAME_SCALE+d.r*(BRICK_HEIGHT+BRICK_GAP),p={element:s,x:i,y:u,width:BRICK_WIDTH,height:BRICK_HEIGHT,isBroken:!1,hitsRequired:1,hitsTaken:0,powerUpType:null};s.style.left=`${i}px`,s.style.top=`${u}px`,bricksContainer.appendChild(s),bricks.push(p)}}
+function spawnDisruptiveBricks() {
+    const numBricks = 5; // Number of disruptive bricks to spawn
+    const positions = [];
+
+    // Determine positions for disruptive bricks
+    for (let i = 0; i < numBricks; i++) {
+        let left, top;
+
+        // Ensure bricks are not too close to each other
+        do {
+            left = Math.random() * (GAME_WIDTH - BRICK_WIDTH);
+            top = Math.random() * (GAME_HEIGHT / 2 - BRICK_HEIGHT); // Spawn in the upper half of the game area
+        } while (positions.some(pos => Math.abs(pos.left - left) < BRICK_WIDTH + BRICK_GAP && Math.abs(pos.top - top) < BRICK_HEIGHT + BRICK_GAP));
+
+        positions.push({ left, top });
+
+        let el = document.createElement('div');
+        el.className = 'brick disruptive';
+        el.style.width = `${BRICK_WIDTH}px`;
+        el.style.height = `${BRICK_HEIGHT}px`;
+        el.style.left = `${left}px`;
+        el.style.top = `${top}px`;
+        el.textContent = "👼";
+        bricksContainer.appendChild(el);
+
+        // Make sure to match the structure of createBricks()
+        bricks.push({ left, top, el, destroyed: false, type: "disruptive" });
+    }
+}
 
 document.addEventListener('DOMContentLoaded',setupGame);
 resetButton.addEventListener("click",initGame);
