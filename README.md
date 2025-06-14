@@ -16,3 +16,6 @@ Retro Brickle Game with Emoji assets
 -- Gravity! - the ball bounces in a heavy gravity way.
 
 - When the mag-lock releases, the speed of the ball is 1.75 for 2 seconds and its a fireball emoji
+
+
+- Okay. I have an idea. I can show you a JS file where the sounds are working. You could strip it for context, get my sound links and try to understand what songs go where.
