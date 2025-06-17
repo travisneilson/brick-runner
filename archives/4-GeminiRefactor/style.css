@@ -1,0 +1,307 @@
+/* --- Fonts and Global Styles --- */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+:root {
+    --clr-neon-blue: #00FFFF;
+    --clr-neon-pink: #FF00FF;
+    --clr-neon-green: #00FF00;
+    --clr-dark-bg: #1A1A1A;
+    --clr-medium-dark: #2C2C2C;
+    --clr-text-main: #E0E0E0;
+    --clr-brick-red: #FF3366;
+    --clr-brick-purple: #9933FF;
+    --clr-brick-orange: #FF8C00;
+    --clr-powerup-expando: #ff4500;
+    --clr-powerup-slowmo: #00BFFF;
+    --clr-powerup-sticky: var(--clr-neon-pink);
+    --clr-powerup-laser: var(--clr-brick-red);
+    --clr-gold-glow: #FFD700;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--clr-dark-bg);
+    font-family: 'Roboto', sans-serif;
+    color: var(--clr-text-main);
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+    cursor: default;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(transparent 0,
+        rgba(0, 0, 0, 0.3) 1px,
+        transparent 2px);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.15;
+}
+
+/* --- Header --- */
+.game-header {
+    width: 900px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+/* CORRECTED: Targeting the H1 inside the header for the glitch effect */
+.game-header h1 {
+    font-family: 'Press Start 2P', cursive;
+    color: var(--clr-neon-blue);
+    font-size: 2em;
+    position: relative;
+    text-shadow: 0 0 5px var(--clr-neon-blue);
+}
+
+/* These pseudo-elements create the glitch effect */
+.game-header h1::before,
+.game-header h1::after {
+    content: 'BRICK RUNNER'; /* Hardcoded text to match the H1 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--clr-dark-bg);
+    overflow: hidden;
+    clip-path: inset(50% 50% 50% 50%);
+}
+
+.game-header h1::before {
+    left: -2px;
+    text-shadow: -1px 0 var(--clr-neon-pink);
+    animation: glitch-anim-1 2s infinite linear alternate-reverse;
+}
+
+.game-header h1::after {
+    left: 2px;
+    text-shadow: -1px 0 var(--clr-neon-green);
+    animation: glitch-anim-2 2s infinite linear alternate-reverse;
+}
+
+/* This container holds the score displays */
+.ui-stats {
+    display: flex;
+    gap: 30px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.1em;
+}
+
+/* CORRECTED: Targeting the specific IDs from index.html */
+#score-display {
+    color: var(--clr-neon-green);
+    text-shadow: 0 0 8px var(--clr-neon-green);
+}
+
+#high-score-display {
+    color: var(--clr-text-main);
+    opacity: 0.7;
+}
+
+/* --- Game Area and Core Elements --- */
+#game-area {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    background-color: var(--clr-medium-dark);
+    border: 3px solid var(--clr-neon-blue);
+    overflow: hidden;
+    border-radius: 5px;
+}
+
+#ball {
+    position: absolute;
+    /* Sizing and font might need tweaking depending on if you use emoji or a div */
+    width: 25px; 
+    height: 25px;
+    background-color: white; /* Simple white ball */
+    border-radius: 50%;
+    z-index: 5;
+    transition: filter 0.2s ease-out, transform 0.2s ease-out, background-color 0.2s;
+}
+
+#ball.bonus-active {
+    background-color: var(--clr-gold-glow);
+    box-shadow: 0 0 15px var(--clr-gold-glow);
+    transform: scale(1.2);
+}
+
+/* This is the emoji inside the ball, if you choose to add one via JS */
+#ball .emoji {
+    font-size: 20px;
+}
+
+#paddle {
+    position: absolute;
+    /* Width is set by JS, but we need a default height */
+    height: 20px;
+    background-color: var(--clr-neon-blue);
+    bottom: 30px; /* Position from bottom */
+    border-radius: 3px;
+    border-top: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 12px var(--clr-neon-blue);
+    transition: all 0.25s ease-out;
+    transform-origin: center;
+}
+
+/* --- Bricks --- */
+/* NOTE: The JS creates bricks inside this container, so this style is correct. */
+#bricks-container {
+    position: absolute;
+    width: 100%;
+    height: auto;
+}
+.brick {
+    position: absolute; /* Bricks are positioned absolutely by the JS */
+    width: 75px; /* Default width, matches JS */
+    height: 20px; /* Default height, matches JS */
+    background-color: var(--clr-brick-purple);
+    border: 1px solid var(--clr-dark-bg);
+    box-sizing: border-box;
+    border-radius: 3px;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+/* This class will be added by JS when a brick is broken */
+.brick.broken { 
+    opacity: 0; 
+    transform: scale(0.5); 
+}
+/* Style for multi-hit bricks */
+.brick.multi-hit::after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: rgba(0,0,0,0.5);
+    top: 5px;
+    left: 5px;
+    border-radius: 2px;
+    /* CSS variable for JS to toggle */
+    display: var(--notch-display, block);
+}
+
+
+/* --- Screens (Start, Pause, End) & Notifications --- */
+/* CORRECTED: Combined styles for all overlays */
+.overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    transition: opacity 0.5s ease-out;
+}
+
+.overlay-content {
+    font-family: 'Press Start 2P', cursive;
+}
+
+/* CORRECTED: Targeting elements inside #start-screen */
+#start-screen h2 {
+    font-size: 3em;
+    color: var(--clr-neon-blue);
+    filter: drop-shadow(0 0 10px var(--clr-neon-blue));
+    margin-bottom: 40px;
+}
+#start-screen p {
+    font-size: 1.2em;
+    color: var(--clr-neon-green);
+    text-shadow: 0 0 8px var(--clr-neon-green);
+    animation: pulse-glow-prompt 1.5s infinite alternate;
+}
+
+/* CORRECTED: Targeting elements inside #end-screen */
+#end-screen-title {
+    font-size: 2.5em;
+    color: var(--clr-neon-pink);
+    text-shadow: 0 0 10px var(--clr-neon-pink);
+    margin-bottom: 20px;
+}
+#final-score {
+    font-size: 1.5em;
+    color: var(--clr-text-main);
+    margin-bottom: 40px;
+}
+#end-screen .small-text {
+    font-size: 0.8em;
+    color: var(--clr-text-main);
+    opacity: 0.7;
+    animation: pulse-glow-prompt 1.5s infinite alternate;
+}
+
+/* NOTE: The HTML for notifications is not yet in index.html. 
+   You will need to add <div id="notifications-container"></div> for these to work. */
+#notifications-container {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+.notification {
+    background-color: rgba(26, 26, 26, 0.9);
+    border: 1px solid var(--clr-neon-green);
+    border-radius: 5px;
+    padding: 15px 30px;
+    margin-bottom: 10px;
+    text-align: center;
+    width: 450px;
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.notification.visible { 
+    opacity: 1; 
+    transform: translateY(0); 
+}
+
+/* --- Power-Ups and Status UI (Future Use) --- */
+/* NOTE: These styles are for features that are not fully implemented in main.js yet. */
+.power-up { 
+    position: absolute; 
+    font-size: 30px; 
+    text-shadow: 0 0 8px var(--clr-gold-glow); 
+}
+#status-indicators {
+    position: absolute;
+    top: 15px;
+    right: 22.5px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+}
+
+/* --- Animations --- */
+@keyframes pulse-glow-prompt { 
+    from { text-shadow: 0 0 8px var(--clr-neon-green); } 
+    to { text-shadow: 0 0 16px var(--clr-neon-green), 0 0 4px var(--clr-neon-green); } 
+}
+@keyframes glitch-anim-1 { 0% { clip-path: inset(45% 50% 50% 50%); } 20% { clip-path: inset(5% 50% 90% 50%); } 40% { clip-path: inset(70% 50% 10% 50%); } 60% { clip-path: inset(90% 50% 5% 50%); } 80% { clip-path: inset(30% 50% 60% 50%); } 100% { clip-path: inset(50% 50% 45% 50%); } }
+@keyframes glitch-anim-2 { 0% { clip-path: inset(5% 50% 90% 50%); } 20% { clip-path: inset(70% 50% 20% 50%); } 40% { clip-path: inset(20% 50% 70% 50%); } 60% { clip-path: inset(50% 50% 45% 50%); } 80% { clip-path: inset(80% 50% 10% 50%); } 100% { clip-path: inset(40% 50% 50% 50%); } }

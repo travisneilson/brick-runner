@@ -131,23 +131,24 @@ const POWER_UP_TYPES = {
 };
 const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
 const soundsToLoad = { 
-    'bounce': { url: "sounds/paddle-and-wall.mp3" }, 
-    'multihit': { url: "sounds/multi-hit.mp3" }, 
-    'destroy1': { url: "sounds/Destroy1.mp3" }, 
-    'destroy2': { url: "sounds/Destroy2.mp3" }, 
-    'destroy3': { url: "sounds/Destroy3.mp3" }, 
-    'powerUpSpawn': { url: "sounds/Drop.mp3" }, 
-    'laserFire': { url: "sounds/Laser2.mp3" }, 
-    'winSong': { url: "sounds/theme.wav" }, 
-    'loseSong': { url: "sounds/LoserSong.mp3" }, 
-    'grow': { url: "sounds/Grow.mp3", reversable: true }, 
-    'magActivate': { url: "sounds/mag1.mp3" }, 
-    'magLaunch': { url: "sounds/mag2.mp3" } };
+    'bounce': {         url: "/sounds/paddle-and-wall.mp3" }, 
+    'multihit': {       url: "/sounds/multi-hit.mp3" }, 
+    'destroy1': {       url: "/sounds/Destroy1.mp3" }, 
+    'destroy2': {       url: "/sounds/Destroy2.mp3" }, 
+    'destroy3': {       url: "/sounds/Destroy3.mp3" }, 
+    'powerUpSpawn': {   url: "/sounds/Drop.mp3" }, 
+    'laserFire': {      url: "/sounds/Laser2.mp3" }, 
+    'winSong': {        url: "/sounds/theme.wav" }, 
+    'loseSong': {       url: "/sounds/LoserSong.mp3" }, 
+    'grow': {           url: "/sounds/Grow.mp3", reversable: true }, 
+    'magActivate': {    url: "/sounds/mag1.mp3" }, 
+    'magLaunch': {      url: "/sounds/mag2.mp3" } 
+};
 const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
 let destroySoundIndex = 0;
 let paddleX, paddleWidth = PADDLE_DEFAULT_WIDTH, leftPressed = false, rightPressed = false;
 let ballX, ballY, ballSpeedX, ballSpeedY;
-const BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
+const BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","🤡","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
 // UPDATED: The 'bricks' array is now declared with 'let' instead of 'const'
 let bricks = [];
 let lastTime = 0, frameCounter = 0;

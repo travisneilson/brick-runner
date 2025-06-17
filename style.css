@@ -286,7 +286,7 @@ body::before {
     top: 0;
     left: 0;
     display: none;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: transparent;
     z-index: 19;
     flex-direction: column;
     justify-content: center;
