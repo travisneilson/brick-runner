@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRICK RUNNER</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-header">
+        <div class="header-left">
+            <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
+            <div id="high-score-display" class="high-score-header"></div>
+        </div>
+        <button id="reset-button" class="reset-button">Restart</button>
+    </div>
+
+    <div id="game-area">
+        <div id="start-screen" style="display: none;">
+            <h1 id="title">BRICK RUNNER</h1>
+            <p class="start-prompt">Press SPACE to Begin</p>
+        </div>
+        <div id="click-to-start-overlay">
+            <div id="smiley-face">😊</div>
+            <p>Click to Begin</p>
+        </div>
+
+        <div class="game-stats-container">
+            <div id="score" class="game-ui-text">Score: 0</div>
+            <div id="lives-display" class="game-ui-text"></div>
+        </div>
+
+        <div id="status-indicators"></div>
+        <div id="notifications-container"></div>
+        
+        <div id="ball"></div>
+        <div id="paddle"></div>
+        <div id="bricks-container"></div>
+        <div id="game-message"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
