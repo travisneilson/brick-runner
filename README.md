@@ -1,4 +1,4 @@
-## 1. Executive Summary
+## Summary
 
 - **Project Name:** BRICK RUNNER  
 - **Genre:** 2D Arcade Brick-Breaker  
