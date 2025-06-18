@@ -126,32 +126,33 @@ const POWER_UP_TYPES = {
     'wide-paddle': { type: "stacking", emoji: "🍄", name: "EXPANDO", cssClass: "wide-paddle", description: "Paddle size increased", duration: 15000 },
     'slow-mo': { type: "stacking", emoji: "🐌", name: "SLOW-MO", cssClass: "slow-mo", description: "Ball speed reduced", duration: 5000 },
     'sticky-paddle': { type: "refreshing", emoji: "🧲", name: "MAG-LOCK", cssClass: "sticky-paddle", description: "Catch & launch the ball", duration: 4000 },
-    'laser-blast': { type: "refreshing", emoji: "🎯", name: "LASER BLAST", cssClass: "laser-blast", description: "Press SPACE to fire!", duration: 3000 },
-    'one-up': { type: "instant", emoji: "👼", name: "1-UP", cssClass: "one-up", description: "Extra Life! More Bricks!" }
+    'laser-blast': { type: "refreshing", emoji: "🎯", name: "LASER BLAST", cssClass: "laser-blast", description: "Press F to fire!", duration: 3000 },
+    'one-up': { type: "instant", emoji: "🧱", name: "Bricked Up!", cssClass: "one-up", description: "New bricks incoming!" }
 };
 const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
 const soundsToLoad = { 
-    'bounce': {         url: "/sounds/paddle-and-wall.mp3" }, 
-    'multihit': {       url: "/sounds/multi-hit.mp3" }, 
-    'destroy1': {       url: "/sounds/Destroy1.mp3" }, 
-    'destroy2': {       url: "/sounds/Destroy2.mp3" }, 
-    'destroy3': {       url: "/sounds/Destroy3.mp3" }, 
-    'powerUpSpawn': {   url: "/sounds/Drop.mp3" }, 
-    'laserFire': {      url: "/sounds/Laser2.mp3" }, 
-    'winSong': {        url: "/sounds/theme.wav" }, 
-    'loseSong': {       url: "/sounds/LoserSong.mp3" }, 
-    'grow': {           url: "/sounds/Grow.mp3", reversable: true }, 
-    'magActivate': {    url: "/sounds/mag1.mp3" }, 
-    'magLaunch': {      url: "/sounds/mag2.mp3" } 
+    'bounce': {         url: "../../sounds/paddle-and-wall.mp3" }, 
+    'multihit': {       url: "../../sounds/multi-hit.mp3" }, 
+    'destroy1': {       url: "../../sounds/Destroy1.mp3" }, 
+    'destroy2': {       url: "../../sounds/Destroy2.mp3" }, 
+    'destroy3': {       url: "../../sounds/Destroy3.mp3" }, 
+    'powerUpSpawn': {   url: "../../sounds/Drop.mp3" }, 
+    'laserFire': {      url: "../../sounds/Laser2.mp3" }, 
+    'winSong': {        url: "../../sounds/theme.wav" }, 
+    'loseSong': {       url: "../../sounds/LoserSong.mp3" }, 
+    'grow': {           url: "../../sounds/Grow.mp3", reversable: true }, 
+    'magActivate': {    url: "../../sounds/mag1.mp3" }, 
+    'magLaunch': {      url: "../../sounds/mag2.mp3" } 
 };
 const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
 let destroySoundIndex = 0;
 let paddleX, paddleWidth = PADDLE_DEFAULT_WIDTH, leftPressed = false, rightPressed = false;
 let ballX, ballY, ballSpeedX, ballSpeedY;
-const BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","🤡","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
+const BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
 // UPDATED: The 'bricks' array is now declared with 'let' instead of 'const'
 let bricks = [];
-let lastTime = 0, frameCounter = 0;
+let lastTime = 0,
+    frameCounter = 0;
 
 // --- Helper Functions ---
 function getHighScore(){return parseInt(localStorage.getItem("brickRunnerHighScore"))||0}
@@ -253,7 +254,6 @@ function startGame() {
     if (gameOver && assetsReady) {
         initGame(); 
         lives = 1;
-        updateLivesDisplay();
         gameOver = false;
         
         startScreen.style.display = 'none';
@@ -281,25 +281,421 @@ function gameLoop(e){if(!gameRunning)return;lastTime||(lastTime=e);const t=(e-la
 function updatePaddlePosition(e){const t=paddleWidth/2;leftPressed&&paddleX-t>0?paddleX-=PADDLE_SPEED*e:rightPressed&&paddleX+t<GAME_WIDTH&&(paddleX+=PADDLE_SPEED*e)}
 function updateBallPosition(e){if(ballIsStuck)return;const t=activePowerUps["slow-mo"]?.length||0,o=Math.pow(.75,t);ballX+=ballSpeedX*o*e,ballY+=ballSpeedY*o*e}
 function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left||e.left>t.right)}
-function showNotification(e){const t=document.createElement("div");t.classList.add("notification");const o=notificationsContainer.querySelectorAll(".notification");o.forEach((e,t)=>{e.className=`notification visible stack-${t+1}`,t+1>=MAX_NOTIFICATIONS&&(e.classList.add("removing"),setTimeout(()=>{e.remove()},500))}),"string"==typeof e?t.innerHTML=`<span class="name">${e}</span>`:t.innerHTML=`
-            <span class="title">Power Up!</span>
-            <span class="name">${e.emoji} ${e.name}!</span>
-            <span class="description">${e.description}</span>
-        `,notificationsContainer.appendChild(t),setTimeout(()=>{t.classList.add("visible")},10),setTimeout(()=>{t.classList.add("removing"),setTimeout(()=>{t.remove()},500)},3500)}
+
+function showNotification(e) {
+  // 1. Create the container for this notification
+  const t = document.createElement("div");
+  t.classList.add("notification");
+
+  // 2. Manage existing notifications: stack up to MAX_NOTIFICATIONS
+  const existing = notificationsContainer.querySelectorAll(".notification");
+  existing.forEach((el, idx) => {
+    // reposition and re‐stack
+    el.className = `notification visible stack-${idx+1}`;
+    // remove oldest notifications once we exceed the cap
+    if (idx+1 >= MAX_NOTIFICATIONS) {
+      el.classList.add("removing");
+      setTimeout(() => el.remove(), 500);
+    }
+  });
+
+  // 3. Fill in the HTML based on whether e is a string or an object
+  if (typeof e === "string") {
+    // simple text alert
+    t.innerHTML = `<span class="name">${e}</span>`;
+  } else {
+    // power-up style alert
+    t.innerHTML = `
+      <span class="title">Power Up!</span>
+      <span class="name">${e.emoji} ${e.name}!</span>
+      <span class="description">${e.description}</span>
+    `;
+  }
+
+  // 4. Add to the DOM and trigger the entrance animation
+  notificationsContainer.appendChild(t);
+  setTimeout(() => t.classList.add("visible"), 10);
+
+  // 5. Auto‐dismiss after ~3.5s
+  setTimeout(() => {
+    t.classList.add("removing");
+    setTimeout(() => t.remove(), 500);
+  }, 3500);
+}
+
+
+
 function updatePaddleWidth(){paddleWidth=PADDLE_DEFAULT_WIDTH*(1+paddleSizeLevel*.35);const e=1+paddleSizeLevel*.35;paddle.style.transform=`scaleX(${e})`,paddle.classList.remove("paddle-glow-1","paddle-glow-2","paddle-glow-3"),1===paddleSizeLevel?paddle.classList.add("paddle-glow-1"):2===paddleSizeLevel?paddle.classList.add("paddle-glow-2"):3===paddleSizeLevel&&paddle.classList.add("paddle-glow-3")}
 function spawnPowerUp(e,t){soundManager.play("powerUpSpawn",{pitch:2});const o=POWER_UP_TYPES[e];if(!o)return;const r=document.createElement("div");r.classList.add("power-up"),r.textContent=o.emoji;const n={element:r,type:e,x:t.x+t.width/2-POWER_UP_SIZE/2,y:t.y+t.height/2-POWER_UP_SIZE/2,bounced:!1,vx:0,vy:0,originX:t.x+t.width/2-POWER_UP_SIZE/2,swayAmplitude:25+20*Math.random(),swayFrequency:.02+.02*Math.random(),swayPhase:2*Math.random()*Math.PI};r.style.left=`${n.x}px`,r.style.top=`${n.y}px`,gameArea.appendChild(r),powerUps.push(n)}
 function updatePowerUps(e){for(let t=powerUps.length-1;0<=t;t--){const o=powerUps[t];o.bounced?(o.vy+=GRAVITY*60*e,o.x+=o.vx*60*e,o.y+=o.vy*60*e):(o.y+=POWER_UP_SPEED*e,o.x=o.originX+o.swayAmplitude*Math.sin(o.y*o.swayFrequency+o.swayPhase));const r=paddleWidth/2,n={left:paddleX-r,right:paddleX+r,top:GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,bottom:GAME_HEIGHT-PADDLE_BOTTOM_OFFSET},a={left:o.x,right:o.x+POWER_UP_SIZE,top:o.y,bottom:o.y+POWER_UP_SIZE};if(!o.bounced&&isColliding(a,n)){const l=activePowerUps[o.type]||[],c=POWER_UP_TYPES[o.type];"stacking"===c.type&&l.length>=MAX_PADDLE_LEVEL?(o.bounced=!0,o.vy=-105,o.vx=105*(Math.random()-.5),showNotification("MAX POWER!")):(activatePowerUp(o.type),o.element.remove(),powerUps.splice(t,1));continue}o.y>GAME_HEIGHT?(o.element.remove(),powerUps.splice(t,1)):(o.element.style.top=`${o.y}px`,o.element.style.left=`${o.x}px`)}}
-function activatePowerUp(e){const t=POWER_UP_TYPES[e];if(!t)return;"instant"===t.type?(("one-up"===e&&(lives++,updateLivesDisplay(),spawnDisruptiveBricks(5))),showNotification(t)):(activePowerUps[e]||(activePowerUps[e]=[]),(()=>{if("refreshing"===t.type){const o=Date.now()+t.duration;activePowerUps[e][0]={endTime:o}}else{const r=0<activePowerUps[e].length?activePowerUps[e][activePowerUps[e].length-1].endTime:Date.now(),n=r+t.duration;activePowerUps[e].push({endTime:n})}})(),(()=>{switch(e){case"wide-paddle":paddleSizeLevel=Math.min(activePowerUps[e].length,MAX_PADDLE_LEVEL),updatePaddleWidth(),soundManager.play("grow");break;case"sticky-paddle":isStickyPaddle=!0,paddle.classList.add("paddle-sticky"),soundManager.play("magActivate");break;case"laser-blast":isLaserActive=!0,paddle.classList.add("paddle-armed"),soundManager.play("laserFire",{pitch:1.2});break;case"slow-mo":soundManager.play("bounce",{pitch:.8,volume:.7})}})(),createOrUpdateStatusIndicator(e))}
+
+function activatePowerUp(type) {
+  const def = POWER_UP_TYPES[type];
+  if (!def) return;
+
+  // — Instant power‐ups (e.g. Bricked Up!)
+  if (def.type === 'instant') {
+    if (type === 'one-up') {
+      // only spawn new bricks, no extra lives
+      spawnDisruptiveBricks(5);
+    }
+    // notification for instant power‐ups
+    showNotification(def);
+    return;
+  }
+
+  // — Stacking/refreshing power‐ups
+  if (!activePowerUps[type]) {
+    activePowerUps[type] = [];
+  }
+  const now = Date.now();
+  if (def.type === 'refreshing') {
+    // refresh single timer
+    activePowerUps[type][0] = { endTime: now + def.duration };
+  } else {
+    // stacking: chain timers end‐to‐end
+    const lastEnd = activePowerUps[type].slice(-1)[0]?.endTime || now;
+    activePowerUps[type].push({ endTime: lastEnd + def.duration });
+  }
+
+  // — Apply the effect immediately
+  switch (type) {
+    case 'wide-paddle':
+      paddleSizeLevel = Math.min(activePowerUps[type].length, MAX_PADDLE_LEVEL);
+      updatePaddleWidth();
+      soundManager.play('grow');
+      break;
+
+    case 'sticky-paddle':
+      isStickyPaddle = true;
+      paddle.classList.add('paddle-sticky');
+      soundManager.play('magActivate');
+      break;
+
+    case 'laser-blast':
+      isLaserActive = true;
+      paddle.classList.add('paddle-armed');
+      soundManager.play('laserFire', { pitch: 1.2 });
+      break;
+
+    case 'slow-mo':
+      soundManager.play('bounce', { pitch: 0.8, volume: 0.7 });
+      break;
+  }
+
+  // — Update (or create) status‐bar indicator
+  createOrUpdateStatusIndicator(type);
+
+  // — Notification for all non-instant power-ups
+  showNotification(def);
+}
+
+
+
 function updateStatusIndicators(){for(const e in activePowerUps){const t=activePowerUps[e];if(!t||0===t.length){activePowerUps[e]&&(delete activePowerUps[e],document.getElementById(`status-${e}`)?.remove());continue}let o=!1;for(;t.length>0&&Date.now()>=t[0].endTime;)t.shift(),o=!0;if(o){if(soundManager.sounds.grow_reversed)soundManager.play("grow_reversed",{pitch:1.2,volume:.5});else soundManager.play("multihit",{pitch:.7,volume:.5});const r={"wide-paddle":()=>{paddleSizeLevel=t.length,updatePaddleWidth()},"sticky-paddle":()=>{isStickyPaddle=!1,paddle.classList.remove("paddle-sticky"),ballIsStuck&&launchStuckBall()},"laser-blast":()=>{isLaserActive=!1,paddle.classList.remove("paddle-armed")}};r[e]&&r[e]()}if(0===t.length)document.getElementById(`status-${e}`)?.remove(),delete activePowerUps[e];else{const n=document.getElementById(`status-${e}`);if(n){const a=n.querySelector(".stack-count"),l=t.length;1<l?(a.textContent=`x${l}`,a.style.display="inline-block"):(a.style.display="none");const c=t[0],d=POWER_UP_TYPES[e],s=c.endTime-d.duration,i=c.endTime-s,u=c.endTime-Date.now(),p=n.querySelector(".timer-bar"),g=Math.max(0,u/i*100);p.style.width=`${g}%`}}}}
 function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${t.emoji}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
 function createOnionSkin(){const e=document.createElement("div");e.className="onion-skin",e.textContent=ball.textContent,e.style.left=`${ballX}px`,e.style.top=`${ballY}px`,gameArea.appendChild(e),setTimeout(()=>{e.remove()},500)}
-function updateLasers(e){for(let t=lasers.length-1;0<=t;t--){const o=lasers[t];if(o.y-=LASER_SPEED*e,o.y<-o.height){o.element.remove(),lasers.splice(t,1);continue}const r={left:o.x,right:o.x+o.width,top:o.y,bottom:o.y+o.height};for(let n=bricks.length-1;0<=n;n--){const a=bricks[n];if(!a.isBroken){const l={left:a.x,right:a.x+a.width,top:a.y,bottom:a.y+a.height};if(isColliding(r,l)){const c=destroySounds[Math.floor(Math.random()*destroySounds.length)];soundManager.play(c),a.isBroken=!0,a.element.classList.add("broken"),score+=10,scoreDisplay.textContent=`Score: ${score}`,a.powerUpType&&spawnPowerUp(a.powerUpType,a),o.element.remove(),lasers.splice(t,1);break}}}o.element&&(o.element.style.top=`${o.y}px`)}}
-function checkCollisions(){if(ballIsStuck)return;const e={left:ballX,right:ballX+BALL_SIZE,top:ballY,bottom:ballY+BALL_SIZE};if(ballX<=0&&ballSpeedX<0||ballX+BALL_SIZE>=GAME_WIDTH&&ballSpeedX>0)ballSpeedX*=-1,soundManager.play("bounce");if(ballY<=0&&ballSpeedY<0){ballY=0,ballSpeedY*=-1,soundManager.play("bounce",{pitch:.8});if(!isRoofBonusActive){isRoofBonusActive=!0,ball.classList.add("bonus-active"),soundManager.play("powerUpSpawn",{pitch:2.5,volume:.5})}}const t=paddleWidth/2,o={left:paddleX-t,right:paddleX+t,top:GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,bottom:GAME_HEIGHT-PADDLE_BOTTOM_OFFSET};if(isColliding(e,o)&&ballSpeedY>0){soundManager.play("bounce"),isRoofBonusActive&&(isRoofBonusActive=!1,ball.classList.remove("bonus-active"));if(isStickyPaddle)ballIsStuck=!0,ballSpeedX=0,ballSpeedY=0;else{ballY=o.top-BALL_SIZE,ballSpeedY*=-1;const r=(ballX+BALL_SIZE/2-paddleX)/t*INITIAL_BALL_SPEED*1.5;ballSpeedX=r}}for(let n=0;n<bricks.length;n++){const a=bricks[n];if(!a.isBroken){const l={left:a.x,right:a.x+a.width,top:a.y,bottom:a.y+a.height};if(isColliding(e,l)){let c=10;isRoofBonusActive&&(c=15,isRoofBonusActive=!1,ball.classList.remove("bonus-active"),soundManager.play("powerUpSpawn",{pitch:3,volume:.7})),a.hitsTaken++;if(a.hitsTaken>=a.hitsRequired){const d=destroySounds[destroySoundIndex];soundManager.play(d),destroySoundIndex=(destroySoundIndex+1)%destroySounds.length,a.isBroken=!0,a.element.classList.add("broken"),score+=c,a.powerUpType&&spawnPowerUp(a.powerUpType,a)}else soundManager.play("multihit",{pitch:1}),setTimeout(()=>soundManager.play("multihit",{pitch:1.5,volume:.7}),50),a.element.classList.add("damaged");if(scoreDisplay.textContent=`Score: ${score}`,500<score&&!isNeonLegend)isNeonLegend=!0,showNotification({emoji:"😎",name:"NEON LEGEND",description:"Status Achieved!"}),soundManager.play("winSong");a.element.classList.remove("shake"),a.element.offsetWidth,a.element.classList.add("shake"),ball.classList.remove("impact-animation"),ball.offsetWidth,ball.classList.add("impact-animation"),clearTimeout(emojiSwapTimeout);if(isNeonLegend)ball.textContent="😎";else{const s=Math.floor(Math.random()*CHAOTIC_EMOJIS.length);ball.textContent=CHAOTIC_EMOJIS[s],emojiSwapTimeout=setTimeout(()=>{ball.textContent=BALL_EMOJI},250)}ballSpeedY*=-1;const i=1.005;ballSpeedX*=i,ballSpeedY*=i;break}}}}
+
+function updateLasers(dt) {
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    const l = lasers[i];
+
+    // 1) Move the laser bolt upward
+    l.y -= LASER_SPEED * dt;
+    l.element.style.top = `${l.y}px`;
+
+    // 2) Remove if off‐screen
+    if (l.y + l.height < 0) {
+      l.element.remove();
+      lasers.splice(i, 1);
+      continue;
+    }
+
+    // 3) **Collision check against every brick**
+    //    This is where you need the `if (isColliding(laserRect, brickRect))` block.
+    const laserRect = {
+      left:   l.x,
+      right:  l.x + l.width,
+      top:    l.y,
+      bottom: l.y + l.height
+    };
+
+    for (let j = 0; j < bricks.length; j++) {
+      const b = bricks[j];
+      if (b.isBroken) continue;
+
+      const brickRect = {
+        left:   b.x,
+        right:  b.x + b.width,
+        top:    b.y,
+        bottom: b.y + b.height
+      };
+
+      // ← Insert your collision test here
+      if (isColliding(laserRect, brickRect)) {
+        // Base + Laser bonus instead of just 3:
+        const basePoints = isRoofBonusActive ? 15 : 10;
+        score += basePoints + 3;
+        scoreDisplay.textContent = `Score: ${score}`;
+
+        // Mark brick broken, etc…
+        b.isBroken = true;
+        b.element.classList.add('broken');
+        if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+
+        // Remove this bolt
+        l.element.remove();
+        lasers.splice(i,1);
+        break;
+        }
+
+    }
+  }
+}
+
+
+// Track whether the last physics step included a wall or roof bounce
+let justBounced = false;
+
+function checkCollisions() {
+  // Don’t run collision logic if the ball is stuck
+  if (ballIsStuck) return;
+
+  // Build the ball’s AABB for collision tests
+  const ballRect = {
+    left:   ballX,
+    right:  ballX + BALL_SIZE,
+    top:    ballY,
+    bottom: ballY + BALL_SIZE
+  };
+
+  // --- Wall / Roof Bounces ---
+  // Left or right wall
+  if ((ballX <= 0 && ballSpeedX < 0) ||
+      (ballX + BALL_SIZE >= GAME_WIDTH && ballSpeedX > 0)) {
+    ballSpeedX *= -1;
+    soundManager.play("bounce");
+    justBounced = true;
+  }
+
+  // Ceiling
+  if (ballY <= 0 && ballSpeedY < 0) {
+    ballY = 0;
+    ballSpeedY *= -1;
+    soundManager.play("bounce", { pitch: 0.8 });
+    justBounced = true;
+
+    // Apply roof bonus if not already active
+    if (!isRoofBonusActive) {
+      isRoofBonusActive = true;
+      ball.classList.add("bonus-active");
+      soundManager.play("powerUpSpawn", { pitch: 2.5, volume: 0.5 });
+    }
+  }
+
+  // --- Paddle Collision ---
+  const halfPaddle = paddleWidth / 2;
+  const paddleRect = {
+    left:   paddleX - halfPaddle,
+    right:  paddleX + halfPaddle,
+    top:    GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET,
+    bottom: GAME_HEIGHT - PADDLE_BOTTOM_OFFSET
+  };
+
+  if (isColliding(ballRect, paddleRect) && ballSpeedY > 0) {
+    soundManager.play("bounce");
+    // Clear roof bonus
+    if (isRoofBonusActive) {
+      isRoofBonusActive = false;
+      ball.classList.remove("bonus-active");
+    }
+    // If sticky, re-stick the ball
+    if (isStickyPaddle) {
+      ballIsStuck = true;
+      ballSpeedX = 0;
+      ballSpeedY = 0;
+    } else {
+      // Bounce off paddle
+      ballY = paddleRect.top - BALL_SIZE;
+      ballSpeedY *= -1;
+      // Give X velocity based on hit position
+      const impactPos = (ballX + BALL_SIZE/2 - paddleX) / halfPaddle;
+      ballSpeedX = impactPos * INITIAL_BALL_SPEED * 1.5;
+    }
+    // Reset bounce flag on paddle hit
+    justBounced = false;
+  }
+
+  // --- Brick Collisions ---
+  for (let i = 0; i < bricks.length; i++) {
+    const brick = bricks[i];
+    if (brick.isBroken) continue;
+
+    const brickRect = {
+      left:   brick.x,
+      right:  brick.x + brick.width,
+      top:    brick.y,
+      bottom: brick.y + brick.height
+    };
+
+    if (isColliding(ballRect, brickRect)) {
+      // Base points
+      let points = isRoofBonusActive ? 15 : 10;
+
+      // Wall-bounce bonus
+      if (justBounced) {
+        points += 2;
+      }
+
+      // — NEW: Bricked Up! spawn bonus (+6 once) —
+      if (brick.isExtraSpawn) {
+        points += 6;
+        brick.isExtraSpawn = false;
+      }
+
+      // Clear roof bonus
+      if (isRoofBonusActive) {
+        isRoofBonusActive = false;
+        ball.classList.remove("bonus-active");
+        soundManager.play("powerUpSpawn", { pitch: 3, volume: 0.7 });
+      }
+
+      // Multi-hit logic
+      brick.hitsTaken++;
+      if (brick.hitsTaken >= brick.hitsRequired) {
+        const soundName = destroySounds[destroySoundIndex];
+        soundManager.play(soundName);
+        destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
+
+        brick.isBroken = true;
+        brick.element.classList.add("broken");
+        score += points;
+
+        if (brick.powerUpType) {
+          spawnPowerUp(brick.powerUpType, brick);
+        }
+      } else {
+        soundManager.play("multihit", { pitch: 1 });
+        setTimeout(() => {
+          soundManager.play("multihit", { pitch: 1.5, volume: 0.7 });
+        }, 50);
+        brick.element.classList.add("damaged");
+      }
+
+      // Update score display
+      scoreDisplay.textContent = `Score: ${score}`;
+
+      // Neon Legend check
+      if (score > 500 && !isNeonLegend) {
+        isNeonLegend = true;
+        showNotification({
+          emoji:       "😎",
+          name:        "NEON LEGEND",
+          description: "Status Achieved!"
+        });
+        soundManager.play("winSong");
+      }
+
+      // Brick shake & ball impact animation
+      brick.element.classList.remove("shake");
+      void brick.element.offsetWidth;
+      brick.element.classList.add("shake");
+
+      ball.classList.remove("impact-animation");
+      void ball.offsetWidth;
+      ball.classList.add("impact-animation");
+
+      clearTimeout(emojiSwapTimeout);
+      if (isNeonLegend) {
+        ball.textContent = "😎";
+      } else {
+        const idx = Math.floor(Math.random() * CHAOTIC_EMOJIS.length);
+        ball.textContent = CHAOTIC_EMOJIS[idx];
+        emojiSwapTimeout = setTimeout(() => {
+          ball.textContent = BALL_EMOJI;
+        }, 250);
+      }
+
+      // Bounce and accelerate
+      ballSpeedY *= -1;
+      ballSpeedX *= 1.005;
+      ballSpeedY *= 1.005;
+
+      // Reset wall-bounce flag after scoring
+      justBounced = false;
+
+      // Only handle one brick per frame
+      break;
+    }
+  }
+}
+
+
+
 function renderGame(){ball.style.left=`${ballX}px`,ball.style.top=`${ballY}px`;const e=paddleX-PADDLE_DEFAULT_WIDTH/2;paddle.style.left=`${e}px`}
 function endGame(e){gameOver=!0,gameRunning=!1,cancelAnimationFrame(animationFrameId),soundManager.stopAll(),e?soundManager.play("winSong"):soundManager.play("loseSong");const t=getHighScore();let o=!1;score>t&&(saveHighScore(score),o=!0);const r=getHighScore(),n=getRating(score,e),a=e?"Mission Complete!":"System Failure!";gameMessage.innerHTML=`<span class="title">${a}</span><span class="name rating">${n}</span><span class="description">Final Score: ${score}</span><span class="high-score">${o?"New High Score!":""}</span><p class="game-message-prompt">Press SPACE to Restart</p>`,gameMessage.style.display="block",gameArea.classList.remove("hide-cursor")}
 function launchStuckBall(){if(ballIsStuck){clearTimeout(autoLaunchTimeout),soundManager.stop("winSong"),ballIsStuck=!1,ballSpeedY=-INITIAL_BALL_SPEED;const e=paddleWidth/2,t=(ballX+BALL_SIZE/2-paddleX)/e*INITIAL_BALL_SPEED*1.5;ballSpeedX=t,soundManager.play("magLaunch")}}
 function fireLaser(){if(!canFire||!isLaserActive)return;canFire=!1,soundManager.play("laserFire"),(()=>{const e=6,t=20,o=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,r={x:paddleX-e/2,y:o-t,width:e,height:t},n=document.createElement("div");n.className="laser-bolt",n.style.left=`${r.x}px`,n.style.top=`${r.y}px`,gameArea.appendChild(n),r.element=n,lasers.push(r)})(),setTimeout(()=>{canFire=!0},FIRE_COOLDOWN)}
-function spawnDisruptiveBricks(e){const t=new Set;bricks.forEach(e=>{if(!e.isBroken){const o=Math.floor((e.x-(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2)/(BRICK_WIDTH+BRICK_GAP)),r=Math.floor((e.y-50*GAME_SCALE)/(BRICK_HEIGHT+BRICK_GAP));t.add(`${o},${r}`)}});const o=[];for(let r=-2;r<BRICK_ROWS+2;r++)for(let n=0;n<BRICK_COLS;n++)t.has(`${n},${r}`)||o.push({c:n,r:r});for(let a=o.length-1;0<a;a--){const l=Math.floor(Math.random()*(a+1));[o[a],o[l]]=[o[l],o[a]]}for(let c=0;c<Math.min(e,o.length);c++){const d=o[c],s=document.createElement("div");s.classList.add("brick","extra",`brick-row-${d.r%5}`);const i=(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2+d.c*(BRICK_WIDTH+BRICK_GAP),u=50*GAME_SCALE+d.r*(BRICK_HEIGHT+BRICK_GAP),p={element:s,x:i,y:u,width:BRICK_WIDTH,height:BRICK_HEIGHT,isBroken:!1,hitsRequired:1,hitsTaken:0,powerUpType:null};s.style.left=`${i}px`,s.style.top=`${u}px`,bricksContainer.appendChild(s),bricks.push(p)}}
+
+function spawnDisruptiveBricks(count) {
+  // 1) gather empty grid slots as before
+  const occupied = new Set();
+  bricks.forEach(b => {
+    if (!b.isBroken && !b.element.classList.contains('extra')) {
+      const gridLeft = (GAME_WIDTH - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP) / 2;
+      const col = Math.round((b.x - gridLeft) / (BRICK_WIDTH + BRICK_GAP));
+      const row = Math.round((b.y - 50 * GAME_SCALE) / (BRICK_HEIGHT + BRICK_GAP));
+      occupied.add(`${row},${col}`);
+    }
+  });
+
+  // 2) collect all empty slots, shuffle, etc…
+  const candidates = [];
+  for (let row = 0; row < BRICK_ROWS; row++) {
+    for (let col = 0; col < BRICK_COLS; col++) {
+      if (occupied.has(`${row},${col}`)) continue;
+      const y = 50 * GAME_SCALE + row * (BRICK_HEIGHT + BRICK_GAP);
+      if (y + BRICK_HEIGHT > GAME_HEIGHT - 100) continue;
+      candidates.push({ row, col });
+    }
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
+  // 3) spawn them into gameArea
+  const gridLeft = (GAME_WIDTH - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP) / 2;
+  const spawnCount = Math.min(count, candidates.length);
+  for (let i = 0; i < spawnCount; i++) {
+    const { row, col } = candidates[i];
+    const x = gridLeft + col * (BRICK_WIDTH + BRICK_GAP);
+    const y = 50 * GAME_SCALE + row * (BRICK_HEIGHT + BRICK_GAP);
+
+    const el = document.createElement('div');
+    el.classList.add('brick','extra',`brick-row-${row}`);
+    el.style.position = 'absolute';
+    el.style.left     = `${x}px`;
+    el.style.top      = `${y}px`;
+    gameArea.appendChild(el);
+
+    bricks.push({
+      element:      el,
+      x, 
+      y,
+      width:        BRICK_WIDTH,
+      height:       BRICK_HEIGHT,
+      isBroken:     false,
+      hitsRequired: 1,
+      hitsTaken:    0,
+      powerUpType:  null,
+
+      // ← Tag it as an extra-spawned brick
+      isExtraSpawn: true
+    });
+  }
+}
+
 
 document.addEventListener('DOMContentLoaded',setupGame);
 resetButton.addEventListener("click",initGame);
