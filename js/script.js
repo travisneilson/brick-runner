@@ -1,3 +1,5 @@
+import { showNotification } from './notifications.js';
+
 // --- Game Constants and DOM Element References ---
 const GAME_SCALE = 1.5;
 const GAME_WIDTH = 600 * GAME_SCALE;
@@ -290,49 +292,6 @@ function updatePaddlePosition(e){const t=paddleWidth/2;leftPressed&&paddleX-t>0?
 function updateBallPosition(e){if(ballIsStuck)return;const t=activePowerUps["slow-mo"]?.length||0,o=Math.pow(.75,t);ballX+=ballSpeedX*o*e,ballY+=ballSpeedY*o*e}
 function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left||e.left>t.right)}
 
-function showNotification(e) {
-  // 1. Create the container for this notification
-  const t = document.createElement("div");
-  t.classList.add("notification");
-
-  // 2. Manage existing notifications: stack up to MAX_NOTIFICATIONS
-  const existing = notificationsContainer.querySelectorAll(".notification");
-  existing.forEach((el, idx) => {
-    // reposition and re‐stack
-    el.className = `notification visible stack-${idx+1}`;
-    // remove oldest notifications once we exceed the cap
-    if (idx+1 >= MAX_NOTIFICATIONS) {
-      el.classList.add("removing");
-      setTimeout(() => el.remove(), 500);
-    }
-  });
-
-  // 3. Fill in the HTML based on whether e is a string or an object
-  if (typeof e === "string") {
-    // simple text alert
-    t.innerHTML = `<span class="name">${e}</span>`;
-  } else {
-    // power-up style alert
-    t.innerHTML = `
-      <span class="title">Power Up!</span>
-      <span class="name">${e.emoji} ${e.name}!</span>
-      <span class="description">${e.description}</span>
-    `;
-  }
-
-  // 4. Add to the DOM and trigger the entrance animation
-  notificationsContainer.appendChild(t);
-  setTimeout(() => t.classList.add("visible"), 10);
-
-  // 5. Auto‐dismiss after ~3.5s
-  setTimeout(() => {
-    t.classList.add("removing");
-    setTimeout(() => t.remove(), 500);
-  }, 3500);
-}
-
-
-
 
 function updatePaddleWidth() {
   // 1. Compute the scale factor: base 1.0, +0.35 per Expando stack
@@ -354,7 +313,75 @@ function updatePaddleWidth() {
 }
 
 function spawnPowerUp(e,t){soundManager.play("powerUpSpawn",{pitch:2});const o=POWER_UP_TYPES[e];if(!o)return;const r=document.createElement("div");r.classList.add("power-up"),r.textContent=o.emoji;const n={element:r,type:e,x:t.x+t.width/2-POWER_UP_SIZE/2,y:t.y+t.height/2-POWER_UP_SIZE/2,bounced:!1,vx:0,vy:0,originX:t.x+t.width/2-POWER_UP_SIZE/2,swayAmplitude:25+20*Math.random(),swayFrequency:.02+.02*Math.random(),swayPhase:2*Math.random()*Math.PI};r.style.left=`${n.x}px`,r.style.top=`${n.y}px`,gameArea.appendChild(r),powerUps.push(n)}
-function updatePowerUps(e){for(let t=powerUps.length-1;0<=t;t--){const o=powerUps[t];o.bounced?(o.vy+=GRAVITY*60*e,o.x+=o.vx*60*e,o.y+=o.vy*60*e):(o.y+=POWER_UP_SPEED*e,o.x=o.originX+o.swayAmplitude*Math.sin(o.y*o.swayFrequency+o.swayPhase));const r=paddleWidth/2,n={left:paddleX-r,right:paddleX+r,top:GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,bottom:GAME_HEIGHT-PADDLE_BOTTOM_OFFSET},a={left:o.x,right:o.x+POWER_UP_SIZE,top:o.y,bottom:o.y+POWER_UP_SIZE};if(!o.bounced&&isColliding(a,n)){const l=activePowerUps[o.type]||[],c=POWER_UP_TYPES[o.type];"stacking"===c.type&&l.length>=MAX_PADDLE_LEVEL?(o.bounced=!0,o.vy=-105,o.vx=105*(Math.random()-.5),showNotification("MAX POWER!")):(activatePowerUp(o.type),o.element.remove(),powerUps.splice(t,1));continue}o.y>GAME_HEIGHT?(o.element.remove(),powerUps.splice(t,1)):(o.element.style.top=`${o.y}px`,o.element.style.left=`${o.x}px`)}}
+
+function updatePowerUps(dt) {
+  // 0) Precompute the on-screen paddle rect once per frame
+  const paddleBox = paddle.getBoundingClientRect();
+  const areaBox   = gameArea.getBoundingClientRect();
+  const padRect   = {
+    left:   paddleBox.left   - areaBox.left,
+    right:  paddleBox.right  - areaBox.left,
+    top:    paddleBox.top    - areaBox.top,
+    bottom: paddleBox.bottom - areaBox.top
+  };
+
+  // 1) Iterate backwards so we can splice safely
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    const pu = powerUps[i];
+
+    // 2) Physics: either initial drop or after first bounce
+    if (pu.bounced) {
+      pu.vy += GRAVITY * 60 * dt;
+      pu.x  += pu.vx * 60 * dt;
+      pu.y  += pu.vy * 60 * dt;
+    } else {
+      pu.y  += POWER_UP_SPEED * dt;
+      pu.x   = pu.originX
+             + pu.swayAmplitude * Math.sin(pu.y * pu.swayFrequency + pu.swayPhase);
+    }
+
+    // 3) Build the power-up’s AABB
+    const puRect = {
+      left:   pu.x,
+      right:  pu.x + POWER_UP_SIZE,
+      top:    pu.y,
+      bottom: pu.y + POWER_UP_SIZE
+    };
+
+    // 4) **Always** check for overlap, not just before first bounce
+    if (isColliding(puRect, padRect)) {
+      const stack = activePowerUps[pu.type] || [];
+      const def   = POWER_UP_TYPES[pu.type];
+
+      // If stacking is full, bounce it out again
+      if (def.type === 'stacking' && stack.length >= MAX_PADDLE_LEVEL) {
+        pu.bounced = true;
+        pu.vy      = -105;
+        pu.vx      = 105 * (Math.random() - 0.5);
+        showNotification("MAXO EXPANDO!");
+      } else {
+        // Otherwise, collect it
+        activatePowerUp(pu.type);
+        pu.element.remove();
+        powerUps.splice(i, 1);
+      }
+      continue;
+    }
+
+    // 5) Remove if it falls past the bottom
+    if (pu.y > GAME_HEIGHT) {
+      pu.element.remove();
+      powerUps.splice(i, 1);
+      continue;
+    }
+
+    // 6) Otherwise, update its on-screen position
+    pu.element.style.left = `${pu.x}px`;
+    pu.element.style.top  = `${pu.y}px`;
+  }
+}
+
+
 
 function activatePowerUp(type) {
   const def = POWER_UP_TYPES[type];
