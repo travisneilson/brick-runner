@@ -123,7 +123,14 @@ const soundManager = {
 let score = 0, gameOver = true, gameRunning = false, animationFrameId, emojiSwapTimeout = null, powerUps = [], activePowerUps = {}, paddleSizeLevel = 0, MAX_PADDLE_LEVEL = 3, isStickyPaddle = false, ballIsStuck = false, isLaserActive = false, canFire = true, lasers = [], assetsReady = !1, isRoofBonusActive = false, isNeonLegend = false, autoLaunchTimeout = null, emojiCycleInterval = null;
 let lives = 1;
 const POWER_UP_TYPES = {
-    'wide-paddle': { type: "stacking", emoji: "🍄", name: "EXPANDO", cssClass: "wide-paddle", description: "Paddle size increased", duration: 15000 },
+    'wide-paddle': {
+      type:        'stacking',
+      emoji:       '🪴',                // new “multiplier” emoji
+      name:        'EXPANDO',
+      description: 'Multiply your score!',  // updated text
+      cssClass:    'wide-paddle',
+      duration:    15000
+    },    
     'slow-mo': { type: "stacking", emoji: "🐌", name: "SLOW-MO", cssClass: "slow-mo", description: "Ball speed reduced", duration: 5000 },
     'sticky-paddle': { type: "refreshing", emoji: "🧲", name: "MAG-LOCK", cssClass: "sticky-paddle", description: "Catch & launch the ball", duration: 4000 },
     'laser-blast': { type: "refreshing", emoji: "🎯", name: "LASER BLAST", cssClass: "laser-blast", description: "Press F to fire!", duration: 3000 },
@@ -326,7 +333,26 @@ function showNotification(e) {
 
 
 
-function updatePaddleWidth(){paddleWidth=PADDLE_DEFAULT_WIDTH*(1+paddleSizeLevel*.35);const e=1+paddleSizeLevel*.35;paddle.style.transform=`scaleX(${e})`,paddle.classList.remove("paddle-glow-1","paddle-glow-2","paddle-glow-3"),1===paddleSizeLevel?paddle.classList.add("paddle-glow-1"):2===paddleSizeLevel?paddle.classList.add("paddle-glow-2"):3===paddleSizeLevel&&paddle.classList.add("paddle-glow-3")}
+
+function updatePaddleWidth() {
+  // 1. Compute the scale factor: base 1.0, +0.35 per Expando stack
+  const scaleFactor = 1 + paddleSizeLevel * 0.35;
+
+  // 2. Update the paddle width (hitbox) and visual scale
+  paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
+  paddle.style.width     = `${paddleWidth}px`;
+  paddle.style.transform = `scaleX(${scaleFactor})`;
+
+  // 3. Refresh glow classes to match the current stack level
+  //    We only ever use paddle-glow-1, -2, or -3
+  ['paddle-glow-1','paddle-glow-2','paddle-glow-3'].forEach(cls => {
+    paddle.classList.remove(cls);
+  });
+  if (paddleSizeLevel >= 1 && paddleSizeLevel <= 3) {
+    paddle.classList.add(`paddle-glow-${paddleSizeLevel}`);
+  }
+}
+
 function spawnPowerUp(e,t){soundManager.play("powerUpSpawn",{pitch:2});const o=POWER_UP_TYPES[e];if(!o)return;const r=document.createElement("div");r.classList.add("power-up"),r.textContent=o.emoji;const n={element:r,type:e,x:t.x+t.width/2-POWER_UP_SIZE/2,y:t.y+t.height/2-POWER_UP_SIZE/2,bounced:!1,vx:0,vy:0,originX:t.x+t.width/2-POWER_UP_SIZE/2,swayAmplitude:25+20*Math.random(),swayFrequency:.02+.02*Math.random(),swayPhase:2*Math.random()*Math.PI};r.style.left=`${n.x}px`,r.style.top=`${n.y}px`,gameArea.appendChild(r),powerUps.push(n)}
 function updatePowerUps(e){for(let t=powerUps.length-1;0<=t;t--){const o=powerUps[t];o.bounced?(o.vy+=GRAVITY*60*e,o.x+=o.vx*60*e,o.y+=o.vy*60*e):(o.y+=POWER_UP_SPEED*e,o.x=o.originX+o.swayAmplitude*Math.sin(o.y*o.swayFrequency+o.swayPhase));const r=paddleWidth/2,n={left:paddleX-r,right:paddleX+r,top:GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,bottom:GAME_HEIGHT-PADDLE_BOTTOM_OFFSET},a={left:o.x,right:o.x+POWER_UP_SIZE,top:o.y,bottom:o.y+POWER_UP_SIZE};if(!o.bounced&&isColliding(a,n)){const l=activePowerUps[o.type]||[],c=POWER_UP_TYPES[o.type];"stacking"===c.type&&l.length>=MAX_PADDLE_LEVEL?(o.bounced=!0,o.vy=-105,o.vx=105*(Math.random()-.5),showNotification("MAX POWER!")):(activatePowerUp(o.type),o.element.remove(),powerUps.splice(t,1));continue}o.y>GAME_HEIGHT?(o.element.remove(),powerUps.splice(t,1)):(o.element.style.top=`${o.y}px`,o.element.style.left=`${o.x}px`)}}
 
@@ -334,37 +360,51 @@ function activatePowerUp(type) {
   const def = POWER_UP_TYPES[type];
   if (!def) return;
 
-  // — Instant power‐ups (e.g. Bricked Up!)
+  // — Instant power-ups (only Bricked Up! now) —
   if (def.type === 'instant') {
     if (type === 'one-up') {
-      // only spawn new bricks, no extra lives
+      // Only spawn new bricks; no extra lives
       spawnDisruptiveBricks(5);
     }
-    // notification for instant power‐ups
+    // Notification for instant power-ups
     showNotification(def);
     return;
   }
 
-  // — Stacking/refreshing power‐ups
+  // — Stacking/refreshing power-ups —
   if (!activePowerUps[type]) {
     activePowerUps[type] = [];
   }
   const now = Date.now();
   if (def.type === 'refreshing') {
-    // refresh single timer
+    // Refresh single timer
     activePowerUps[type][0] = { endTime: now + def.duration };
   } else {
-    // stacking: chain timers end‐to‐end
+    // Stacking: chain timers end-to-end
     const lastEnd = activePowerUps[type].slice(-1)[0]?.endTime || now;
     activePowerUps[type].push({ endTime: lastEnd + def.duration });
   }
 
-  // — Apply the effect immediately
+  // — Apply the effect immediately —
   switch (type) {
     case 'wide-paddle':
+      // Update paddle size
       paddleSizeLevel = Math.min(activePowerUps[type].length, MAX_PADDLE_LEVEL);
       updatePaddleWidth();
       soundManager.play('grow');
+
+      // Tiered, stack-specific notification
+      const roman = ['I', 'II', 'III'][paddleSizeLevel - 1];
+      const multiplier = paddleSizeLevel + 1;
+      showNotification({
+        emoji:       '🪴',
+        name:        `EXPANDO ${roman}`,
+        description: `Score ×${multiplier}!`
+      });
+      break;
+
+    case 'slow-mo':
+      soundManager.play('bounce', { pitch: 0.8, volume: 0.7 });
       break;
 
     case 'sticky-paddle':
@@ -378,19 +418,16 @@ function activatePowerUp(type) {
       paddle.classList.add('paddle-armed');
       soundManager.play('laserFire', { pitch: 1.2 });
       break;
-
-    case 'slow-mo':
-      soundManager.play('bounce', { pitch: 0.8, volume: 0.7 });
-      break;
   }
 
-  // — Update (or create) status‐bar indicator
+  // Update or create the on-screen timer/status bar
   createOrUpdateStatusIndicator(type);
 
-  // — Notification for all non-instant power-ups
-  showNotification(def);
+  // Generic notification for all non-Expando stacking power-ups
+  if (type !== 'wide-paddle') {
+    showNotification(def);
+  }
 }
-
 
 
 function updateStatusIndicators(){for(const e in activePowerUps){const t=activePowerUps[e];if(!t||0===t.length){activePowerUps[e]&&(delete activePowerUps[e],document.getElementById(`status-${e}`)?.remove());continue}let o=!1;for(;t.length>0&&Date.now()>=t[0].endTime;)t.shift(),o=!0;if(o){if(soundManager.sounds.grow_reversed)soundManager.play("grow_reversed",{pitch:1.2,volume:.5});else soundManager.play("multihit",{pitch:.7,volume:.5});const r={"wide-paddle":()=>{paddleSizeLevel=t.length,updatePaddleWidth()},"sticky-paddle":()=>{isStickyPaddle=!1,paddle.classList.remove("paddle-sticky"),ballIsStuck&&launchStuckBall()},"laser-blast":()=>{isLaserActive=!1,paddle.classList.remove("paddle-armed")}};r[e]&&r[e]()}if(0===t.length)document.getElementById(`status-${e}`)?.remove(),delete activePowerUps[e];else{const n=document.getElementById(`status-${e}`);if(n){const a=n.querySelector(".stack-count"),l=t.length;1<l?(a.textContent=`x${l}`,a.style.display="inline-block"):(a.style.display="none");const c=t[0],d=POWER_UP_TYPES[e],s=c.endTime-d.duration,i=c.endTime-s,u=c.endTime-Date.now(),p=n.querySelector(".timer-bar"),g=Math.max(0,u/i*100);p.style.width=`${g}%`}}}}
@@ -494,38 +531,52 @@ function checkCollisions() {
     }
   }
 
-  // --- Paddle Collision ---
-  const halfPaddle = paddleWidth / 2;
-  const paddleRect = {
-    left:   paddleX - halfPaddle,
-    right:  paddleX + halfPaddle,
-    top:    GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET,
-    bottom: GAME_HEIGHT - PADDLE_BOTTOM_OFFSET
-  };
+ // — Use the DOM to get pixel-perfect paddle bounds —  
+// — Paddle Collision (pixel-perfect with CSS scale) —
+const paddleBox = paddle.getBoundingClientRect();
+const areaBox   = gameArea.getBoundingClientRect();
 
-  if (isColliding(ballRect, paddleRect) && ballSpeedY > 0) {
-    soundManager.play("bounce");
-    // Clear roof bonus
-    if (isRoofBonusActive) {
-      isRoofBonusActive = false;
-      ball.classList.remove("bonus-active");
-    }
-    // If sticky, re-stick the ball
-    if (isStickyPaddle) {
-      ballIsStuck = true;
-      ballSpeedX = 0;
-      ballSpeedY = 0;
-    } else {
-      // Bounce off paddle
-      ballY = paddleRect.top - BALL_SIZE;
-      ballSpeedY *= -1;
-      // Give X velocity based on hit position
-      const impactPos = (ballX + BALL_SIZE/2 - paddleX) / halfPaddle;
-      ballSpeedX = impactPos * INITIAL_BALL_SPEED * 1.5;
-    }
-    // Reset bounce flag on paddle hit
-    justBounced = false;
+// convert to game-space
+const padRect = {
+  left:   paddleBox.left   - areaBox.left,
+  right:  paddleBox.right  - areaBox.left,
+  top:    paddleBox.top    - areaBox.top,
+  bottom: paddleBox.bottom - areaBox.top
+};
+
+// only proceed if the ball is coming down
+if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
+  soundManager.play("bounce");
+
+  // clear any roof bonus
+  if (isRoofBonusActive) {
+    isRoofBonusActive = false;
+    ball.classList.remove("bonus-active");
   }
+
+  if (isStickyPaddle) {
+    // stick the ball
+    ballIsStuck = true;
+    ballSpeedX  = 0;
+    ballSpeedY  = 0;
+  } else {
+    // bounce off the paddle
+    // 1) reposition the ball just above the paddle
+    ballY = padRect.top - BALL_SIZE;
+    // 2) invert Y velocity
+    ballSpeedY *= -1;
+
+    // 3) compute X-velocity based on hit position
+    const padWidth    = padRect.right - padRect.left;
+    const halfPaddle  = padWidth / 2;
+    const paddleCenter= padRect.left + halfPaddle;
+    const impactPos   = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
+    ballSpeedX        = impactPos * INITIAL_BALL_SPEED * 1.5;
+  }
+
+  // finally, clear your bank-shot flag
+  justBounced = false;
+}
 
   // --- Brick Collisions ---
   for (let i = 0; i < bricks.length; i++) {
@@ -547,13 +598,18 @@ function checkCollisions() {
       if (justBounced) {
         points += 2;
       }
-
+      
       // — NEW: Bricked Up! spawn bonus (+6 once) —
       if (brick.isExtraSpawn) {
         points += 6;
         brick.isExtraSpawn = false;
       }
-
+      // 4. Expando multiplier (🪴 Multiply your score!)
+      //    1 stack → 2×, 2 stacks → 3×, 3 stacks → 4×
+      const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
+      if (expandoStacks > 0) {
+        points *= (expandoStacks + 1);
+      }
       // Clear roof bonus
       if (isRoofBonusActive) {
         isRoofBonusActive = false;
@@ -571,6 +627,7 @@ function checkCollisions() {
         brick.isBroken = true;
         brick.element.classList.add("broken");
         score += points;
+        
 
         if (brick.powerUpType) {
           spawnPowerUp(brick.powerUpType, brick);
