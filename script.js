@@ -131,19 +131,20 @@ const POWER_UP_TYPES = {
 };
 const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
 const soundsToLoad = { 
-    'bounce': {         url: "../../sounds/paddle-and-wall.mp3" }, 
-    'multihit': {       url: "../../sounds/multi-hit.mp3" }, 
-    'destroy1': {       url: "../../sounds/Destroy1.mp3" }, 
-    'destroy2': {       url: "../../sounds/Destroy2.mp3" }, 
-    'destroy3': {       url: "../../sounds/Destroy3.mp3" }, 
-    'powerUpSpawn': {   url: "../../sounds/Drop.mp3" }, 
-    'laserFire': {      url: "../../sounds/Laser2.mp3" }, 
-    'winSong': {        url: "../../sounds/theme.wav" }, 
-    'loseSong': {       url: "../../sounds/LoserSong.mp3" }, 
-    'grow': {           url: "../../sounds/Grow.mp3", reversable: true }, 
-    'magActivate': {    url: "../../sounds/mag1.mp3" }, 
-    'magLaunch': {      url: "../../sounds/mag2.mp3" } 
+  'bounce':      { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/paddle-and-wall.mp3" }, 
+  'multihit':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/multi-hit.mp3" }, 
+  'destroy1':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy1.mp3" }, 
+  'destroy2':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy2.mp3" }, 
+  'destroy3':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy3.mp3" }, 
+  'powerUpSpawn':{ url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Drop.mp3" }, 
+  'laserFire':   { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Laser2.mp3" }, 
+  'winSong':     { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/theme.wav" }, 
+  'loseSong':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/LoserSong.mp3" }, 
+  'grow':        { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Grow.mp3", reversable: true }, 
+  'magActivate': { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/mag1.mp3" }, 
+  'magLaunch':   { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/mag2.mp3" } 
 };
+
 const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
 let destroySoundIndex = 0;
 let paddleX, paddleWidth = PADDLE_DEFAULT_WIDTH, leftPressed = false, rightPressed = false;
