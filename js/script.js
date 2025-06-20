@@ -15,6 +15,9 @@ const BRICK_HEIGHT = 20 * GAME_SCALE;
 const PADDLE_BOTTOM_OFFSET = 10 * GAME_SCALE;
 const POWER_UP_CHANCE = 0.35;
 const POWER_UP_SIZE = 30;
+const clearedRows = new Set();
+let rowBonusCount = 0;  // always = clearedRows.size
+
 
 const INITIAL_BALL_SPEED = 200 * GAME_SCALE;
 const PADDLE_SPEED = 450 * GAME_SCALE;
@@ -1009,6 +1012,31 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         points += 6;
         brick.isExtraSpawn = false;
       }
+      function checkRowClear(row) {
+        if (clearedRows.has(row)) return;
+        // find non‐extra bricks in this row
+        const rowBricks = bricks.filter(b => b.row === row && !b.isExtraSpawn);
+        if (rowBricks.every(b => b.isBroken)) {
+          // mark it
+          clearedRows.add(row);
+          rowBonusCount = clearedRows.size;
+          awardRowClearBonus(row);
+        }
+      }
+
+      function awardRowClearBonus(row) {
+        // 1) Flash the row visually
+        flashRow(row);
+        // 2) Show HUD badge
+        showNotification({
+          emoji:       "⚡️",
+          title:       "Edge Runner",
+          name:        `Row ×${rowBonusCount}`,
+          description: `Score ×${rowBonusCount+1} now active!`
+        });
+        createOrUpdateRowBonusIndicator();
+      }
+
       // 4. Expando multiplier (🪴 Multiply your score!)
       //    1 stack → 2×, 2 stacks → 3×, 3 stacks → 4×
       const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
