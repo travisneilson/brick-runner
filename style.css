@@ -130,6 +130,7 @@ body::before {
   position: absolute;
   pointer-events: none;
   font: bold 1rem var(--game-font, sans-serif);
+  font-family: 'Press Start 2P', cursive;
   color: #ffea00;               /* bright neon yellow */
   text-shadow: 0 0 4px rgba(0,0,0,0.7);
   opacity: 0;
@@ -515,4 +516,33 @@ body::before {
     0% { transform: rotateY(0deg) scale(1); }
     50% { transform: rotateY(180deg) scale(1.2); }
     100% { transform: rotateY(360deg) scale(1); }
+}
+
+.tips-box {
+  background: rgba(20,20,30,0.8);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.75rem;
+  color: var(--clr-text-main);
+  width: 880px;
+    margin-top: 24px;
+}
+.tips-box h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--clr-neon-cyan);
+}
+.tips-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.tips-box li {
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+.tips-box li:last-child {
+  margin-bottom: 0;
 }

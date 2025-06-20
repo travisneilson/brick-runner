@@ -24,11 +24,10 @@ const LASER_SPEED = 500 * GAME_SCALE;
 const FIRE_COOLDOWN = 300;
 const MAX_NOTIFICATIONS = 3;
 let rowBonusLevel = 0;
-
+let isCatMode = false;
 
 const gameArea = document.getElementById('game-area');
 const scoreDisplay = document.getElementById('score');
-const livesDisplay = document.getElementById('lives-display');
 const notificationsContainer = document.getElementById('notifications-container');
 const statusIndicatorsContainer = document.getElementById('status-indicators');
 const ball = document.getElementById('ball');
@@ -42,12 +41,7 @@ const clickToStartOverlay = document.getElementById('click-to-start-overlay');
 const highScoreDisplay = document.getElementById('high-score-display');
 const loadingEmoji = document.getElementById('loading-emoji');
 
-/**
- * Briefly floats a little +points text above the brick that was broken.
- * @param {number} x  – pixel X in game-area coordinates
- * @param {number} y  – pixel Y in game-area coordinates
- * @param {number} pts – the points gained
- */
+
 function showBrickScore(x, y, pts) {
   const pop = document.createElement("div");
   pop.className = "score-pop-up";
@@ -55,8 +49,14 @@ function showBrickScore(x, y, pts) {
   // position it centered on the brick
   pop.style.left = `${x}px`;
   pop.style.top  = `${y}px`;
+  
   gameArea.appendChild(pop);
 
+
+  // Now center it by shifting left/up via margins:
+  const { width, height } = pop.getBoundingClientRect();
+  pop.style.marginLeft = `-${width/2}px`;
+  pop.style.marginTop  = `-${height}px`;
   // trigger the animation
   requestAnimationFrame(() => pop.classList.add("visible"));
 
@@ -211,7 +211,7 @@ const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
 let destroySoundIndex = 0;
 let paddleX, paddleWidth = PADDLE_DEFAULT_WIDTH, leftPressed = false, rightPressed = false;
 let ballX, ballY, ballSpeedX, ballSpeedY;
-const BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
+let BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
 // UPDATED: The 'bricks' array is now declared with 'let' instead of 'const'
 let bricks = [];
 let lastTime = 0,
@@ -221,11 +221,38 @@ let lastTime = 0,
 function getHighScore(){return parseInt(localStorage.getItem("brickRunnerHighScore"))||0}
 function saveHighScore(e){const t=getHighScore();e>t&&localStorage.setItem("brickRunnerHighScore",e),updateHighScoreDisplay()}
 function updateHighScoreDisplay(){const e=getHighScore();highScoreDisplay.textContent=`High Score: ${e}`}
-function getRating(e,t){if(t){if(700<e)return"You Are The Replaced";if(550<e)return"Beyond the Black Wall";return"Neon Legend"}if(e<50)return"System Glitch";if(e<200)return"Data Janitor";if(e<400)return"Grid Runner";return"Burned Out"}
-function updateLivesDisplay(){let e="";for(let t=0;t<lives;t++)e+="❤️";livesDisplay.textContent=e}
+
+/**
+ * Returns a rank string based on the final score and win/loss.
+ * Uses the expanded 8-loss + 6-win tier system.
+ */
+function getRating(score, won) {
+  if (!won) {
+    // ❌ Loss tiers (8)
+    if (score < 200)      return "System Glitch";
+    if (score < 400)      return "Code Ghost";
+    if (score < 700)      return "Memory Leak";
+    if (score < 1000)     return "Burned Out";
+    if (score < 1500)     return "Data Janitor";
+    if (score < 2000)     return "Pixel Drifter";
+    if (score < 2500)     return "Grid Runner";
+                         return "Neon Operator";
+  } else {
+    // ✅ Win tiers (6)
+    if (score < 3500)     return "Neon Legend";
+    if (score < 4500)     return "Circuit Surfer";
+    if (score < 6000)     return "Hologram Hacker";
+    if (score < 8000)     return "Beyond the Black Wall";
+    if (score < 10000)    return "Synth Overlord";
+                         return "You Are The Replaced";
+  }
+}
 
 // --- Game Core Functions ---
 function initGame() {
+    isCatMode   = false;
+    BALL_EMOJI  = "😊";      // your default face
+    ball.textContent = BALL_EMOJI;  
     score = 0;
     scoreDisplay.textContent = `Score: ${score}`;
     isStickyPaddle = false;
@@ -408,7 +435,63 @@ function startGame() {
 
 function togglePause(){if(gameOver||ballIsStuck)return;gameRunning=!gameRunning,gameRunning?(gameMessage.style.display="none",gameArea.classList.add("hide-cursor"),lastTime=0,requestAnimationFrame(gameLoop)):(cancelAnimationFrame(animationFrameId),gameMessage.innerHTML="PAUSED",gameMessage.style.display="block",gameArea.classList.remove("hide-cursor"))}
 function resetAfterLifeLost(){ballIsStuck=!0,isRoofBonusActive=!1,ball.classList.remove("bonus-active"),activePowerUps={},statusIndicatorsContainer.innerHTML="",paddleSizeLevel=0,updatePaddleWidth(),paddle.classList.remove("paddle-sticky","paddle-armed"),isStickyPaddle=!1,isLaserActive=!1,ballX=paddleX-BALL_SIZE/2,ballY=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET-BALL_SIZE,ballSpeedX=0,ballSpeedY=0}
-function gameLoop(e){if(!gameRunning)return;lastTime||(lastTime=e);const t=(e-lastTime)/1e3;lastTime=e,updatePaddlePosition(t),updateBallPosition(t),updatePowerUps(t),updateLasers(t),updateStatusIndicators(),checkCollisions(),renderGame(),ballIsStuck&&(ballX=paddleX-BALL_SIZE/2,ballY=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET-BALL_SIZE);const o=activePowerUps["slow-mo"]?.length||0;o>0&&++frameCounter%(8+4*(o-1))==0&&createOnionSkin(),bricks.every(e=>e.isBroken)?endGame(!0):ballY+BALL_SIZE>GAME_HEIGHT&&!ballIsStuck&&(lives--,updateLivesDisplay(),0<lives?resetAfterLifeLost():endGame(!1)),animationFrameId=requestAnimationFrame(gameLoop)}
+
+function gameLoop(timestamp) {
+  // 1) If the game is paused or over, don’t do anything
+  if (!gameRunning) return;
+
+  // 2) Compute time delta (in seconds)
+  if (!lastTime) lastTime = timestamp;
+  const delta = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  // 3) Update all the moving parts
+  updatePaddlePosition(delta);
+  updateBallPosition(delta);
+  updatePowerUps(delta);
+  updateLasers(delta);
+  updateStatusIndicators();
+
+  // 4) Handle collisions
+  checkCollisions();
+
+  // 5) Draw everything to the screen
+  renderGame();
+
+  // 6) If the ball is stuck to the paddle (mag-lock), keep it there
+  if (ballIsStuck) {
+    ballX = paddleX - BALL_SIZE / 2;
+    ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+  }
+
+  // 7) Slow-Mo “onion skin” effect (lighter trail)
+  const slowMoLevel = activePowerUps["slow-mo"]?.length || 0;
+  if (slowMoLevel > 0) {
+    frameCounter++;
+    const frequency = 8 + 4 * (slowMoLevel - 1);
+    if (frameCounter % frequency === 0) {
+      createOnionSkin();
+    }
+  }
+
+  // 8) Check win / loss conditions
+  //    a) Win if all bricks are broken
+  if (bricks.every(b => b.isBroken)) {
+    endGame(true);
+    return;
+  }
+
+  //    b) Loss if the ball falls below the bottom (and isn’t stuck)
+  if (ballY + BALL_SIZE > GAME_HEIGHT && !ballIsStuck) {
+    endGame(false);
+    return;
+  }
+
+  // 9) Request the next frame
+  animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+
 function updatePaddlePosition(e){const t=paddleWidth/2;leftPressed&&paddleX-t>0?paddleX-=PADDLE_SPEED*e:rightPressed&&paddleX+t<GAME_WIDTH&&(paddleX+=PADDLE_SPEED*e)}
 function updateBallPosition(e){if(ballIsStuck)return;const t=activePowerUps["slow-mo"]?.length||0,o=Math.pow(.75,t);ballX+=ballSpeedX*o*e,ballY+=ballSpeedY*o*e}
 function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left||e.left>t.right)}
@@ -719,7 +802,25 @@ function updateStatusIndicators() {
 
 
 function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${t.emoji}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
-function createOnionSkin(){const e=document.createElement("div");e.className="onion-skin",e.textContent=ball.textContent,e.style.left=`${ballX}px`,e.style.top=`${ballY}px`,gameArea.appendChild(e),setTimeout(()=>{e.remove()},500)}
+
+function createOnionSkin() {
+  const skin = document.createElement("div");
+  skin.className = "onion-skin";
+
+  // If we’re in cat mode, lock it to the cat emoji
+  if (isCatMode) {
+    skin.textContent = BALL_EMOJI;  // '🐱'
+  } else {
+    skin.textContent = ball.textContent;
+  }
+
+  skin.style.left = `${ballX}px`;
+  skin.style.top  = `${ballY}px`;
+  gameArea.appendChild(skin);
+
+  setTimeout(() => skin.remove(), 500);
+}
+
 
 function updateLasers(dt) {
   for (let i = lasers.length - 1; i >= 0; i--) {
@@ -757,30 +858,38 @@ function updateLasers(dt) {
       };
 
       if (isColliding(laserRect, brickRect)) {
-        // 1) Compute points just like in checkCollisions()
+        // 1) Compute base points
         const basePoints = isRoofBonusActive ? 15 : 10;
         const laserBonus = 3;
-        const points     = basePoints + laserBonus;
 
-        // 2) Add to your total and update the display
+        // 2) Make points mutable, then round the popup to …9 in Cat Mode
+        let points = basePoints + laserBonus;
+        if (isCatMode) {
+          points = points - (points % 10) + 9;
+        }
+
+        // 3) Add to total and round the total as well
         score += points;
+        if (isCatMode) {
+          score = score - (score % 10) + 9;
+        }
         scoreDisplay.textContent = `Score: ${score}`;
 
-        // 3) **NEW**: float a +N at the brick’s position
+        // 4) Show the floating +N (now ending in 9)
         const popupX = b.x + b.width / 2;
-        const popupY = b.y;  // adjust up/down as you like
+        const popupY = b.y;
         showBrickScore(popupX, popupY, points);
 
-        // 4) Mark the brick and spawn any power-up
+        // 5) Break the brick, spawn any power-up, remove the bolt
         b.isBroken = true;
         b.element.classList.add('broken');
         if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
-
-        // 5) Remove the laser bolt
         l.element.remove();
         lasers.splice(i,1);
+
         break;
       }
+
 
 
     }
@@ -913,24 +1022,96 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         soundManager.play("powerUpSpawn", { pitch: 3, volume: 0.7 });
       }
 
-      // Multi-hit logic
+     // Multi-hit logic
+     // Multi-hit logic
       brick.hitsTaken++;
+
+      // only when the brick actually dies…
       if (brick.hitsTaken >= brick.hitsRequired) {
+        // 1) Play the destroy sound
         const soundName = destroySounds[destroySoundIndex];
         soundManager.play(soundName);
         destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
 
+        // 2) Mark the brick as broken
         brick.isBroken = true;
         brick.element.classList.add("broken");
-        points *= (rowBonusLevel + 1);
+
+        // … after you calculate your raw points (before any rounding) …
+        let rawPoints = points;
+
+        // Cat Mode: round popup → …9
+        if (isCatMode) {
+          points = rawPoints - (rawPoints % 10) + 9;
+        }
+
+        // Grab the score before adding
+        let preScore = score;
+
+        // Add & then round total → …9
         score += points;
-        if (typeof brick.row === 'number' && !brick.isExtraSpawn) {
+        if (isCatMode) {
+          score = score - (score % 10) + 9;
+        }
+
+        // 3) Apply row-clear multiplier if any
+        points *= (rowBonusLevel + 1);
+
+        // 2 hit brick bonus...
+        if (brick.hitsRequired > 1) {
+          points = Math.round(points * 1.6);  // +20%
+        }
+
+        const devBreakdown = {
+          basePoints:            isRoofBonusActive ? 15 : 10,
+          finalPoints:           points,
+          wallBounceBonus:       justBounced ? 2 : 0,
+          brickedUpBonus:        brick.isExtraSpawn ? 6 : 0,
+          expandoStacks:         activePowerUps["wide-paddle"]?.length || 0,
+          expandoMultiplier:     (activePowerUps["wide-paddle"]?.length || 0) + 1,
+          rowClearLevel:         rowBonusLevel,
+          twoHitRequired:        brick.hitsRequired,
+          twoHitMultiplier:      brick.hitsRequired > 1 ? 1.6 : 1
+          
+        };
+        console.log("🔍 Brick break details:", devBreakdown);
+
+
+        // **DEBUG LOG**  
+        console.log("🐱 [Brick] CatMode Debug:", {
+          rawPoints,
+          pointsRounded: points,
+          scoreBefore: preScore,
+          scoreAfter:  score,
+          endsIn9:      (score % 10) === 9
+        });
+
+        // Now show the popup and continue…
+        showBrickScore(
+          brick.x + brick.width/2,
+          brick.y,
+          points
+        );
+
+        // 5) Float the +N popup at the brick’s position
+        showBrickScore(
+          brick.x + brick.width / 2,
+          brick.y,
+          points
+        );
+
+        // 6) Trigger the row-clear check (if applicable)
+        if (typeof brick.row === "number" && !brick.isExtraSpawn) {
           evaluateRowClear(brick.row);
         }
+
+        // 7) Spawn a power-up from this brick if it had one
         if (brick.powerUpType) {
           spawnPowerUp(brick.powerUpType, brick);
         }
+
       } else {
+        // First-hit only: play “multihit” sound and show damage, but NO popup
         soundManager.play("multihit", { pitch: 1 });
         setTimeout(() => {
           soundManager.play("multihit", { pitch: 1.5, volume: 0.7 });
@@ -938,8 +1119,11 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         brick.element.classList.add("damaged");
       }
 
-      // Update score display
+      // 8) Finally, update the score display
       scoreDisplay.textContent = `Score: ${score}`;
+
+    
+
 
       // Neon Legend check
       if (score > 500 && !isNeonLegend) {
@@ -952,12 +1136,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         soundManager.play("winSong");
       }
 
-      // after you break the brick or on multihit...
-      const popupX = brick.x + brick.width  / 2;
-      const popupY = brick.y;  // or brick.y + brick.height/2 if you prefer centered vertically
-      showBrickScore(popupX, popupY, points);
-
-
       // Brick shake & ball impact animation
       brick.element.classList.remove("shake");
       void brick.element.offsetWidth;
@@ -968,15 +1146,26 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       ball.classList.add("impact-animation");
 
       clearTimeout(emojiSwapTimeout);
-      if (isNeonLegend) {
+      
+      console.log('💡 emoji swap:', { isCatMode, isNeonLegend });
+      
+      if (isCatMode) {
+        // never change it off the cat face
+        BALL_EMOJI = '🐱'; 
+        ball.textContent = BALL_EMOJI;
+
+      } else if (isNeonLegend) {
         ball.textContent = "😎";
+
       } else {
+        // your normal chaotic swap
         const idx = Math.floor(Math.random() * CHAOTIC_EMOJIS.length);
         ball.textContent = CHAOTIC_EMOJIS[idx];
         emojiSwapTimeout = setTimeout(() => {
           ball.textContent = BALL_EMOJI;
         }, 250);
       }
+
 
       // Bounce and accelerate
       ballSpeedY *= -1;
@@ -1099,3 +1288,195 @@ document.addEventListener("keyup",e=>{const t=e.key.toLowerCase();"arrowleft"===
 document.addEventListener("mousemove",e=>{if(gameRunning){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
 
 setupGame();
+
+window.devSetScore = function(newScore) {
+  if (typeof newScore !== 'number' || isNaN(newScore)) {
+    console.warn('devSetScore: please pass a Number, e.g. devSetScore(5000)');
+    return;
+  }
+
+  // 1) Override the internal score
+  score = newScore;
+
+  // 2) Refresh the on‐screen score text
+  scoreDisplay.textContent = `Score: ${score}`;
+
+  // 3) If you have a multiplier badge or high-score display, refresh those too:
+  if (typeof updateMultiplierBadge === 'function') {
+    updateMultiplierBadge();
+  }
+  if (typeof updateHighScoreDisplay === 'function') {
+    updateHighScoreDisplay();
+  }
+
+  console.log(`🛠️  Dev: score force‐set to ${score}`);
+};
+
+// ─── 1) Poop Storm ───
+// ─── Enhanced Poop Storm ───
+function poopStorm() {
+  const drops = [];
+  const area   = document.getElementById('game-area');
+  const POO_SIZE = 48;      // px
+  const BOUNCE_DAMP = 0.7;  // how “bouncy” the poop is
+
+  // 1) Spawn 30 drops with varied start‐heights and start‐velocities
+  for (let i = 0; i < 30; i++) {
+    const el = document.createElement('div');
+    el.textContent = '💩';
+    el.className   = 'poop-drop';
+    el.style.position = 'absolute';
+    el.style.width    = el.style.height = `${POO_SIZE}px`;
+
+    // X anywhere across the width:
+    const startX = Math.random() * (GAME_WIDTH - POO_SIZE);
+    // Y a bit above the top — between -POO_SIZE and -POO_SIZE*3
+    const startY = -POO_SIZE * (1 + Math.random() * 2);
+
+    el.style.left          = `${startX}px`;
+    el.style.top           = `${startY}px`;
+    el.style.pointerEvents = 'none';
+    area.appendChild(el);
+
+    drops.push({
+      el,
+      x:  startX,
+      y:  startY,
+      // vary the initial downward speed (50 to 200 px/sec)
+      vx: (Math.random() - 0.5) * 100,
+      vy: 50 + Math.random() * 150
+    });
+  }
+
+  // 2) Physics loop
+  let lastT = null;
+  function step(t) {
+    if (!lastT) lastT = t;
+    const dt = (t - lastT) / 1000;
+    lastT = t;
+
+    // get paddle bounds in game‐space
+    const padBox  = paddle.getBoundingClientRect();
+    const areaBox = area.getBoundingClientRect();
+    const padLeft = padBox.left   - areaBox.left;
+    const padTop  = padBox.top    - areaBox.top;
+    const padRight= padBox.right  - areaBox.left;
+
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i];
+
+      // apply gravity
+      d.vy += GRAVITY * dt;
+
+      // move
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+
+      // bounce off paddle?
+      if (
+        d.y + POO_SIZE >= padTop &&
+        d.y < padTop &&
+        d.x + POO_SIZE >= padLeft &&
+        d.x <= padRight &&
+        d.vy > 0
+      ) {
+        d.vy = -d.vy * BOUNCE_DAMP;
+        d.y  = padTop - POO_SIZE;
+      }
+
+      // remove if below bottom
+      if (d.y > GAME_HEIGHT + 50) {
+        d.el.remove();
+        drops.splice(i, 1);
+      } else {
+        d.el.style.left = `${d.x}px`;
+        d.el.style.top  = `${d.y}px`;
+      }
+    }
+
+    // continue until none left
+    if (drops.length > 0) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  // kick off
+  requestAnimationFrame(step);
+}
+
+// expose to console if you haven’t already
+window.poopStorm = poopStorm;
+
+
+// expose to console
+window.poopStorm = poopStorm;
+
+// ─── 2) Confetti Blast ───
+function confettiBlast() {
+  const area = document.getElementById('game-area');
+  for (let i = 0; i < 100; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    area.appendChild(c);
+    // your .confetti CSS can animate color, fall, etc.
+    setTimeout(() => c.remove(), 2000);
+  }
+  console.log('🎉 Confetti Blast!');
+}
+window.confettiBlast = confettiBlast;
+window['🎉']         = confettiBlast;
+
+// ─── 3) God Mode ───
+function godMode() {
+  // super high score
+  if (typeof devSetScore === 'function') devSetScore(999999);
+  // infinite slow-mo stacks
+  activePowerUps['slow-mo'] = Array(10).fill({ endTime: Date.now() + 999999 });
+  updateStatusIndicators();
+  console.log('🎮 God Mode: score=999999 + infinite Slow-Mo!');
+}
+window.godMode   = godMode;
+window['🎮']     = godMode;
+
+// ─── 4) Cat Mode (Nine Lives!) ───
+function catMode() {
+  isCatMode = true;
+  // 1) Switch the ball emoji to a cat
+  ball.textContent = '🐱';
+  // Also update your global BALL_EMOJI if you use it elsewhere
+  window.BALL_EMOJI = '🐱';
+  //ball.textContent = BALL_EMOJI;
+
+  console.log('🐱 Cat Mode: Permanent 9s!');
+}
+window.catMode = catMode;
+window['🐱']   = catMode;
+
+// ─── Pro‐tip Rotator ───
+
+// 1) Define all your tips here:
+const TIPS = [
+  "Hit the top edge for a Roof Bonus (×1.5).",
+  "Bank‐shots off walls give a small extra bonus.",
+  "“Expando” stacks multiply your points ×2, ×3, ×4…",
+  "Bricked Up! power-ups re-fill empty slots—use them wisely.",
+  "Shooting bricks with the Laser gives +3 points plus bonuses.",
+  "Clear entire layers quickly for “Edge Runner” bonuses.",
+  "Stay on the move—never let the ball slip past your paddle!"
+];
+
+// 2) Grab references & state:
+const tipBox    = document.getElementById("tips-box");
+const tipText   = document.getElementById("tip-text");
+let   tipIndex  = 0;
+
+// 3) Initialize with the first tip:
+tipText.textContent = TIPS[tipIndex];
+
+// 4) On "T" keypress, advance to the next tip:
+document.addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "t") {
+    tipIndex = (tipIndex + 1) % TIPS.length;
+    tipText.textContent = TIPS[tipIndex];
+  }
+});
