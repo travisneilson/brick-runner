@@ -23,6 +23,8 @@ const GRAVITY = 10 * GAME_SCALE;
 const LASER_SPEED = 500 * GAME_SCALE;
 const FIRE_COOLDOWN = 300;
 const MAX_NOTIFICATIONS = 3;
+let rowBonusLevel = 0;
+
 
 const gameArea = document.getElementById('game-area');
 const scoreDisplay = document.getElementById('score');
@@ -39,6 +41,29 @@ const startPrompt = startScreen.querySelector(".start-prompt");
 const clickToStartOverlay = document.getElementById('click-to-start-overlay');
 const highScoreDisplay = document.getElementById('high-score-display');
 const loadingEmoji = document.getElementById('loading-emoji');
+
+/**
+ * Briefly floats a little +points text above the brick that was broken.
+ * @param {number} x  – pixel X in game-area coordinates
+ * @param {number} y  – pixel Y in game-area coordinates
+ * @param {number} pts – the points gained
+ */
+function showBrickScore(x, y, pts) {
+  const pop = document.createElement("div");
+  pop.className = "score-pop-up";
+  pop.textContent = `+${pts}`;
+  // position it centered on the brick
+  pop.style.left = `${x}px`;
+  pop.style.top  = `${y}px`;
+  gameArea.appendChild(pop);
+
+  // trigger the animation
+  requestAnimationFrame(() => pop.classList.add("visible"));
+
+  // remove after it’s done
+  setTimeout(() => pop.remove(), 800);
+}
+
 
 
 // --- Sound Manager ---
@@ -125,19 +150,47 @@ const soundManager = {
 let score = 0, gameOver = true, gameRunning = false, animationFrameId, emojiSwapTimeout = null, powerUps = [], activePowerUps = {}, paddleSizeLevel = 0, MAX_PADDLE_LEVEL = 3, isStickyPaddle = false, ballIsStuck = false, isLaserActive = false, canFire = true, lasers = [], assetsReady = !1, isRoofBonusActive = false, isNeonLegend = false, autoLaunchTimeout = null, emojiCycleInterval = null;
 let lives = 1;
 const POWER_UP_TYPES = {
-    'wide-paddle': {
-      type:        'stacking',
-      emoji:       '🪴',                // new “multiplier” emoji
-      name:        'EXPANDO',
-      description: 'Multiply your score!',  // updated text
-      cssClass:    'wide-paddle',
-      duration:    15000
-    },    
-    'slow-mo': { type: "stacking", emoji: "🐌", name: "SLOW-MO", cssClass: "slow-mo", description: "Ball speed reduced", duration: 5000 },
-    'sticky-paddle': { type: "refreshing", emoji: "🧲", name: "MAG-LOCK", cssClass: "sticky-paddle", description: "Catch & launch the ball", duration: 4000 },
-    'laser-blast': { type: "refreshing", emoji: "🎯", name: "LASER BLAST", cssClass: "laser-blast", description: "Press F to fire!", duration: 3000 },
-    'one-up': { type: "instant", emoji: "🧱", name: "Bricked Up!", cssClass: "one-up", description: "New bricks incoming!" }
+  'wide-paddle': {
+    type:        'stacking',
+    emoji:       '🪴',
+    name:        'EXPANDO',
+    description: 'Multiply your score!',
+    cssClass:    'wide-paddle',
+    duration:    15000
+  },
+  'slow-mo': {
+    type:        'stacking',
+    emoji:       '🐌',
+    name:        'SLOW-MO',
+    description: 'Ball speed reduced',
+    cssClass:    'slow-mo',
+    duration:    5000
+  },
+  'sticky-paddle': {
+    type:        'refreshing',
+    emoji:       '🧲',
+    name:        'MAG-LOCK',
+    description: 'Catch & launch the ball',
+    cssClass:    'sticky-paddle',
+    duration:    4000
+  },
+  'laser-blast': {
+    type:        'refreshing',
+    emoji:       '🎯',
+    name:        'LASER BLAST',
+    description: 'Press F to fire!',
+    cssClass:    'laser-blast',
+    duration:    3000
+  },
+  'one-up': {
+    type:        'instant',
+    emoji:       '🧱',
+    name:        'Bricked Up!',
+    description: 'New bricks incoming!',
+    cssClass:    'one-up'
+  }
 };
+
 const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
 const soundsToLoad = { 
   'bounce':      { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/paddle-and-wall.mp3" }, 
@@ -210,8 +263,7 @@ function initGame() {
     startScreen.style.display = 'flex';
     gameMessage.style.display = 'none';
     scoreDisplay.style.display = 'none';
-    livesDisplay.style.display = 'none';
-    statusIndicatorsContainer.style.display = 'none';
+     statusIndicatorsContainer.style.display = 'none';
     ball.style.display = 'none';
     resetButton.style.display = 'none';
     
@@ -221,7 +273,75 @@ function initGame() {
     clearTimeout(autoLaunchTimeout);
 }
 
-function createBricks(){const e=50*GAME_SCALE,t=(GAME_WIDTH-10*(BRICK_WIDTH+BRICK_GAP)+BRICK_GAP)/2;for(let o=0;o<BRICK_ROWS;o++)for(let r=0;r<BRICK_COLS;r++){const n=document.createElement("div");n.classList.add("brick",`brick-row-${o}`);let a=null;.35>Math.random()&&(a=POWER_UP_SPAWN_CHANCES[Math.floor(Math.random()*POWER_UP_SPAWN_CHANCES.length)]);const l={element:n,x:t+r*(BRICK_WIDTH+BRICK_GAP),y:e+o*(BRICK_HEIGHT+BRICK_GAP),width:BRICK_WIDTH,height:BRICK_HEIGHT,isBroken:!1,hitsRequired:1,hitsTaken:0,powerUpType:a};.25>Math.random()&&(l.hitsRequired=2,n.classList.add("multihit")),l.powerUpType&&(()=>{const c=document.createElement("span");c.className="power-up-indicator",c.textContent=POWER_UP_TYPES[l.powerUpType].emoji,n.appendChild(c)})(),n.style.width=`${BRICK_WIDTH}px`,n.style.height=`${BRICK_HEIGHT}px`,bricksContainer.appendChild(n),bricks.push(l)}}
+function createBricks() {
+  // vertical offset from top
+  const offsetY = 50 * GAME_SCALE;
+  // center the grid horizontally
+  const gridLeft = (GAME_WIDTH 
+                  - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) 
+                  + BRICK_GAP) / 2;
+
+  // clear out any old bricks
+  bricksContainer.innerHTML = '';
+  bricks = [];
+
+  for (let row = 0; row < BRICK_ROWS; row++) {
+    for (let col = 0; col < BRICK_COLS; col++) {
+      // 1) create the DOM element
+      const el = document.createElement('div');
+      el.classList.add('brick', `brick-row-${row}`);
+
+      // 2) maybe assign a power-up
+      let powerUpType = null;
+      if (Math.random() < POWER_UP_CHANCE) {
+        powerUpType = POWER_UP_SPAWN_CHANCES[
+          Math.floor(Math.random() * POWER_UP_SPAWN_CHANCES.length)
+        ];
+        // show its indicator
+        const indicator = document.createElement('span');
+        indicator.className = 'power-up-indicator';
+        indicator.textContent = POWER_UP_TYPES[powerUpType].emoji;
+        el.appendChild(indicator);
+      }
+
+      // 3) decide if it's a multi‐hit brick
+      let hitsRequired = 1;
+      if (Math.random() < 0.25) {
+        hitsRequired = 2;
+        el.classList.add('multihit');
+      }
+
+      // 4) position & size it
+      el.style.position = 'absolute';   // ← this line
+      const x = gridLeft + col * (BRICK_WIDTH + BRICK_GAP);
+      const y = offsetY  + row * (BRICK_HEIGHT + BRICK_GAP);
+      el.style.width  = `${BRICK_WIDTH}px`;
+      el.style.height = `${BRICK_HEIGHT}px`;
+      el.style.left   = `${x}px`;
+      el.style.top    = `${y}px`;
+
+      // 5) define its data object — **now with row tagging**!
+      const brick = {
+        element:      el,
+        x, 
+        y,
+        width:        BRICK_WIDTH,
+        height:       BRICK_HEIGHT,
+        isBroken:     false,
+        hitsRequired,
+        hitsTaken:    0,
+        powerUpType,
+        row           // ← this lets you check row‐clears later
+      };
+
+      // 6) append & track
+      bricksContainer.appendChild(el);
+      bricks.push(brick);
+    }
+  }
+}
+
+
 
 function setupGame() {
     updateHighScoreDisplay();
@@ -263,12 +383,13 @@ function setupGame() {
 function startGame() {
     if (gameOver && assetsReady) {
         initGame(); 
+        score = 0;
         lives = 1;
         gameOver = false;
+        rowBonusLevel = 0;
         
         startScreen.style.display = 'none';
         scoreDisplay.style.display = 'block';
-        livesDisplay.style.display = 'block';
         statusIndicatorsContainer.style.display = 'flex';
         ball.style.display = 'block';
         resetButton.style.display = 'block';
@@ -294,25 +415,73 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // 1. Compute the scale factor: base 1.0, +0.35 per Expando stack
+  // Calculate how big the paddle _should_ be logically
   const scaleFactor = 1 + paddleSizeLevel * 0.35;
-
-  // 2. Update the paddle width (hitbox) and visual scale
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
-  paddle.style.width     = `${paddleWidth}px`;
+
+  // Instead only drive the CSS scale
   paddle.style.transform = `scaleX(${scaleFactor})`;
 
-  // 3. Refresh glow classes to match the current stack level
-  //    We only ever use paddle-glow-1, -2, or -3
-  ['paddle-glow-1','paddle-glow-2','paddle-glow-3'].forEach(cls => {
-    paddle.classList.remove(cls);
+  // Glow classes as before…
+  ['paddle-glow-1','paddle-glow-2','paddle-glow-3'].forEach(c => {
+    paddle.classList.remove(c);
   });
   if (paddleSizeLevel >= 1 && paddleSizeLevel <= 3) {
     paddle.classList.add(`paddle-glow-${paddleSizeLevel}`);
   }
 }
 
-function spawnPowerUp(e,t){soundManager.play("powerUpSpawn",{pitch:2});const o=POWER_UP_TYPES[e];if(!o)return;const r=document.createElement("div");r.classList.add("power-up"),r.textContent=o.emoji;const n={element:r,type:e,x:t.x+t.width/2-POWER_UP_SIZE/2,y:t.y+t.height/2-POWER_UP_SIZE/2,bounced:!1,vx:0,vy:0,originX:t.x+t.width/2-POWER_UP_SIZE/2,swayAmplitude:25+20*Math.random(),swayFrequency:.02+.02*Math.random(),swayPhase:2*Math.random()*Math.PI};r.style.left=`${n.x}px`,r.style.top=`${n.y}px`,gameArea.appendChild(r),powerUps.push(n)}
+
+
+function spawnPowerUp(type, brick) {
+  // play the spawn sound
+  soundManager.play("powerUpSpawn", { pitch: 2 });
+
+  const def = POWER_UP_TYPES[type];
+  if (!def) return;
+
+  // 1) Create the DOM element
+  const el = document.createElement("div");
+  el.classList.add("power-up", def.cssClass);
+  el.textContent = def.emoji;
+
+  // 2) If this is Expando (wide-paddle), tag it with the current grow level
+  if (type === "wide-paddle") {
+    // how many stacks are active? (1–3)
+    const stackLevel = Math.min(
+      activePowerUps["wide-paddle"]?.length || 1,
+      MAX_PADDLE_LEVEL
+    );
+    el.classList.add(`grow-level-${stackLevel}`);
+  }
+
+  // 3) Compute the initial spawn position (centered on the brick)
+  const puX = brick.x + brick.width  / 2 - POWER_UP_SIZE / 2;
+  const puY = brick.y + brick.height / 2 - POWER_UP_SIZE / 2;
+
+  // ensure absolute positioning
+  el.style.position = "absolute";
+  el.style.left     = `${puX}px`;
+  el.style.top      = `${puY}px`;
+  gameArea.appendChild(el);
+
+  // 4) Push into your powerUps array with all needed physics props
+  powerUps.push({
+    element:       el,
+    type:          type,
+    x:             puX,
+    y:             puY,
+    bounced:       false,
+    vx:            0,
+    vy:            0,
+    originX:       puX,
+    swayAmplitude: 25 + 20 * Math.random(),
+    swayFrequency: 0.02 + 0.02 * Math.random(),
+    swayPhase:     2 * Math.random() * Math.PI
+  });
+}
+
+
 
 function updatePowerUps(dt) {
   // 0) Precompute the on-screen paddle rect once per frame
@@ -387,77 +556,168 @@ function activatePowerUp(type) {
   const def = POWER_UP_TYPES[type];
   if (!def) return;
 
-  // — Instant power-ups (only Bricked Up! now) —
+  // — Instant power-ups (only 'one-up') —
   if (def.type === 'instant') {
+    // spawn new bricks
     if (type === 'one-up') {
-      // Only spawn new bricks; no extra lives
       spawnDisruptiveBricks(5);
     }
-    // Notification for instant power-ups
-    showNotification(def);
+    // 🔑 use the string key, not the object
+    showNotification(type);
     return;
   }
 
-  // — Stacking/refreshing power-ups —
+  // — Stacking / Refreshing power-ups —
   if (!activePowerUps[type]) {
     activePowerUps[type] = [];
   }
   const now = Date.now();
   if (def.type === 'refreshing') {
-    // Refresh single timer
+    // single timer, always slot 0
     activePowerUps[type][0] = { endTime: now + def.duration };
   } else {
-    // Stacking: chain timers end-to-end
+    // stacking: chain onto the last timer end
     const lastEnd = activePowerUps[type].slice(-1)[0]?.endTime || now;
     activePowerUps[type].push({ endTime: lastEnd + def.duration });
   }
 
   // — Apply the effect immediately —
   switch (type) {
-    case 'wide-paddle':
-      // Update paddle size
+    case 'wide-paddle': {
+      // grow the paddle
       paddleSizeLevel = Math.min(activePowerUps[type].length, MAX_PADDLE_LEVEL);
       updatePaddleWidth();
       soundManager.play('grow');
 
-      // Tiered, stack-specific notification
-      const roman = ['I', 'II', 'III'][paddleSizeLevel - 1];
-      const multiplier = paddleSizeLevel + 1;
-      showNotification({
-        emoji:       '🪴',
-        name:        `EXPANDO ${roman}`,
-        description: `Score ×${multiplier}!`
-      });
+      // 🔑 fire the tiered Expando notification
+      //    wide-paddle-1, -2, or -3
+      const stackLevel = paddleSizeLevel; // 1..3
+      showNotification(`wide-paddle-${stackLevel}`);
       break;
+    }
 
     case 'slow-mo':
       soundManager.play('bounce', { pitch: 0.8, volume: 0.7 });
+      // 🔑 show Slow-Mo banner
+      // Stack count for slow-mo
+      const lvl = activePowerUps['slow-mo']?.length || 0;
+      // Clamp between 1 and 3
+      const level = Math.min(Math.max(lvl, 1), 3);
+      showNotification(`slow-mo-${level}`);
       break;
 
     case 'sticky-paddle':
       isStickyPaddle = true;
       paddle.classList.add('paddle-sticky');
       soundManager.play('magActivate');
+      // 🔑 show Mag-Lock banner
+      showNotification(type);
       break;
 
     case 'laser-blast':
       isLaserActive = true;
       paddle.classList.add('paddle-armed');
       soundManager.play('laserFire', { pitch: 1.2 });
+      // 🔑 show Laser Blast banner
+      showNotification(type);
       break;
   }
 
-  // Update or create the on-screen timer/status bar
+  // Update the little timer bar below the UI
   createOrUpdateStatusIndicator(type);
+}
 
-  // Generic notification for all non-Expando stacking power-ups
-  if (type !== 'wide-paddle') {
-    showNotification(def);
+
+function updateStatusIndicators() {
+  // Iterate over each active power-up type
+  for (const type in activePowerUps) {
+    const timers = activePowerUps[type];
+
+    // If there are no timers left, remove the indicator and delete the entry
+    if (!timers || timers.length === 0) {
+      delete activePowerUps[type];
+      const stale = document.getElementById(`status-${type}`);
+      if (stale) stale.remove();
+      continue;
+    }
+
+    // Remove any expired timers, play sounds on expire
+    let expired = false;
+    while (timers.length > 0 && Date.now() >= timers[0].endTime) {
+      timers.shift();
+      expired = true;
+    }
+    if (expired) {
+      if (soundManager.sounds.grow_reversed) {
+        soundManager.play("grow_reversed", { pitch: 1.2, volume: 0.5 });
+      } else {
+        soundManager.play("multihit", { pitch: 0.7, volume: 0.5 });
+      }
+      // Run any type-specific cleanup on expiry
+      const cleanup = {
+        "wide-paddle": () => {
+          paddleSizeLevel = timers.length;
+          updatePaddleWidth();
+        },
+        "sticky-paddle": () => {
+          isStickyPaddle = false;
+          paddle.classList.remove("paddle-sticky");
+          if (ballIsStuck) launchStuckBall();
+        },
+        "laser-blast": () => {
+          isLaserActive = false;
+          paddle.classList.remove("paddle-armed");
+        }
+      };
+      if (cleanup[type]) cleanup[type]();
+    }
+
+    // If after cleanup there are zero timers, remove indicator and entry
+    if (timers.length === 0) {
+      const gone = document.getElementById(`status-${type}`);
+      if (gone) gone.remove();
+      delete activePowerUps[type];
+      continue;
+    }
+
+    // Otherwise update the existing status indicator
+    const indicator = document.getElementById(`status-${type}`);
+    if (indicator) {
+      // Update stack count badge
+      const stackEl = indicator.querySelector(".stack-count");
+      if (timers.length > 1) {
+        stackEl.textContent = `x${timers.length}`;
+        stackEl.style.display = "inline-block";
+      } else {
+        stackEl.style.display = "none";
+      }
+
+      // Update timer‐bar width
+      const now      = Date.now();
+      const first    = timers[0];
+      const def      = POWER_UP_TYPES[type];
+      const duration = def.duration;
+      const elapsed  = now - (first.endTime - duration);
+      const pct      = Math.max(0, (duration - elapsed) / duration * 100);
+      const bar      = indicator.querySelector(".timer-bar");
+      bar.style.width = `${pct}%`;
+    }
+  }
+
+  // --- NEW: update the score multiplier badge for Expando ---
+  const badge = document.getElementById("score-multiplier");
+  const expandoStacks = activePowerUps["wide-paddle"]?.length || 0;
+  if (expandoStacks > 0) {
+    // Multiplier is stacks + 1 (×2, ×3, ×4)
+    const mult = expandoStacks + 1;
+    badge.textContent = `×${mult}`;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
   }
 }
 
 
-function updateStatusIndicators(){for(const e in activePowerUps){const t=activePowerUps[e];if(!t||0===t.length){activePowerUps[e]&&(delete activePowerUps[e],document.getElementById(`status-${e}`)?.remove());continue}let o=!1;for(;t.length>0&&Date.now()>=t[0].endTime;)t.shift(),o=!0;if(o){if(soundManager.sounds.grow_reversed)soundManager.play("grow_reversed",{pitch:1.2,volume:.5});else soundManager.play("multihit",{pitch:.7,volume:.5});const r={"wide-paddle":()=>{paddleSizeLevel=t.length,updatePaddleWidth()},"sticky-paddle":()=>{isStickyPaddle=!1,paddle.classList.remove("paddle-sticky"),ballIsStuck&&launchStuckBall()},"laser-blast":()=>{isLaserActive=!1,paddle.classList.remove("paddle-armed")}};r[e]&&r[e]()}if(0===t.length)document.getElementById(`status-${e}`)?.remove(),delete activePowerUps[e];else{const n=document.getElementById(`status-${e}`);if(n){const a=n.querySelector(".stack-count"),l=t.length;1<l?(a.textContent=`x${l}`,a.style.display="inline-block"):(a.style.display="none");const c=t[0],d=POWER_UP_TYPES[e],s=c.endTime-d.duration,i=c.endTime-s,u=c.endTime-Date.now(),p=n.querySelector(".timer-bar"),g=Math.max(0,u/i*100);p.style.width=`${g}%`}}}}
 function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${t.emoji}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
 function createOnionSkin(){const e=document.createElement("div");e.className="onion-skin",e.textContent=ball.textContent,e.style.left=`${ballX}px`,e.style.top=`${ballY}px`,gameArea.appendChild(e),setTimeout(()=>{e.remove()},500)}
 
@@ -496,23 +756,32 @@ function updateLasers(dt) {
         bottom: b.y + b.height
       };
 
-      // ← Insert your collision test here
       if (isColliding(laserRect, brickRect)) {
-        // Base + Laser bonus instead of just 3:
+        // 1) Compute points just like in checkCollisions()
         const basePoints = isRoofBonusActive ? 15 : 10;
-        score += basePoints + 3;
+        const laserBonus = 3;
+        const points     = basePoints + laserBonus;
+
+        // 2) Add to your total and update the display
+        score += points;
         scoreDisplay.textContent = `Score: ${score}`;
 
-        // Mark brick broken, etc…
+        // 3) **NEW**: float a +N at the brick’s position
+        const popupX = b.x + b.width / 2;
+        const popupY = b.y;  // adjust up/down as you like
+        showBrickScore(popupX, popupY, points);
+
+        // 4) Mark the brick and spawn any power-up
         b.isBroken = true;
         b.element.classList.add('broken');
         if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
 
-        // Remove this bolt
+        // 5) Remove the laser bolt
         l.element.remove();
         lasers.splice(i,1);
         break;
-        }
+      }
+
 
     }
   }
@@ -653,9 +922,11 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
 
         brick.isBroken = true;
         brick.element.classList.add("broken");
+        points *= (rowBonusLevel + 1);
         score += points;
-        
-
+        if (typeof brick.row === 'number' && !brick.isExtraSpawn) {
+          evaluateRowClear(brick.row);
+        }
         if (brick.powerUpType) {
           spawnPowerUp(brick.powerUpType, brick);
         }
@@ -676,10 +947,16 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         showNotification({
           emoji:       "😎",
           name:        "NEON LEGEND",
-          description: "Status Achieved!"
+          description: "Over 500 Achieved!"
         });
         soundManager.play("winSong");
       }
+
+      // after you break the brick or on multihit...
+      const popupX = brick.x + brick.width  / 2;
+      const popupY = brick.y;  // or brick.y + brick.height/2 if you prefer centered vertically
+      showBrickScore(popupX, popupY, points);
+
 
       // Brick shake & ball impact animation
       brick.element.classList.remove("shake");
@@ -716,8 +993,22 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
 }
 
 
+function renderGame() {
+  // Position the ball
+  ball.style.left = `${ballX}px`;
+  ball.style.top  = `${ballY}px`;
 
-function renderGame(){ball.style.left=`${ballX}px`,ball.style.top=`${ballY}px`;const e=paddleX-PADDLE_DEFAULT_WIDTH/2;paddle.style.left=`${e}px`}
+  // Center the paddle’s hitbox
+  const left = paddleX - paddleWidth / 2;
+  paddle.style.left = `${left}px`;
+
+  // (Optional) re-apply the transform here if you like:
+  const scaleFactor = paddleWidth / PADDLE_DEFAULT_WIDTH;
+  paddle.style.transform = `scaleX(${scaleFactor})`;
+}
+
+
+
 function endGame(e){gameOver=!0,gameRunning=!1,cancelAnimationFrame(animationFrameId),soundManager.stopAll(),e?soundManager.play("winSong"):soundManager.play("loseSong");const t=getHighScore();let o=!1;score>t&&(saveHighScore(score),o=!0);const r=getHighScore(),n=getRating(score,e),a=e?"Mission Complete!":"System Failure!";gameMessage.innerHTML=`<span class="title">${a}</span><span class="name rating">${n}</span><span class="description">Final Score: ${score}</span><span class="high-score">${o?"New High Score!":""}</span><p class="game-message-prompt">Press SPACE to Restart</p>`,gameMessage.style.display="block",gameArea.classList.remove("hide-cursor")}
 function launchStuckBall(){if(ballIsStuck){clearTimeout(autoLaunchTimeout),soundManager.stop("winSong"),ballIsStuck=!1,ballSpeedY=-INITIAL_BALL_SPEED;const e=paddleWidth/2,t=(ballX+BALL_SIZE/2-paddleX)/e*INITIAL_BALL_SPEED*1.5;ballSpeedX=t,soundManager.play("magLaunch")}}
 function fireLaser(){if(!canFire||!isLaserActive)return;canFire=!1,soundManager.play("laserFire"),(()=>{const e=6,t=20,o=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,r={x:paddleX-e/2,y:o-t,width:e,height:t},n=document.createElement("div");n.className="laser-bolt",n.style.left=`${r.x}px`,n.style.top=`${r.y}px`,gameArea.appendChild(n),r.element=n,lasers.push(r)})(),setTimeout(()=>{canFire=!0},FIRE_COOLDOWN)}
@@ -779,6 +1070,25 @@ function spawnDisruptiveBricks(count) {
       isExtraSpawn: true
     });
   }
+}
+
+
+function evaluateRowClear(row) {
+  // bail if row is missing or not a finite number
+  if (typeof row !== 'number' || !Number.isFinite(row)) {
+    return;
+  }
+
+  // don’t re-fire a lower or equal level
+  if (row < rowBonusLevel) return;
+
+  // gather only non-extra bricks in that row
+  const inRow = bricks.filter(b => b.row === row && !b.isExtraSpawn);
+  if (!inRow.length || !inRow.every(b => b.isBroken)) return;
+
+  // bump level (1..3)
+  rowBonusLevel = Math.min(row + 1, 3);
+  showNotification(`row-clear-${rowBonusLevel}`);
 }
 
 

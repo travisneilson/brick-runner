@@ -16,7 +16,10 @@
     --clr-powerup-sticky: var(--clr-neon-pink);
     --clr-powerup-laser: var(--clr-brick-red);
     --clr-gold-glow: #FFD700;
+    --grow-sat: 80%;
+    --grow-light: 60%;
 }
+
 
 body {
     display: flex;
@@ -106,6 +109,43 @@ body::before {
     margin-top: 8px;
 }
 
+.multiplier-badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-weight: bold;
+  color: #000;
+  background: linear-gradient(90deg,#90ff5a,#c3ff7e);
+  border-radius: 4px;
+  text-shadow: 0 0 4px rgba(255,255,255,0.8);
+  animation: badgePulse 1s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.2); }
+}
+
+/* base style: hidden and stacked on the brick */
+.score-pop-up {
+  position: absolute;
+  pointer-events: none;
+  font: bold 1rem var(--game-font, sans-serif);
+  color: #ffea00;               /* bright neon yellow */
+  text-shadow: 0 0 4px rgba(0,0,0,0.7);
+  opacity: 0;
+  transform: translateY(0) scale(0.8);
+  transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+  white-space: nowrap;
+  user-select: none;
+  z-index: 20;
+}
+
+/* when we add .visible, it flies up and fades in */
+.score-pop-up.visible {
+  opacity: 1;
+  transform: translateY(-24px) scale(1);
+}
+
 .reset-button {
     font-family: 'Press Start 2P', cursive;
     background-color: transparent;
@@ -146,7 +186,7 @@ body::before {
     left: 22.5px;
     z-index: 10;
     display: flex;
-    gap: 30px;
+    gap: 16px;
 }
 
 .game-ui-text {
@@ -181,25 +221,81 @@ body::before {
 #paddle {
     position: absolute;
     width: 150px;
+    --paddle-scale: 1;
     height: 22.5px;
     background-color: var(--clr-neon-blue);
     bottom: 15px;
     border-radius: 3px;
     border-top: 2px solid rgba(255, 255, 255, 0.3);
-    transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, background-color 0.25s ease-out;
-    transform-origin: center;
+    transform-origin: center center;
+    transform: scaleX(var(--paddle-scale));
+    transition: 
+        width 0.25s ease,
+        transform 0.25s ease,
+        background 0.3s ease;
 }
 
-#paddle.paddle-glow-1 { box-shadow: 0 0 12px var(--clr-neon-blue); }
-#paddle.paddle-glow-2 { background-color: var(--clr-brick-orange); box-shadow: 0 0 16px var(--clr-brick-red); }
-#paddle.paddle-glow-3 { background-color: var(--clr-dark-bg); box-shadow: 0 0 24px var(--clr-text-main); }
+
+/* LEVEL 1 — Neon Lime */
+#paddle.paddle-glow-1 {
+  background: hsl(90, 100%, 50%);
+  box-shadow:
+    0 0 8px  hsla(90, 100%, 65%, 0.9),
+    0 0 16px hsla(90, 100%, 65%, 0.6);
+}
+
+/* LEVEL 2 — Vivid Yellow */
+#paddle.paddle-glow-2 {
+  background: hsl(50, 100%, 50%);
+  box-shadow:
+    0 0 10px hsla(50, 100%, 65%, 0.9),
+    0 0 20px hsla(50, 100%, 65%, 0.6);
+}
+
+/* LEVEL 3 — Bright Orange */
+#paddle.paddle-glow-3 {
+  background: hsl(25, 100%, 50%);
+  box-shadow:
+    0 0 12px hsla(25, 100%, 65%, 1),
+    0 0 24px hsla(25, 100%, 65%, 0.6);
+}
+
+/* directional glow‐pulse keyframes */
+@keyframes paddleGlowPulse {
+  0%, 100% {
+    /* subtle shadow both sides */
+    box-shadow:
+      -8px 0 10px rgba(var(--glow-r), var(--glow-g), var(--glow-b), 0.6),
+       8px 0 10px rgba(var(--glow-r), var(--glow-g), var(--glow-b), 0.6);
+  }
+  50% {
+    /* stronger, farther shadow */
+    box-shadow:
+      -12px 0 16px rgba(var(--glow-r), var(--glow-g), var(--glow-b), 1),
+       12px 0 16px rgba(var(--glow-r), var(--glow-g), var(--glow-b), 1);
+  }
+}
+
+/* set up per‐level glow colors via CSS variables */
+#paddle.paddle-glow-1 { --glow-r: 144; --glow-g: 255; --glow-b:  90; }
+#paddle.paddle-glow-2 { --glow-r: 255; --glow-g: 230; --glow-b:  60; }
+#paddle.paddle-glow-3 { --glow-r: 255; --glow-g: 165; --glow-b:  30; }
+
+/* apply the pulse on all glow levels */
+#paddle.paddle-glow-1,
+#paddle.paddle-glow-2,
+#paddle.paddle-glow-3 {
+  animation: paddleGlowPulse 1.2s ease-in-out infinite;
+}
+
+
 #paddle.paddle-sticky { box-shadow: 0 0 20px var(--clr-powerup-sticky) !important; animation: pulse-glow-sticky 1s infinite alternate; }
 #paddle.paddle-armed { background-color: var(--clr-powerup-laser); box-shadow: 0 0 15px var(--clr-powerup-laser); }
 
 /* --- Bricks --- */
 #bricks-container {
-    position: absolute;
-    top: 75px;
+    position: relative; /* ensure absolute children are positioned correctly */
+    /* top: 75px; */
     width: 100%;
     display: flex;
     flex-wrap: wrap;
