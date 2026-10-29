@@ -487,12 +487,18 @@ body::before {
         0 0 16px var(--clr-neon-blue),
         0 0 34px rgba(0, 255, 255, 0.55);
 }
-#click-to-start-overlay .attract-cta {
+#click-to-start-overlay .attract-cta,
+.start-prompt.start-play-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     font-family: 'Press Start 2P', cursive;
     font-size: 1.05rem;
+    line-height: 1;
     letter-spacing: 1.5px;
     margin: 0;
-    padding: 15px 40px 14px;
+    padding: 15px 40px;
     text-align: center;
     color: #061209;
     background: linear-gradient(90deg, #00ff66, #90ff5a);
@@ -505,7 +511,26 @@ body::before {
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-#click-to-start-overlay .attract-cta:hover {
+.start-prompt.start-play-btn {
+    margin: 20px 0 0 0;
+}
+#click-to-start-overlay .attract-cta::before,
+.start-prompt.start-play-btn::before {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 11px solid #061209;
+    transform: translateY(-1px);
+    flex-shrink: 0;
+}
+.start-prompt.start-play-btn.loading::before {
+    display: none;
+}
+#click-to-start-overlay .attract-cta:hover,
+.start-prompt.start-play-btn:hover {
     transform: translateY(-2px) scale(1.05);
     background: linear-gradient(90deg, #52ff88, #b8ff80);
     box-shadow:
@@ -513,7 +538,8 @@ body::before {
         0 0 48px rgba(0, 255, 100, 0.45),
         0 10px 24px rgba(0, 0, 0, 0.7);
 }
-#click-to-start-overlay .attract-cta:active {
+#click-to-start-overlay .attract-cta:active,
+.start-prompt.start-play-btn:active {
     transform: translateY(1px) scale(0.99);
 }
 
@@ -543,34 +569,6 @@ body::before {
     overflow: hidden;
     border-right: .15em solid var(--clr-neon-green);
     animation: typing 1.5s steps(11), blink-caret .75s step-end infinite;
-}
-.start-prompt.start-play-btn {
-    font-family: 'Press Start 2P', cursive;
-    margin: 20px 0 0 0;
-    padding: 15px 40px 14px;
-    font-size: 1.05rem;
-    letter-spacing: 1.5px;
-    color: #061209;
-    background: linear-gradient(90deg, #00ff66, #90ff5a);
-    border: 2px solid #c8ffab;
-    border-radius: 8px;
-    box-shadow:
-        0 0 18px rgba(0, 255, 100, 0.65),
-        0 0 36px rgba(0, 255, 100, 0.28),
-        0 8px 20px rgba(0, 0, 0, 0.6);
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-.start-prompt.start-play-btn:hover {
-    transform: translateY(-2px) scale(1.05);
-    background: linear-gradient(90deg, #52ff88, #b8ff80);
-    box-shadow:
-        0 0 24px rgba(0, 255, 100, 0.9),
-        0 0 48px rgba(0, 255, 100, 0.45),
-        0 10px 24px rgba(0, 0, 0, 0.7);
-}
-.start-prompt.start-play-btn:active {
-    transform: translateY(1px) scale(0.99);
 }
 .start-prompt.loading {
     animation: none;

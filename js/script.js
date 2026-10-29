@@ -867,7 +867,7 @@ function setupGame() {
         const markReady = () => {
             if (assetsReady) return;
             assetsReady = true;
-            startPrompt.textContent = "▶ PLAY GAME";
+            startPrompt.textContent = "PLAY GAME";
             startPrompt.classList.remove('loading');
         };
         const safetyTimer = setTimeout(markReady, 1500);
