@@ -15,7 +15,10 @@
             <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
             <div id="high-score-display" class="high-score-header"></div>
         </div>
-        <button id="reset-button" class="reset-button">Restart</button>
+        <div class="header-actions">
+            <button id="pause-button" class="reset-button">Pause [P]</button>
+            <button id="reset-button" class="reset-button">Restart</button>
+        </div>
     </div>
 
     <div id="game-area">
@@ -34,20 +37,31 @@
         
         <div id="start-screen">
             <h1 class="game-title">BRICK RUNNER</h1>
-            <p class="start-prompt"></p>
+            <div class="start-deck">
+                <div id="callsign-builder" class="callsign-panel"></div>
+                <div id="start-leaderboard" class="leaderboard-panel"></div>
+            </div>
+            <button id="start-play-btn" class="start-prompt start-play-btn" type="button">▶ PLAY GAME</button>
         </div>
         
         <div id="ball"></div>
         <div id="paddle"></div>
         <div id="bricks-container"></div>
         <div id="game-message"></div>
+        <div id="arcade-guide-modal" class="arcade-guide-modal" style="display: none;"></div>
+        <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
     </div>
 
     <!-- ─── Tips Box ─── -->
-  <div id="tips-box" class="tips-box">
-    <h3>💡 Pro [T]ip</h3>
-    <p id="tip-text"></p>
-  </div>
+    <div id="tips-box" class="tips-box">
+        <span id="tip-badge" class="tip-badge">⚡ COMBO</span>
+        <p id="tip-text" class="tip-text"></p>
+        <div class="tip-actions">
+            <button id="tip-next-btn" class="tip-next-btn" type="button">[T] NEXT ▸</button>
+            <button id="tip-console-btn" class="tip-next-btn tip-console-btn" type="button">[~] HACK</button>
+            <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn" type="button">[G] MANUAL</button>
+        </div>
+    </div>
     
     <script type="module" src="./js/script.js"></script>
 </body>

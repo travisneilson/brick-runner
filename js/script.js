@@ -28,6 +28,7 @@ const FIRE_COOLDOWN = 300;
 const MAX_NOTIFICATIONS = 3;
 let rowBonusLevel = 0;
 let isCatMode = false;
+let catModeArmed = false;
 
 const gameArea = document.getElementById('game-area');
 const scoreDisplay = document.getElementById('score');
@@ -38,6 +39,7 @@ const paddle = document.getElementById('paddle');
 const bricksContainer = document.getElementById('bricks-container');
 const gameMessage = document.getElementById('game-message');
 const startScreen = document.getElementById('start-screen');
+const pauseButton = document.getElementById('pause-button');
 const resetButton = document.getElementById('reset-button');
 const startPrompt = startScreen.querySelector(".start-prompt");
 const clickToStartOverlay = document.getElementById('click-to-start-overlay');
@@ -181,9 +183,9 @@ const POWER_UP_TYPES = {
     type:        'refreshing',
     emoji:       '🎯',
     name:        'LASER BLAST',
-    description: 'Press F to fire!',
+    description: 'Press SPACE to fire!',
     cssClass:    'laser-blast',
-    duration:    3000
+    duration:    5000
   },
   'one-up': {
     type:        'instant',
@@ -196,18 +198,18 @@ const POWER_UP_TYPES = {
 
 const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
 const soundsToLoad = { 
-  'bounce':      { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/paddle-and-wall.mp3" }, 
-  'multihit':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/multi-hit.mp3" }, 
-  'destroy1':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy1.mp3" }, 
-  'destroy2':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy2.mp3" }, 
-  'destroy3':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Destroy3.mp3" }, 
-  'powerUpSpawn':{ url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Drop.mp3" }, 
-  'laserFire':   { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Laser2.mp3" }, 
-  'winSong':     { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/theme.wav" }, 
-  'loseSong':    { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/LoserSong.mp3" }, 
-  'grow':        { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/Grow.mp3", reversable: true }, 
-  'magActivate': { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/mag1.mp3" }, 
-  'magLaunch':   { url: "https://raw.githubusercontent.com/travisneilson/brick-runner/main/sounds/mag2.mp3" } 
+  'bounce':      { url: "./sounds/paddle-and-wall.mp3" }, 
+  'multihit':    { url: "./sounds/multi-hit.mp3" }, 
+  'destroy1':    { url: "./sounds/Destroy1.mp3" }, 
+  'destroy2':    { url: "./sounds/Destroy2.mp3" }, 
+  'destroy3':    { url: "./sounds/Destroy3.mp3" }, 
+  'powerUpSpawn':{ url: "./sounds/Drop.mp3" }, 
+  'laserFire':   { url: "./sounds/Laser2.mp3" }, 
+  'winSong':     { url: "./sounds/theme.wav" }, 
+  'loseSong':    { url: "./sounds/LoserSong.mp3" }, 
+  'grow':        { url: "./sounds/Grow.mp3", reversable: true }, 
+  'magActivate': { url: "./sounds/mag1.mp3" }, 
+  'magLaunch':   { url: "./sounds/mag2.mp3" } 
 };
 
 const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
@@ -220,10 +222,290 @@ let bricks = [];
 let lastTime = 0,
     frameCounter = 0;
 
-// --- Helper Functions ---
-function getHighScore(){return parseInt(localStorage.getItem("brickRunnerHighScore"))||0}
-function saveHighScore(e){const t=getHighScore();e>t&&localStorage.setItem("brickRunnerHighScore",e),updateHighScoreDisplay()}
-function updateHighScoreDisplay(){const e=getHighScore();highScoreDisplay.textContent=`High Score: ${e}`}
+// --- Helper Functions & Arcade Leaderboard ---
+const LEADERBOARD_STORAGE_KEY = "brickRunnerLeaderboard";
+const LAST_INITIALS_KEY = "brickRunnerLastInitials";
+const MAX_LEADERBOARD_ENTRIES = 5;
+// Optional: Paste a Google Apps Script Web App URL or REST endpoint here to sync scores globally across all players
+const LEADERBOARD_API_URL = "";
+
+let memoryHighScore = 0;
+let memoryLeaderboard = null;
+let memoryLastInitials = "TRV";
+let awaitingInitials = false;
+let pendingEndGameWon = false;
+let lastSavedEntryId = null;
+
+function getLastInitials() {
+  try {
+    return (localStorage.getItem(LAST_INITIALS_KEY) || memoryLastInitials || "TRV").toUpperCase().slice(0, 3);
+  } catch (err) {
+    return memoryLastInitials;
+  }
+}
+
+function saveLastInitials(initials) {
+  memoryLastInitials = initials;
+  try {
+    localStorage.setItem(LAST_INITIALS_KEY, initials);
+  } catch (err) {
+    // Ignore storage errors in sandboxed iframes
+  }
+}
+
+function getLeaderboard() {
+  let list = null;
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    if (raw) list = JSON.parse(raw);
+  } catch (err) {
+    list = memoryLeaderboard;
+  }
+  if (!Array.isArray(list)) {
+    list = Array.isArray(memoryLeaderboard) ? [...memoryLeaderboard] : [];
+  }
+  // Filter out any old phantom legacy-seed entries
+  list = list.filter(item => item && item.id !== "legacy-seed");
+  list.sort((a, b) => b.score - a.score);
+  return list.slice(0, MAX_LEADERBOARD_ENTRIES);
+}
+
+function saveLeaderboard(entries) {
+  const sorted = [...entries].sort((a, b) => b.score - a.score).slice(0, MAX_LEADERBOARD_ENTRIES);
+  memoryLeaderboard = sorted;
+  if (sorted.length > 0 && sorted[0].score > memoryHighScore) {
+    memoryHighScore = sorted[0].score;
+  }
+  try {
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(sorted));
+    if (sorted.length > 0) {
+      localStorage.setItem("brickRunnerHighScore", sorted[0].score);
+    }
+  } catch (err) {
+    // Ignore storage errors in sandboxed iframes
+  }
+  updateHighScoreDisplay();
+  updateStartLeaderboard();
+  return sorted;
+}
+
+function qualifiesForLeaderboard(newScore) {
+  if (newScore <= 0) return false;
+  const board = getLeaderboard();
+  return board.length < MAX_LEADERBOARD_ENTRIES || newScore > board[board.length - 1].score;
+}
+
+function addLeaderboardEntry(rawInitials, newScore, won) {
+  const cleanInitials = (rawInitials || "AAA").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3).padEnd(3, "A");
+  saveLastInitials(cleanInitials);
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    initials: cleanInitials,
+    score: newScore,
+    rating: getRating(newScore, won),
+    won: !!won,
+    date: new Date().toISOString().slice(0, 10)
+  };
+  const board = getLeaderboard();
+  board.push(entry);
+  saveLeaderboard(board);
+  lastSavedEntryId = entry.id;
+  postRemoteScore(entry);
+  return entry;
+}
+
+function renderLeaderboardHTML(highlightId = null) {
+  const board = getLeaderboard();
+  if (board.length === 0) {
+    return `
+      <div class="leaderboard-heading">🏆 TOP 5 CYBER-RUNNERS</div>
+      <div class="leaderboard-empty">NO RECORDS YET — BE THE FIRST!</div>
+    `;
+  }
+  const rows = board.map((item, idx) => {
+    const classes = ["leaderboard-row"];
+    if (idx === 0) classes.push("rank-1");
+    if (highlightId && item.id === highlightId) classes.push("current-run");
+    return `
+      <div class="${classes.join(" ")}">
+        <span class="lb-pos">#${idx + 1}</span>
+        <span class="lb-initials">${item.initials}</span>
+        <span class="lb-score">${item.score}</span>
+        <span class="lb-tier">${item.rating || getRating(item.score, item.won)}</span>
+      </div>
+    `;
+  }).join("");
+  return `
+    <div class="leaderboard-heading">🏆 TOP 5 CYBER-RUNNERS</div>
+    <div class="leaderboard-list">${rows}</div>
+  `;
+}
+
+function updateStartLeaderboard() {
+  const el = document.getElementById("start-leaderboard");
+  if (!el) return;
+  el.innerHTML = renderLeaderboardHTML(lastSavedEntryId);
+}
+
+// --- Pre-Game Arcade Callsign Keypad ---
+const CALLSIGN_PRESETS = ["NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "TRV"];
+const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+let activeCallsignSlot = 0;
+
+function isStartScreenOpen() {
+  return gameOver && startScreen && startScreen.style.display === "flex" && (!clickToStartOverlay || clickToStartOverlay.style.display === "none");
+}
+
+function getCallsignChars() {
+  const raw = getLastInitials().padEnd(3, "A").slice(0, 3);
+  return [raw[0], raw[1], raw[2]];
+}
+
+function renderCallsignBuilder() {
+  const container = document.getElementById("callsign-builder");
+  if (!container) return;
+  const chars = getCallsignChars();
+
+  const slotsHTML = chars.map((ch, idx) => `
+    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""}" data-slot="${idx}">
+      ${ch}
+    </div>
+  `).join("");
+
+  const keysHTML = [
+    ...KEYPAD_LETTERS.map(letter => `<button type="button" class="keypad-key" data-key="${letter}">${letter}</button>`),
+    `<button type="button" class="keypad-key key-special" data-key="RANDOM" title="Random Cyber Callsign">🎲</button>`,
+    `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace">⌫</button>`
+  ].join("");
+
+  container.innerHTML = `
+    <div>
+      <div class="callsign-heading">🕹️ RUNNER CALLSIGN</div>
+      <div class="callsign-slots">${slotsHTML}</div>
+      <div class="keypad-grid">${keysHTML}</div>
+    </div>
+    <div class="callsign-subhint">Pick from keypad or type A–Z &bull; Saved automatically</div>
+  `;
+
+  container.querySelectorAll(".callsign-slot").forEach(slotEl => {
+    slotEl.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      activeCallsignSlot = parseInt(slotEl.dataset.slot, 10) || 0;
+      soundManager.play("bounce", { pitch: 1.25, volume: 0.3 });
+      renderCallsignBuilder();
+    });
+  });
+
+  container.querySelectorAll(".keypad-key").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const k = btn.dataset.key;
+      if (k === "RANDOM") {
+        randomizeCallsign();
+      } else if (k === "BACK") {
+        backspaceCallsign();
+      } else if (k && k.length === 1) {
+        setCallsignLetter(k);
+      }
+    });
+  });
+}
+
+function setCallsignLetter(letter) {
+  const clean = letter.toUpperCase().replace(/[^A-Z]/g, "");
+  if (!clean) return;
+  const chars = getCallsignChars();
+  chars[activeCallsignSlot] = clean[0];
+  saveLastInitials(chars.join(""));
+  soundManager.play("bounce", { pitch: 1.3 + activeCallsignSlot * 0.18, volume: 0.35 });
+  activeCallsignSlot = (activeCallsignSlot + 1) % 3;
+  updateHighScoreDisplay();
+  renderCallsignBuilder();
+}
+
+function backspaceCallsign() {
+  activeCallsignSlot = (activeCallsignSlot + 2) % 3;
+  soundManager.play("multihit", { pitch: 0.9, volume: 0.3 });
+  renderCallsignBuilder();
+}
+
+function randomizeCallsign() {
+  const current = getLastInitials();
+  const pool = CALLSIGN_PRESETS.filter(p => p !== current);
+  const pick = pool[Math.floor(Math.random() * pool.length)] || "NEO";
+  saveLastInitials(pick);
+  activeCallsignSlot = 0;
+  soundManager.play("powerUpSpawn", { pitch: 1.5, volume: 0.45 });
+  updateHighScoreDisplay();
+  renderCallsignBuilder();
+}
+
+async function syncRemoteLeaderboard() {
+  if (!LEADERBOARD_API_URL) return;
+  try {
+    const res = await fetch(LEADERBOARD_API_URL);
+    if (!res.ok) return;
+    const remoteEntries = await res.json();
+    if (!Array.isArray(remoteEntries)) return;
+    const merged = [...getLeaderboard(), ...remoteEntries];
+    const seen = new Set();
+    const deduped = merged.filter(item => {
+      const key = `${item.initials}-${item.score}-${item.date || ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    saveLeaderboard(deduped);
+  } catch (err) {
+    console.warn("Remote leaderboard sync skipped:", err);
+  }
+}
+
+async function postRemoteScore(entry) {
+  if (!LEADERBOARD_API_URL) return;
+  try {
+    await fetch(LEADERBOARD_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(entry)
+    });
+    syncRemoteLeaderboard();
+  } catch (err) {
+    console.warn("Remote leaderboard post skipped:", err);
+  }
+}
+
+function getHighScore() {
+  const board = getLeaderboard();
+  if (board.length > 0) return board[0].score;
+  try {
+    return parseInt(localStorage.getItem("brickRunnerHighScore")) || memoryHighScore || 0;
+  } catch (err) {
+    return memoryHighScore || 0;
+  }
+}
+function saveHighScore(e) {
+  const t = getHighScore();
+  if (e > t) {
+    memoryHighScore = e;
+    try {
+      localStorage.setItem("brickRunnerHighScore", e);
+    } catch (err) {
+      // Ignore storage errors in sandboxed iframes
+    }
+  }
+  updateHighScoreDisplay();
+}
+function updateHighScoreDisplay() {
+  const board = getLeaderboard();
+  const runner = getLastInitials();
+  if (board.length > 0) {
+    highScoreDisplay.textContent = `High Score: ${board[0].score} (${board[0].initials}) • Runner: ${runner}`;
+  } else {
+    const e = getHighScore();
+    highScoreDisplay.textContent = `High Score: ${e} • Runner: ${runner}`;
+  }
+}
 
 /**
  * Returns a rank string based on the final score and win/loss.
@@ -253,11 +535,14 @@ function getRating(score, won) {
 
 // --- Game Core Functions ---
 function initGame() {
-    isCatMode   = false;
-    BALL_EMOJI  = "😊";      // your default face
+    isCatMode   = catModeArmed;
+    BALL_EMOJI  = isCatMode ? "🐱" : "😊";
     ball.textContent = BALL_EMOJI;  
     score = 0;
     scoreDisplay.textContent = `Score: ${score}`;
+    clearedRows.clear();
+    rowBonusCount = 0;
+    rowBonusLevel = 0;
     isStickyPaddle = false;
     ballIsStuck = false;
     isLaserActive = false;
@@ -270,8 +555,11 @@ function initGame() {
     paddle.classList.remove('paddle-sticky', 'paddle-armed');
     paddleSizeLevel = 0;
     activePowerUps = {};
+    const multBadge = document.getElementById('score-multiplier');
+    if (multBadge) multBadge.style.display = 'none';
     powerUps.forEach(p => p.element.remove());
     powerUps = [];
+    gameArea.querySelectorAll('.brick.extra').forEach(el => el.remove());
     notificationsContainer.innerHTML = "";
     statusIndicatorsContainer.innerHTML = "";
     paddleX = GAME_WIDTH / 2;
@@ -289,12 +577,20 @@ function initGame() {
     createBricks();
     gameOver = true;
     gameRunning = false;
+    awaitingInitials = false;
     
     startScreen.style.display = 'flex';
+    renderCallsignBuilder();
+    updateStartLeaderboard();
+    updateHighScoreDisplay();
     gameMessage.style.display = 'none';
     scoreDisplay.style.display = 'none';
      statusIndicatorsContainer.style.display = 'none';
     ball.style.display = 'none';
+    if (pauseButton) {
+      pauseButton.style.display = 'none';
+      pauseButton.textContent = 'Pause [P]';
+    }
     resetButton.style.display = 'none';
     
     gameArea.classList.remove('hide-cursor');
@@ -373,6 +669,8 @@ function createBricks() {
 
 
 
+let pauseStartTime = null;
+
 function setupGame() {
     updateHighScoreDisplay();
     startScreen.style.display = 'none';
@@ -380,6 +678,7 @@ function setupGame() {
 
     const allEmojis = [BALL_EMOJI, ...Object.values(POWER_UP_TYPES).map(p => p.emoji)];
     let emojiIndex = 0;
+    clearInterval(emojiCycleInterval);
     emojiCycleInterval = setInterval(() => {
         if(loadingEmoji) {
             loadingEmoji.textContent = allEmojis[emojiIndex];
@@ -395,19 +694,42 @@ function setupGame() {
             clickToStartOverlay.style.display = 'none';
         }, 500);
 
-        soundManager.init();
+        try {
+            soundManager.init();
+            if (soundManager.context && soundManager.context.state === 'suspended') {
+                soundManager.context.resume().catch(() => {});
+            }
+        } catch (err) {
+            console.warn('AudioContext init failed:', err);
+        }
         startScreen.style.display = 'flex';
         startPrompt.textContent = "Loading...";
         startPrompt.classList.add('loading');
-        
-        soundManager.loadAll(soundsToLoad).then(() => {
+
+        const markReady = () => {
+            if (assetsReady) return;
             assetsReady = true;
-            startPrompt.textContent = "Press SPACE to Begin";
+            startPrompt.textContent = "▶ PLAY GAME";
             startPrompt.classList.remove('loading');
+        };
+        const safetyTimer = setTimeout(markReady, 1500);
+
+        soundManager.loadAll(soundsToLoad).then(() => {
+            clearTimeout(safetyTimer);
+            markReady();
+        }).catch(() => {
+            clearTimeout(safetyTimer);
+            markReady();
         });
     }, { once: true });
     
     initGame();
+    if (startPrompt) {
+        startPrompt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (gameOver && assetsReady) startGame();
+        });
+    }
 }
 
 function startGame() {
@@ -422,6 +744,10 @@ function startGame() {
         scoreDisplay.style.display = 'block';
         statusIndicatorsContainer.style.display = 'flex';
         ball.style.display = 'block';
+        if (pauseButton) {
+            pauseButton.style.display = 'block';
+            pauseButton.textContent = 'Pause [P]';
+        }
         resetButton.style.display = 'block';
         
         ballIsStuck = true;
@@ -436,7 +762,33 @@ function startGame() {
     }
 }
 
-function togglePause(){if(gameOver||ballIsStuck)return;gameRunning=!gameRunning,gameRunning?(gameMessage.style.display="none",gameArea.classList.add("hide-cursor"),lastTime=0,requestAnimationFrame(gameLoop)):(cancelAnimationFrame(animationFrameId),gameMessage.innerHTML="PAUSED",gameMessage.style.display="block",gameArea.classList.remove("hide-cursor"))}
+function togglePause() {
+  if (gameOver || ballIsStuck) return;
+  gameRunning = !gameRunning;
+  if (gameRunning) {
+    if (pauseStartTime !== null) {
+      const pausedDuration = Date.now() - pauseStartTime;
+      for (const type in activePowerUps) {
+        activePowerUps[type].forEach(timer => {
+          timer.endTime += pausedDuration;
+        });
+      }
+      pauseStartTime = null;
+    }
+    if (pauseButton) pauseButton.textContent = "Pause [P]";
+    gameMessage.style.display = "none";
+    gameArea.classList.add("hide-cursor");
+    lastTime = 0;
+    requestAnimationFrame(gameLoop);
+  } else {
+    pauseStartTime = Date.now();
+    cancelAnimationFrame(animationFrameId);
+    if (pauseButton) pauseButton.textContent = "Resume [P]";
+    gameMessage.innerHTML = `<span class="name">PAUSED</span><p class="game-message-prompt">Press P / ESC or Click to Resume</p>`;
+    gameMessage.style.display = "block";
+    gameArea.classList.remove("hide-cursor");
+  }
+}
 function resetAfterLifeLost(){ballIsStuck=!0,isRoofBonusActive=!1,ball.classList.remove("bonus-active"),activePowerUps={},statusIndicatorsContainer.innerHTML="",paddleSizeLevel=0,updatePaddleWidth(),paddle.classList.remove("paddle-sticky","paddle-armed"),isStickyPaddle=!1,isLaserActive=!1,ballX=paddleX-BALL_SIZE/2,ballY=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET-BALL_SIZE,ballSpeedX=0,ballSpeedY=0}
 
 function gameLoop(timestamp) {
@@ -458,14 +810,14 @@ function gameLoop(timestamp) {
   // 4) Handle collisions
   checkCollisions();
 
-  // 5) Draw everything to the screen
-  renderGame();
-
-  // 6) If the ball is stuck to the paddle (mag-lock), keep it there
+  // 5) If the ball is stuck to the paddle (mag-lock or start), lock it to paddleX before rendering
   if (ballIsStuck) {
     ballX = paddleX - BALL_SIZE / 2;
     ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
   }
+
+  // 6) Draw everything to the screen
+  renderGame();
 
   // 7) Slow-Mo “onion skin” effect (lighter trail)
   const slowMoLevel = activePowerUps["slow-mo"]?.length || 0;
@@ -495,7 +847,15 @@ function gameLoop(timestamp) {
 }
 
 
-function updatePaddlePosition(e){const t=paddleWidth/2;leftPressed&&paddleX-t>0?paddleX-=PADDLE_SPEED*e:rightPressed&&paddleX+t<GAME_WIDTH&&(paddleX+=PADDLE_SPEED*e)}
+function updatePaddlePosition(dt) {
+  const halfPaddle = paddleWidth / 2;
+  if (leftPressed) {
+    paddleX = Math.max(halfPaddle, paddleX - PADDLE_SPEED * dt);
+  }
+  if (rightPressed) {
+    paddleX = Math.min(GAME_WIDTH - halfPaddle, paddleX + PADDLE_SPEED * dt);
+  }
+}
 function updateBallPosition(e){if(ballIsStuck)return;const t=activePowerUps["slow-mo"]?.length||0,o=Math.pow(.75,t);ballX+=ballSpeedX*o*e,ballY+=ballSpeedY*o*e}
 function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left||e.left>t.right)}
 
@@ -504,6 +864,12 @@ function updatePaddleWidth() {
   // Calculate how big the paddle _should_ be logically
   const scaleFactor = 1 + paddleSizeLevel * 0.35;
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
+
+  // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
+  if (typeof paddleX === 'number') {
+    const halfPaddle = paddleWidth / 2;
+    paddleX = Math.max(halfPaddle, Math.min(GAME_WIDTH - halfPaddle, paddleX));
+  }
 
   // Instead only drive the CSS scale
   paddle.style.transform = `scaleX(${scaleFactor})`;
@@ -613,7 +979,7 @@ function updatePowerUps(dt) {
         pu.bounced = true;
         pu.vy      = -105;
         pu.vx      = 105 * (Math.random() - 0.5);
-        showNotification("MAXO EXPANDO!");
+        showNotification("max-power", { x: paddleX });
       } else {
         // Otherwise, collect it
         activatePowerUp(pu.type);
@@ -649,7 +1015,7 @@ function activatePowerUp(type) {
       spawnDisruptiveBricks(5);
     }
     // 🔑 use the string key, not the object
-    showNotification(type);
+    showNotification(type, { x: paddleX });
     return;
   }
 
@@ -678,7 +1044,7 @@ function activatePowerUp(type) {
       // 🔑 fire the tiered Expando notification
       //    wide-paddle-1, -2, or -3
       const stackLevel = paddleSizeLevel; // 1..3
-      showNotification(`wide-paddle-${stackLevel}`);
+      showNotification(`wide-paddle-${stackLevel}`, { x: paddleX });
       break;
     }
 
@@ -689,7 +1055,7 @@ function activatePowerUp(type) {
       const lvl = activePowerUps['slow-mo']?.length || 0;
       // Clamp between 1 and 3
       const level = Math.min(Math.max(lvl, 1), 3);
-      showNotification(`slow-mo-${level}`);
+      showNotification(`slow-mo-${level}`, { x: paddleX });
       break;
 
     case 'sticky-paddle':
@@ -697,7 +1063,7 @@ function activatePowerUp(type) {
       paddle.classList.add('paddle-sticky');
       soundManager.play('magActivate');
       // 🔑 show Mag-Lock banner
-      showNotification(type);
+      showNotification(type, { x: paddleX });
       break;
 
     case 'laser-blast':
@@ -705,7 +1071,7 @@ function activatePowerUp(type) {
       paddle.classList.add('paddle-armed');
       soundManager.play('laserFire', { pitch: 1.2 });
       // 🔑 show Laser Blast banner
-      showNotification(type);
+      showNotification(type, { x: paddleX });
       break;
   }
 
@@ -861,12 +1227,20 @@ function updateLasers(dt) {
       };
 
       if (isColliding(laserRect, brickRect)) {
-        // 1) Compute base points
+        // 1) Play destroy sound
+        const soundName = destroySounds[destroySoundIndex];
+        soundManager.play(soundName);
+        destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
+
+        // 2) Compute points with active multipliers
         const basePoints = isRoofBonusActive ? 15 : 10;
         const laserBonus = 3;
-
-        // 2) Make points mutable, then round the popup to …9 in Cat Mode
+        const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
         let points = basePoints + laserBonus;
+        if (expandoStacks > 0) {
+          points *= (expandoStacks + 1);
+        }
+        points *= (rowBonusLevel + 1);
         if (isCatMode) {
           points = points - (points % 10) + 9;
         }
@@ -878,15 +1252,23 @@ function updateLasers(dt) {
         }
         scoreDisplay.textContent = `Score: ${score}`;
 
-        // 4) Show the floating +N (now ending in 9)
+        // 4) Show the floating +N
         const popupX = b.x + b.width / 2;
         const popupY = b.y;
         showBrickScore(popupX, popupY, points);
 
-        // 5) Break the brick, spawn any power-up, remove the bolt
+        // 5) Break the brick, evaluate row clear, spawn any power-up, remove the bolt
         b.isBroken = true;
         b.element.classList.add('broken');
+        if (typeof b.row === "number" && !b.isExtraSpawn) {
+          evaluateRowClear(b.row);
+        }
         if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+        if (score > 500 && !isNeonLegend) {
+          isNeonLegend = true;
+          showNotification("neon-legend");
+          soundManager.play("winSong");
+        }
         l.element.remove();
         lasers.splice(i,1);
 
@@ -1043,19 +1425,20 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       if (expandoStacks > 0) {
         points *= (expandoStacks + 1);
       }
-      // Clear roof bonus
-      if (isRoofBonusActive) {
-        isRoofBonusActive = false;
-        ball.classList.remove("bonus-active");
-        soundManager.play("powerUpSpawn", { pitch: 3, volume: 0.7 });
-      }
 
-     // Multi-hit logic
-     // Multi-hit logic
+      // Multi-hit logic
       brick.hitsTaken++;
 
       // only when the brick actually dies…
       if (brick.hitsTaken >= brick.hitsRequired) {
+        const usedRoofBonus = isRoofBonusActive;
+        // Consume roof bonus only when a brick is actually broken
+        if (isRoofBonusActive) {
+          isRoofBonusActive = false;
+          ball.classList.remove("bonus-active");
+          soundManager.play("powerUpSpawn", { pitch: 3, volume: 0.7 });
+        }
+
         // 1) Play the destroy sound
         const soundName = destroySounds[destroySoundIndex];
         soundManager.play(soundName);
@@ -1065,7 +1448,12 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         brick.isBroken = true;
         brick.element.classList.add("broken");
 
-        // … after you calculate your raw points (before any rounding) …
+        // 3) Apply row-clear and 2-hit brick multipliers before adding to score
+        points *= (rowBonusLevel + 1);
+        if (brick.hitsRequired > 1) {
+          points = Math.round(points * 1.6);
+        }
+
         let rawPoints = points;
 
         // Cat Mode: round popup → …9
@@ -1082,16 +1470,8 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           score = score - (score % 10) + 9;
         }
 
-        // 3) Apply row-clear multiplier if any
-        points *= (rowBonusLevel + 1);
-
-        // 2 hit brick bonus...
-        if (brick.hitsRequired > 1) {
-          points = Math.round(points * 1.6);  // +20%
-        }
-
         const devBreakdown = {
-          basePoints:            isRoofBonusActive ? 15 : 10,
+          basePoints:            usedRoofBonus ? 15 : 10,
           finalPoints:           points,
           wallBounceBonus:       justBounced ? 2 : 0,
           brickedUpBonus:        brick.isExtraSpawn ? 6 : 0,
@@ -1113,13 +1493,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           scoreAfter:  score,
           endsIn9:      (score % 10) === 9
         });
-
-        // Now show the popup and continue…
-        showBrickScore(
-          brick.x + brick.width/2,
-          brick.y,
-          points
-        );
 
         // 5) Float the +N popup at the brick’s position
         showBrickScore(
@@ -1156,11 +1529,7 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       // Neon Legend check
       if (score > 500 && !isNeonLegend) {
         isNeonLegend = true;
-        showNotification({
-          emoji:       "😎",
-          name:        "NEON LEGEND",
-          description: "Over 500 Achieved!"
-        });
+        showNotification("neon-legend");
         soundManager.play("winSong");
       }
 
@@ -1195,8 +1564,21 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       }
 
 
-      // Bounce and accelerate
-      ballSpeedY *= -1;
+      // Bounce along the shallowest collision axis (side vs top/bottom) and accelerate
+      const overlapLeft   = ballRect.right   - brickRect.left;
+      const overlapRight  = brickRect.right  - ballRect.left;
+      const overlapTop    = ballRect.bottom  - brickRect.top;
+      const overlapBottom = brickRect.bottom - ballRect.top;
+      const minOverlapX   = Math.min(overlapLeft, overlapRight);
+      const minOverlapY   = Math.min(overlapTop, overlapBottom);
+
+      if (minOverlapX < minOverlapY) {
+        ballSpeedX *= -1;
+        ballX += overlapLeft < overlapRight ? -overlapLeft : overlapRight;
+      } else {
+        ballSpeedY *= -1;
+        ballY += overlapTop < overlapBottom ? -overlapTop : overlapBottom;
+      }
       ballSpeedX *= 1.005;
       ballSpeedY *= 1.005;
 
@@ -1215,20 +1597,93 @@ function renderGame() {
   ball.style.left = `${ballX}px`;
   ball.style.top  = `${ballY}px`;
 
-  // Center the paddle’s hitbox
-  const left = paddleX - paddleWidth / 2;
+  // Keep the 150px base element centered on paddleX; scaleX(scaleFactor) expands symmetrically from center
+  const left = paddleX - PADDLE_DEFAULT_WIDTH / 2;
   paddle.style.left = `${left}px`;
 
-  // (Optional) re-apply the transform here if you like:
   const scaleFactor = paddleWidth / PADDLE_DEFAULT_WIDTH;
   paddle.style.transform = `scaleX(${scaleFactor})`;
 }
 
 
 
-function endGame(e){gameOver=!0,gameRunning=!1,cancelAnimationFrame(animationFrameId),soundManager.stopAll(),e?soundManager.play("winSong"):soundManager.play("loseSong");const t=getHighScore();let o=!1;score>t&&(saveHighScore(score),o=!0);const r=getHighScore(),n=getRating(score,e),a=e?"Mission Complete!":"System Failure!";gameMessage.innerHTML=`<span class="title">${a}</span><span class="name rating">${n}</span><span class="description">Final Score: ${score}</span><span class="high-score">${o?"New High Score!":""}</span><p class="game-message-prompt">Press SPACE to Restart</p>`,gameMessage.style.display="block",gameArea.classList.remove("hide-cursor")}
+function endGame(won) {
+  gameOver = true;
+  gameRunning = false;
+  pendingEndGameWon = !!won;
+  awaitingInitials = false;
+  cancelAnimationFrame(animationFrameId);
+  soundManager.stopAll();
+  notificationsContainer.innerHTML = "";
+  if (pauseButton) pauseButton.style.display = "none";
+  if (won) {
+    soundManager.play("winSong");
+    confettiBlast();
+  } else {
+    soundManager.play("loseSong");
+  }
+
+  const prevHigh = getHighScore();
+  const isNewHigh = score > prevHigh && score > 0;
+
+  const runnerCallsign = getLastInitials();
+  const qualifies = score > 0 && qualifiesForLeaderboard(score);
+  const savedEntry = qualifies ? addLeaderboardEntry(runnerCallsign, score, won) : null;
+  if (isNewHigh) saveHighScore(score);
+  const rating = getRating(score, won);
+  const titleText = won ? "Mission Complete!" : "System Failure!";
+
+  const savedBannerHTML = savedEntry
+    ? `<div class="record-saved-banner">${isNewHigh ? `★ NEW #1 RECORD SAVED FOR ${savedEntry.initials}!` : `★ TOP 5 RECORD SAVED FOR ${savedEntry.initials}!`}</div>`
+    : "";
+
+  gameMessage.innerHTML = `
+    <span class="title">${titleText}</span>
+    <span class="name rating">${rating}</span>
+    <span class="description">Runner: ${runnerCallsign} &bull; Final Score: ${score}</span>
+    ${savedBannerHTML}
+    <div id="end-leaderboard" class="leaderboard-panel">
+      ${renderLeaderboardHTML(savedEntry ? savedEntry.id : lastSavedEntryId)}
+    </div>
+    <p class="game-message-prompt">Press SPACE to Play Again &bull; <span id="change-callsign-btn" class="change-callsign-link">[C] Callsign</span></p>
+  `;
+  gameMessage.style.display = "block";
+  gameArea.classList.remove("hide-cursor");
+
+  const changeBtn = document.getElementById("change-callsign-btn");
+  if (changeBtn) {
+    changeBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      initGame();
+    });
+  }
+}
 function launchStuckBall(){if(ballIsStuck){clearTimeout(autoLaunchTimeout),soundManager.stop("winSong"),ballIsStuck=!1,ballSpeedY=-INITIAL_BALL_SPEED;const e=paddleWidth/2,t=(ballX+BALL_SIZE/2-paddleX)/e*INITIAL_BALL_SPEED*1.5;ballSpeedX=t,soundManager.play("magLaunch")}}
-function fireLaser(){if(!canFire||!isLaserActive)return;canFire=!1,soundManager.play("laserFire"),(()=>{const e=6,t=20,o=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET,r={x:paddleX-e/2,y:o-t,width:e,height:t},n=document.createElement("div");n.className="laser-bolt",n.style.left=`${r.x}px`,n.style.top=`${r.y}px`,gameArea.appendChild(n),r.element=n,lasers.push(r)})(),setTimeout(()=>{canFire=!0},FIRE_COOLDOWN)}
+function fireLaser() {
+  if (!canFire || !isLaserActive) return;
+  canFire = false;
+  soundManager.play("laserFire");
+  const boltWidth = 6;
+  const boltHeight = 22;
+  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  const wingOffset = Math.max(18, paddleWidth * 0.38);
+  const xPositions = [
+    paddleX - wingOffset - boltWidth / 2,
+    paddleX + wingOffset - boltWidth / 2
+  ];
+  xPositions.forEach(bx => {
+    const clampedX = Math.max(4, Math.min(GAME_WIDTH - boltWidth - 4, bx));
+    const bolt = { x: clampedX, y: paddleTop - boltHeight, width: boltWidth, height: boltHeight };
+    const el = document.createElement("div");
+    el.className = "laser-bolt";
+    el.style.left = `${bolt.x}px`;
+    el.style.top = `${bolt.y}px`;
+    gameArea.appendChild(el);
+    bolt.element = el;
+    lasers.push(bolt);
+  });
+  setTimeout(() => { canFire = true; }, FIRE_COOLDOWN);
+}
 
 function spawnDisruptiveBricks(count) {
   // 1) gather empty grid slots as before
@@ -1291,31 +1746,124 @@ function spawnDisruptiveBricks(count) {
 
 
 function evaluateRowClear(row) {
-  // bail if row is missing or not a finite number
-  if (typeof row !== 'number' || !Number.isFinite(row)) {
+  // bail if row is missing, not a finite number, or already cleared
+  if (typeof row !== 'number' || !Number.isFinite(row) || clearedRows.has(row)) {
     return;
   }
-
-  // don’t re-fire a lower or equal level
-  if (row < rowBonusLevel) return;
 
   // gather only non-extra bricks in that row
   const inRow = bricks.filter(b => b.row === row && !b.isExtraSpawn);
   if (!inRow.length || !inRow.every(b => b.isBroken)) return;
 
-  // bump level (1..3)
-  rowBonusLevel = Math.min(row + 1, 3);
-  showNotification(`row-clear-${rowBonusLevel}`);
+  clearedRows.add(row);
+  rowBonusCount = clearedRows.size;
+
+  // bump level (1..3) for the first 3 cleared rows
+  if (rowBonusCount <= 3) {
+    rowBonusLevel = rowBonusCount;
+    showNotification(`row-clear-${rowBonusLevel}`);
+  }
 }
 
 
-document.addEventListener('DOMContentLoaded',setupGame);
-resetButton.addEventListener("click",initGame);
-document.addEventListener("keydown",e=>{const t=e.key.toLowerCase();if("arrowleft"===t||"a"===t)leftPressed=!0;else if("arrowright"===t||"d"===t)rightPressed=!0;else if(" "===t){e.preventDefault();if(gameOver){assetsReady&&startGame()}else if(ballIsStuck)launchStuckBall();else{togglePause()}}else if("f"===t)isLaserActive&&gameRunning&&fireLaser()});
+if (pauseButton) {
+  pauseButton.addEventListener("click", () => {
+    if (!gameOver) togglePause();
+  });
+}
+resetButton.addEventListener("click", initGame);
+document.addEventListener("keydown", e => {
+  const consoleModal = document.getElementById("cyber-console-modal");
+  const guideModal = document.getElementById("arcade-guide-modal");
+  const isConsoleOpen = consoleModal && consoleModal.style.display === "flex";
+  const isGuideOpen = guideModal && guideModal.style.display === "flex";
+
+  if (e.key === "`" || e.key === "~") {
+    e.preventDefault();
+    toggleCyberConsole();
+    return;
+  }
+
+  if (isConsoleOpen) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      toggleCyberConsole(false);
+    }
+    return;
+  }
+
+  if (isGuideOpen) {
+    if (e.key === "Escape" || e.key.toLowerCase() === "g" || e.key === "?") {
+      e.preventDefault();
+      toggleArcadeGuide(false);
+    }
+    return;
+  }
+
+  const t = e.key.toLowerCase();
+
+  // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad
+  if (isStartScreenOpen()) {
+    if (" " === t || "enter" === t) {
+      e.preventDefault();
+      assetsReady && startGame();
+      return;
+    }
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      backspaceCallsign();
+      return;
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      activeCallsignSlot = (activeCallsignSlot + 2) % 3;
+      renderCallsignBuilder();
+      return;
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      activeCallsignSlot = (activeCallsignSlot + 1) % 3;
+      renderCallsignBuilder();
+      return;
+    }
+    if (/^[a-z]$/.test(t) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      setCallsignLetter(t);
+      return;
+    }
+  }
+
+  if (gameOver && gameMessage.style.display === "block" && "c" === t) {
+    e.preventDefault();
+    initGame();
+    return;
+  }
+
+  if ("arrowleft" === t || "a" === t) {
+    leftPressed = true;
+  } else if ("arrowright" === t || "d" === t) {
+    rightPressed = true;
+  } else if (" " === t) {
+    e.preventDefault();
+    if (gameOver) {
+      assetsReady && startGame();
+    } else if (!gameRunning) {
+      togglePause();
+    } else {
+      if (ballIsStuck) launchStuckBall();
+      if (isLaserActive) fireLaser();
+    }
+  } else if ("f" === t) {
+    isLaserActive && gameRunning && fireLaser();
+  } else if ("p" === t || "escape" === t) {
+    !gameOver && togglePause();
+  }
+});
 document.addEventListener("keyup",e=>{const t=e.key.toLowerCase();"arrowleft"===t||"a"===t?leftPressed=!1:"arrowright"===t||"d"===t&&(rightPressed=!1)});
 document.addEventListener("mousemove",e=>{if(gameRunning){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
 
 setupGame();
+syncRemoteLeaderboard();
 
 window.devSetScore = function(newScore) {
   if (typeof newScore !== 'number' || isNaN(newScore)) {
@@ -1383,12 +1931,13 @@ function poopStorm() {
     const dt = (t - lastT) / 1000;
     lastT = t;
 
-    // get paddle bounds in game‐space
+    // get paddle bounds in game‐space (scale-aware)
     const padBox  = paddle.getBoundingClientRect();
     const areaBox = area.getBoundingClientRect();
-    const padLeft = padBox.left   - areaBox.left;
-    const padTop  = padBox.top    - areaBox.top;
-    const padRight= padBox.right  - areaBox.left;
+    const areaScale = areaBox.width / GAME_WIDTH || 1;
+    const padLeft = (padBox.left   - areaBox.left) / areaScale;
+    const padTop  = (padBox.top    - areaBox.top)  / areaScale;
+    const padRight= (padBox.right  - areaBox.left) / areaScale;
 
     for (let i = drops.length - 1; i >= 0; i--) {
       const d = drops[i];
@@ -1410,6 +1959,7 @@ function poopStorm() {
       ) {
         d.vy = -d.vy * BOUNCE_DAMP;
         d.y  = padTop - POO_SIZE;
+        soundManager.play("bounce", { pitch: 0.55 + Math.random() * 0.25, volume: 0.35 });
       }
 
       // remove if below bottom
@@ -1442,12 +1992,17 @@ window.poopStorm = poopStorm;
 // ─── 2) Confetti Blast ───
 function confettiBlast() {
   const area = document.getElementById('game-area');
+  const colors = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF3366', '#FF8C00'];
   for (let i = 0; i < 100; i++) {
     const c = document.createElement('div');
     c.className = 'confetti';
+    c.style.left = `${Math.random() * 100}%`;
+    c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = `${1.2 + Math.random() * 1.2}s`;
+    c.style.animationDelay = `${Math.random() * 0.4}s`;
+    c.style.setProperty('--confetti-drift', `${(Math.random() - 0.5) * 160}px`);
     area.appendChild(c);
-    // your .confetti CSS can animate color, fall, etc.
-    setTimeout(() => c.remove(), 2000);
+    setTimeout(() => c.remove(), 2600);
   }
   console.log('🎉 Confetti Blast!');
 }
@@ -1468,43 +2023,662 @@ window['🎮']     = godMode;
 
 // ─── 4) Cat Mode (Nine Lives!) ───
 function catMode() {
+  catModeArmed = true;
   isCatMode = true;
-  // 1) Switch the ball emoji to a cat
+  BALL_EMOJI = '🐱';
   ball.textContent = '🐱';
-  // Also update your global BALL_EMOJI if you use it elsewhere
   window.BALL_EMOJI = '🐱';
-  //ball.textContent = BALL_EMOJI;
-
+  soundManager.play("powerUpSpawn", { pitch: 1.8, volume: 0.6 });
   console.log('🐱 Cat Mode: Permanent 9s!');
 }
 window.catMode = catMode;
 window['🐱']   = catMode;
 
-// ─── Pro‐tip Rotator ───
+// ─── 5) Max Overdrive (All Power-Ups Armed!) ───
+function maxOverdrive() {
+  activatePowerUp('wide-paddle');
+  activatePowerUp('wide-paddle');
+  activatePowerUp('wide-paddle');
+  activatePowerUp('laser-blast');
+  activatePowerUp('sticky-paddle');
+  console.log('⚡ Max Overdrive: 3× Expando + Twin Lasers + Mag-Lock!');
+}
+window.maxOverdrive = maxOverdrive;
 
-// 1) Define all your tips here:
+// ─── Pro‐tip HUD Ticker ───
 const TIPS = [
-  "Hit the top edge for a Roof Bonus (×1.5).",
-  "Bank‐shots off walls give a small extra bonus.",
-  "“Expando” stacks multiply your points ×2, ×3, ×4…",
-  "Bricked Up! power-ups re-fill empty slots—use them wisely.",
-  "Shooting bricks with the Laser gives +3 points plus bonuses.",
-  "Clear entire layers quickly for “Edge Runner” bonuses.",
-  "Stay on the move—never let the ball slip past your paddle!"
+  { badge: "⚡ COMBO",      text: "Bounce off the ceiling for ROOF BONUS (15 base pts on your next brick)!" },
+  { badge: "🚀 MULTIPLIER", text: "Stack 🪴 EXPANDO up to 3× to widen your paddle & boost score to ×4!" },
+  { badge: "🔥 EDGE RUNNER", text: "Clear a full horizontal brick row to unlock ×2 / ×3 / ×4 row bonuses!" },
+  { badge: "🎯 TWIN LASER", text: "Grab 🎯 LASER BLAST & press SPACE (or F / Click) to fire twin cannons!" },
+  { badge: "🧲 MAG-LOCK",   text: "Catch with 🧲 MAG-LOCK & launch near paddle edges for a sharp angle!" },
+  { badge: "🧱 STRATEGY",   text: "Bank-shots off side walls add +2 base points to your next brick smash!" },
+  { badge: "💻 HACK DECK",  text: "Click [~] HACK to breach Neon-Corp ICE for 🐱 Cat Mode & 💩 Poop Storm!" }
 ];
 
-// 2) Grab references & state:
-const tipBox    = document.getElementById("tips-box");
-const tipText   = document.getElementById("tip-text");
-let   tipIndex  = 0;
+const tipBadgeEl = document.getElementById("tip-badge");
+const tipText    = document.getElementById("tip-text");
+const tipNextBtn = document.getElementById("tip-next-btn");
+let   tipIndex   = 0;
 
-// 3) Initialize with the first tip:
-tipText.textContent = TIPS[tipIndex];
+function renderTip(idx) {
+  const item = TIPS[idx] || TIPS[0];
+  if (tipBadgeEl) tipBadgeEl.textContent = item.badge;
+  if (tipText) tipText.textContent = item.text;
+}
 
-// 4) On "T" keypress, advance to the next tip:
+function advanceTip() {
+  tipIndex = (tipIndex + 1) % TIPS.length;
+  renderTip(tipIndex);
+}
+
+renderTip(tipIndex);
+
+if (tipNextBtn) {
+  tipNextBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    advanceTip();
+  });
+}
+
+setInterval(advanceTip, 8000);
+
 document.addEventListener("keydown", (e) => {
+  if (consoleModalEl && consoleModalEl.style.display === "flex") return;
+  if (e.key === "Escape") {
+    const guideModal = document.getElementById("arcade-guide-modal");
+    if (guideModal && guideModal.style.display === "flex") {
+      e.preventDefault();
+      toggleArcadeGuide(false);
+      return;
+    }
+  }
+  if (e.key === "?") {
+    e.preventDefault();
+    toggleArcadeGuide();
+    return;
+  }
+  if (isStartScreenOpen()) return;
   if (e.key.toLowerCase() === "t") {
-    tipIndex = (tipIndex + 1) % TIPS.length;
-    tipText.textContent = TIPS[tipIndex];
+    advanceTip();
+  } else if (e.key.toLowerCase() === "g") {
+    e.preventDefault();
+    toggleArcadeGuide();
   }
 });
+
+// ─── Retro Arcade Advert & Mechanics Glossary Modal ───
+const guideModalEl = document.getElementById("arcade-guide-modal");
+const guideBtnEl   = document.getElementById("guide-button");
+const tipGuideBtn  = document.getElementById("tip-guide-btn");
+let pausedByGuide  = false;
+
+function buildArcadeGuideHTML() {
+  return `
+    <div class="guide-window">
+    <div class="advert-header">
+      <div>
+        <span class="advert-kicker">★ NEON-CORP COIN-OP DIVISION // OPERATOR'S MANUAL ★</span>
+        <h2 class="advert-title">SMASH THE GRID. STACK THE JUICE.</h2>
+        <p class="advert-subtitle">50 High-Voltage Cyber-Bricks. 5 Experimental Mods. Infinite Multiplier Mayhem.</p>
+      </div>
+      <button type="button" id="advert-close-btn" class="advert-close-btn">✕ CLOSE [ESC]</button>
+    </div>
+
+    <div class="advert-section-title">⚡ EXPERIMENTAL POWER-UP MODS (35% DROP RATE)</div>
+    <div class="advert-grid">
+      <div class="advert-card" style="--card-accent: #90ff5a;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🪴 EXPANDO</span>
+          <span class="advert-card-tag">15s • STACKS UP TO 3×</span>
+        </div>
+        <p class="advert-card-body">Stretches your paddle by <strong>+35% per stack</strong> (Lime ➔ Gold ➔ Orange) AND overclocks your global Score Multiplier to <strong>×2, ×3, and ×4</strong>! Catching a 4th at Max Power bounces it back into the arena!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ff5555;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🎯 LASER BLAST</span>
+          <span class="advert-card-tag">5s • TWIN CANNONS</span>
+        </div>
+        <p class="advert-card-body">Bolts twin plasma cannons to your paddle's outer wings! Mash <strong>SPACE</strong> (or <strong>F</strong> / Click) to fire twin bolts every 0.3s. Every laser hit awards <strong>+3 PTS × active multipliers</strong>!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ff00ff;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🧲 MAG-LOCK</span>
+          <span class="advert-card-tag">4s • CATCH & AIM</span>
+        </div>
+        <p class="advert-card-body">Electromagnets lock the ball to your deck on impact! Reposition, aim near the paddle's outer edges for a razor-sharp <strong>1.5× vector angle</strong>, and press <strong>SPACE</strong> to launch!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #00ffff;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🐌 SLOW-MO</span>
+          <span class="advert-card-tag">5s • STACKS UP TO 3×</span>
+        </div>
+        <p class="advert-card-body">Engages bullet-time! Cuts ball speed to <strong>75% / 56% / 42%</strong>, leaves phantom onion-skin trails, and drops all arcade audio into a deep slow-motion bass warp.</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ffa500;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🧱 BRICKED UP!</span>
+          <span class="advert-card-tag">INSTANT • +5 BRICKS (+6 PTS)</span>
+        </div>
+        <p class="advert-card-body">Drops <strong>5 fresh neon bricks</strong> into empty grid slots—and each re-spawned brick carries a <strong>+6 base point bonus</strong> before multipliers!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ffd700;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🛡️ ARMORED BRICKS</span>
+          <span class="advert-card-tag">×1.6 PAYOUT • 2 HITS</span>
+        </div>
+        <p class="advert-card-body">Standard bricks pay <strong>10 base PTS</strong>. Bricks with a <strong>black notched corner</strong> take 2 hits to shatter and multiply the final brick payout by <strong>×1.6</strong>!</p>
+      </div>
+    </div>
+
+    <div class="advert-section-title">🔥 STUNT MULTIPLIERS & ARENA MILESTONES (THEY STACK TOGETHER!)</div>
+    <div class="advert-grid">
+      <div class="advert-card" style="--card-accent: #ffd700;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">👑 ROOF BONUS</span>
+          <span class="advert-card-tag">15 BASE PTS (×1.5)</span>
+        </div>
+        <p class="advert-card-body">Skim the ball off the top ceiling! Your ball ignites with a giant golden aura and boosts base brick value from <strong>10 ➔ 15 PTS</strong> until your next brick break.</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #00ff00;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">📐 WALL BANK-SHOT</span>
+          <span class="advert-card-tag">+2 BASE PTS</span>
+        </div>
+        <p class="advert-card-body">Ricochet off the left or right perimeter wall immediately before smashing a brick to add <strong>+2 base points</strong> (which then get multiplied by Expando &amp; Edge Runner)!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #00ffff;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">⚡ EDGE RUNNER</span>
+          <span class="advert-card-tag">×2 / ×3 / ×4 ROW BONUS</span>
+        </div>
+        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to slam the arena jumbotron and <strong>permanently multiply all brick points by ×2, ×3, or ×4</strong> for the rest of the run!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ff00ff;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">😎 NEON LEGEND</span>
+          <span class="advert-card-tag">UNLOCKS AT 500 PTS</span>
+        </div>
+        <p class="advert-card-body">Pass <strong>500 points</strong> to trigger the Neon Legend anthem and permanently upgrade your ball to the unflappable <strong>😎 Cyber-Shades</strong> persona!</p>
+      </div>
+    </div>
+
+    <div class="advert-section-title">🏆 THE 14 CYBER-RUNNER RANKS</div>
+    <div class="advert-ranks-box">
+      <div class="advert-rank-col">
+        <h4>💀 SYSTEM FAILURE (BALL LOST)</h4>
+        <ul class="advert-rank-list">
+          <li><span>System Glitch</span><span class="advert-rank-score">0–199</span></li>
+          <li><span>Code Ghost</span><span class="advert-rank-score">200–399</span></li>
+          <li><span>Memory Leak</span><span class="advert-rank-score">400–699</span></li>
+          <li><span>Burned Out</span><span class="advert-rank-score">700–999</span></li>
+          <li><span>Data Janitor</span><span class="advert-rank-score">1,000–1,499</span></li>
+          <li><span>Pixel Drifter</span><span class="advert-rank-score">1,500–1,999</span></li>
+          <li><span>Grid Runner</span><span class="advert-rank-score">2,000–2,499</span></li>
+          <li><span>Neon Operator</span><span class="advert-rank-score">2,500+</span></li>
+        </ul>
+      </div>
+      <div class="advert-rank-col win-col">
+        <h4>👑 MISSION COMPLETE (BOARD CLEARED)</h4>
+        <ul class="advert-rank-list">
+          <li><span>Neon Legend</span><span class="advert-rank-score">&lt; 3,500</span></li>
+          <li><span>Circuit Surfer</span><span class="advert-rank-score">3,500–4,499</span></li>
+          <li><span>Hologram Hacker</span><span class="advert-rank-score">4,500–5,999</span></li>
+          <li><span>Beyond the Black Wall</span><span class="advert-rank-score">6,000–7,999</span></li>
+          <li><span>Synth Overlord</span><span class="advert-rank-score">8,000–9,999</span></li>
+          <li><span>You Are The Replaced</span><span class="advert-rank-score">10,000+</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="advert-secret-strip">
+      <span>🕵️ <strong>CLASSIFIED DECK HACKS:</strong> Press <code>[~]</code> to open the Cyber-Deck Terminal &amp; breach:</span>
+      <div>
+        <code>catMode()</code>
+        <code>poopStorm()</code>
+        <code>confettiBlast()</code>
+        <code>godMode()</code>
+      </div>
+    </div>
+    </div>
+  `;
+}
+
+function toggleArcadeGuide(forceState) {
+  if (!guideModalEl) return;
+  const isOpen = guideModalEl.style.display === "flex";
+  const nextState = typeof forceState === "boolean" ? forceState : !isOpen;
+
+  if (nextState) {
+    if (typeof toggleCyberConsole === "function") toggleCyberConsole(false);
+    if (!guideModalEl.innerHTML.trim()) {
+      guideModalEl.innerHTML = buildArcadeGuideHTML();
+      const closeBtn = document.getElementById("advert-close-btn");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          toggleArcadeGuide(false);
+        });
+      }
+    }
+    if (!gameOver && gameRunning && !ballIsStuck) {
+      togglePause();
+      pausedByGuide = true;
+    } else {
+      pausedByGuide = false;
+    }
+    guideModalEl.style.display = "flex";
+    soundManager.play("bounce", { pitch: 1.4, volume: 0.35 });
+  } else {
+    guideModalEl.style.display = "none";
+    if (pausedByGuide && !gameOver && !gameRunning) {
+      pausedByGuide = false;
+      togglePause();
+    }
+  }
+}
+
+if (guideBtnEl) {
+  guideBtnEl.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    toggleArcadeGuide();
+  });
+}
+if (tipGuideBtn) {
+  tipGuideBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    toggleArcadeGuide();
+  });
+}
+if (guideModalEl) {
+  guideModalEl.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    if (ev.target === guideModalEl) toggleArcadeGuide(false);
+  });
+}
+
+// ─── Cyber-Deck Hacking Console & ICE Breaker Mini-Game ───
+const consoleModalEl = document.getElementById("cyber-console-modal");
+const consoleBtnEl   = document.getElementById("console-button");
+const tipConsoleBtn  = document.getElementById("tip-console-btn");
+let pausedByConsole  = false;
+
+const HEX_POOL = ["1C", "55", "E9", "7A", "BD", "FF", "A4", "0F", "C2", "88", "3E", "D1"];
+const DAEMONS = [
+  {
+    id: "cat",
+    emoji: "🐱",
+    name: "NINE-LIVES",
+    cmd: "catMode()",
+    aliases: ["cat", "catmode", "catmode()", "9", "meow", "🐱"],
+    desc: "Swaps ball to 🐱 & forces every brick score to end in 9!",
+    unlocked: false,
+    run: () => {
+      catMode();
+      return "NINE-LIVES PROTOCOL ACTIVE // ALL SCORES ROUNDED TO ...9";
+    }
+  },
+  {
+    id: "poop",
+    emoji: "💩",
+    name: "BIO-STORM",
+    cmd: "poopStorm()",
+    aliases: ["poop", "poopstorm", "poopstorm()", "poo", "storm", "💩"],
+    desc: "Unleashes 30 gravity-driven 💩 projectiles that bounce off your paddle!",
+    unlocked: false,
+    run: () => {
+      poopStorm();
+      return "BIO-HAZARD PAYLOAD DEPLOYED // 30 DROPS INBOUND";
+    }
+  },
+  {
+    id: "party",
+    emoji: "🎉",
+    name: "PRISM-BURST",
+    cmd: "confettiBlast()",
+    aliases: ["party", "confetti", "confettiblast", "confettiblast()", "🎉"],
+    desc: "Detonates 100 glowing cyber-confetti shards across the cabinet!",
+    unlocked: false,
+    run: () => {
+      confettiBlast();
+      soundManager.play("winSong");
+      return "PRISM CANNON FIRED // 100 SHARDS DEPLOYED";
+    }
+  },
+  {
+    id: "god",
+    emoji: "🎮",
+    name: "GOD-OVERCLOCK",
+    cmd: "godMode()",
+    aliases: ["god", "godmode", "godmode()", "overclock", "🎮"],
+    desc: "Sets Score to 999,999 + injects 10× Slow-Mo bullet-time stacks!",
+    unlocked: false,
+    run: () => {
+      godMode();
+      return "OVERCLOCK ENGAGED // SCORE=999999 + 10× BULLET-TIME";
+    }
+  },
+  {
+    id: "juice",
+    emoji: "⚡",
+    name: "MAX-OVERDRIVE",
+    cmd: "maxOverdrive()",
+    aliases: ["juice", "overdrive", "maxoverdrive", "maxoverdrive()", "max", "⚡"],
+    desc: "Arms 3× EXPANDO (×4 Multiplier) + Twin Lasers + Mag-Lock at once!",
+    unlocked: false,
+    run: () => {
+      maxOverdrive();
+      return "MAX OVERDRIVE ARMED // 3× EXPANDO + TWIN LASERS + MAG-LOCK";
+    }
+  }
+];
+
+let targetedDaemonId = "cat";
+let breachSequence = ["E9", "7A", "FF"];
+let breachGridBytes = [];
+let breachStep = 0;
+let consoleLogs = [
+  { text: "BLACKWALL DECK-OS v2.4 // CONNECTED TO NEON-CORP MAINFRAME", type: "ok" },
+  { text: "5 ENCRYPTED GAME MODES DETECTED BEHIND ICE FIREWALL.", type: "warn" },
+  { text: "TIP: Click the 3 matching HEX BYTES in order — or type 'scan' / 'help' below!", type: "" }
+];
+
+function addConsoleLog(text, type = "") {
+  consoleLogs.push({ text, type });
+  if (consoleLogs.length > 18) consoleLogs.shift();
+  const logBox = document.getElementById("console-log-box");
+  if (logBox) {
+    logBox.innerHTML = consoleLogs.map(l => `<div class="console-log-line ${l.type ? `log-${l.type}` : ""}">&gt; ${l.text}</div>`).join("");
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+function generateBreachPuzzle() {
+  const shuffled = [...HEX_POOL].sort(() => Math.random() - 0.5);
+  breachGridBytes = shuffled.slice(0, 12);
+  const picks = [...breachGridBytes].sort(() => Math.random() - 0.5).slice(0, 3);
+  breachSequence = picks;
+  breachStep = 0;
+}
+
+function getNextLockedDaemon() {
+  return DAEMONS.find(d => !d.unlocked) || null;
+}
+
+function renderCyberConsole() {
+  if (!consoleModalEl) return;
+  const targetDaemon = DAEMONS.find(d => d.id === targetedDaemonId) || getNextLockedDaemon() || DAEMONS[0];
+
+  const seqHTML = breachSequence.map((byte, idx) => `
+    <span class="breach-seq-byte ${idx < breachStep ? "matched" : ""}">${byte}</span>
+  `).join(`<span>➔</span>`);
+
+  const gridHTML = breachGridBytes.map((byte, idx) => `
+    <div class="breach-hex-cell" data-byte="${byte}" data-idx="${idx}">${byte}</div>
+  `).join("");
+
+  const daemonsHTML = DAEMONS.map(d => {
+    const isTargeted = !d.unlocked && d.id === targetDaemon.id;
+    const cardClasses = ["daemon-card"];
+    if (d.unlocked) cardClasses.push("unlocked");
+    if (isTargeted) cardClasses.push("targeted");
+
+    const cmdPill = d.unlocked
+      ? `<span class="daemon-cmd-pill">${d.cmd}</span>`
+      : `<span class="daemon-cmd-pill">🔒 ICE-ENCRYPTED</span>`;
+
+    const btnLabel = d.unlocked ? "▶ EXECUTE" : (isTargeted ? "🎯 BREACHING..." : "🔒 TARGET ICE");
+
+    return `
+      <div class="${cardClasses.join(" ")}" data-daemon="${d.id}">
+        <div class="daemon-info">
+          <div class="daemon-title">${d.emoji} ${d.name} ${cmdPill}</div>
+          <div class="daemon-desc">${d.desc}</div>
+        </div>
+        <button type="button" class="daemon-action-btn" data-daemon-btn="${d.id}">${btnLabel}</button>
+      </div>
+    `;
+  }).join("");
+
+  const logsHTML = consoleLogs.map(l => `<div class="console-log-line ${l.type ? `log-${l.type}` : ""}">&gt; ${l.text}</div>`).join("");
+
+  consoleModalEl.innerHTML = `
+    <div class="console-window">
+      <div class="console-topbar">
+        <div class="console-title-wrap">
+          <span class="console-kicker">★ NEON-CORP MAINFRAME BREACH // CYBER-DECK TERMINAL ★</span>
+          <h2 class="console-title">💻 BLACKWALL HACK CONSOLE</h2>
+        </div>
+        <button type="button" id="console-close-btn" class="advert-close-btn">✕ EXIT [ESC]</button>
+      </div>
+
+      <div class="console-body-grid">
+        <div class="console-breach-panel">
+          <div>
+            <div class="console-panel-header">
+              <span>⚡ ICE BREAKER</span>
+              <span>TARGET: ${targetDaemon.emoji} ${targetDaemon.name}</span>
+            </div>
+            <div class="breach-target-bar">
+              <span class="breach-target-label">MATCH SEQUENCE:</span>
+              <div class="breach-target-seq">${seqHTML}</div>
+            </div>
+            <div class="breach-hex-grid">${gridHTML}</div>
+          </div>
+          <div id="console-log-box" class="console-log-box">${logsHTML}</div>
+        </div>
+
+        <div class="console-daemons-panel">
+          <div class="console-panel-header">
+            <span>🔓 DAEMONS (${DAEMONS.filter(d => d.unlocked).length}/${DAEMONS.length} UNLOCKED)</span>
+            <span>BREACH OR TYPE CMD</span>
+          </div>
+          <div class="daemon-list">${daemonsHTML}</div>
+        </div>
+      </div>
+
+      <form id="console-cli-form" class="console-cli-bar">
+        <span class="console-prompt-prefix">root@neon-deck:~#</span>
+        <input id="console-cli-input" class="console-cli-input" type="text" placeholder="Type 'scan', 'catMode()', 'poopStorm()', 'godMode()', 'score 5000'..." autocomplete="off" spellcheck="false" />
+        <button type="submit" class="console-cli-run">RUN ↵</button>
+      </form>
+    </div>
+  `;
+
+  const logBox = document.getElementById("console-log-box");
+  if (logBox) logBox.scrollTop = logBox.scrollHeight;
+
+  const closeBtn = document.getElementById("console-close-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      toggleCyberConsole(false);
+    });
+  }
+
+  consoleModalEl.querySelectorAll(".breach-hex-cell").forEach(cell => {
+    cell.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const clickedByte = cell.dataset.byte;
+      const expectedByte = breachSequence[breachStep];
+      if (clickedByte === expectedByte) {
+        breachStep++;
+        cell.classList.add("cell-hit");
+        soundManager.play("bounce", { pitch: 1.2 + breachStep * 0.28, volume: 0.45 });
+
+        if (breachStep >= breachSequence.length) {
+          // Sequence cracked!
+          const toUnlock = DAEMONS.find(d => d.id === targetedDaemonId && !d.unlocked) || getNextLockedDaemon();
+          soundManager.play("powerUpSpawn", { pitch: 1.9, volume: 0.65 });
+          if (toUnlock) {
+            toUnlock.unlocked = true;
+            addConsoleLog(`ICE BREACHED! Unlocked [${toUnlock.emoji} ${toUnlock.name}] -> Click EXECUTE or type ${toUnlock.cmd}`, "ok");
+            const nextLocked = getNextLockedDaemon();
+            if (nextLocked) targetedDaemonId = nextLocked.id;
+          } else {
+            addConsoleLog(`ALL DAEMONS UNLOCKED! Firing bonus PRISM-BURST...`, "ok");
+            confettiBlast();
+          }
+          generateBreachPuzzle();
+          setTimeout(renderCyberConsole, 140);
+        } else {
+          renderCyberConsole();
+        }
+      } else {
+        cell.classList.add("cell-err");
+        soundManager.play("multihit", { pitch: 0.65, volume: 0.45 });
+        addConsoleLog(`FIREWALL RESET // Expected [${expectedByte}], got [${clickedByte}]. Sequence scrambled!`, "err");
+        generateBreachPuzzle();
+        setTimeout(renderCyberConsole, 220);
+      }
+    });
+  });
+
+  consoleModalEl.querySelectorAll("[data-daemon-btn]").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const id = btn.dataset.daemonBtn;
+      const daemon = DAEMONS.find(d => d.id === id);
+      if (!daemon) return;
+      if (daemon.unlocked) {
+        executeDaemon(daemon);
+      } else {
+        targetedDaemonId = daemon.id;
+        generateBreachPuzzle();
+        soundManager.play("bounce", { pitch: 1.35, volume: 0.35 });
+        addConsoleLog(`TARGET LOCKED: [${daemon.emoji} ${daemon.name}] — Match the 3-byte hex signature to breach!`, "warn");
+        renderCyberConsole();
+      }
+    });
+  });
+
+  const cliForm = document.getElementById("console-cli-form");
+  const cliInput = document.getElementById("console-cli-input");
+  if (cliForm && cliInput) {
+    cliForm.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const raw = cliInput.value.trim();
+      if (!raw) return;
+      cliInput.value = "";
+      handleConsoleCommand(raw);
+    });
+  }
+}
+
+function executeDaemon(daemon) {
+  daemon.unlocked = true;
+  const msg = daemon.run();
+  addConsoleLog(`EXECUTING ${daemon.cmd} ➔ ${msg}`, "ok");
+  renderCyberConsole();
+  // Close modal smoothly after a brief beat so the player sees the effect in the arena!
+  setTimeout(() => {
+    toggleCyberConsole(false);
+  }, 420);
+}
+
+function handleConsoleCommand(rawInput) {
+  const clean = rawInput.trim().toLowerCase();
+  addConsoleLog(`root@neon-deck:~# ${rawInput}`, "");
+
+  if (clean === "help" || clean === "?") {
+    addConsoleLog("COMMANDS: scan | breach | catMode() | poopStorm() | confettiBlast() | godMode() | maxOverdrive() | score <num> | clear", "warn");
+    return;
+  }
+  if (clean === "clear" || clean === "cls") {
+    consoleLogs = [];
+    addConsoleLog("TERMINAL BUFFER CLEARED.", "ok");
+    return;
+  }
+  if (clean === "scan" || clean === "ls" || clean === "dir") {
+    addConsoleLog("SCANNING MAINFRAME... EXPLOIT SIGNATURES FOUND:", "ok");
+    DAEMONS.forEach(d => {
+      addConsoleLog(`  ${d.emoji} ${d.cmd.padEnd(16, " ")} — ${d.unlocked ? "[UNLOCKED]" : "[LOCKED]"}`, d.unlocked ? "ok" : "warn");
+    });
+    return;
+  }
+  if (clean === "breach" || clean === "crack" || clean === "unlock" || clean === "sudo") {
+    DAEMONS.forEach(d => { d.unlocked = true; });
+    soundManager.play("powerUpSpawn", { pitch: 2.0, volume: 0.7 });
+    addConsoleLog("ROOT OVERRIDE ACCEPTED // ALL 5 DAEMONS UNLOCKED!", "ok");
+    renderCyberConsole();
+    return;
+  }
+
+  // Check score command: "score 5000" or "devsetscore(5000)"
+  const scoreMatch = clean.match(/^(?:score|devsetscore)\s*\(?(\d+)\)?$/);
+  if (scoreMatch) {
+    const val = parseInt(scoreMatch[1], 10);
+    window.devSetScore(val);
+    soundManager.play("powerUpSpawn", { pitch: 1.6, volume: 0.5 });
+    addConsoleLog(`SCORE OVERRIDE: Score set to ${val}!`, "ok");
+    return;
+  }
+
+  // Check if command matches any daemon alias
+  const matchedDaemon = DAEMONS.find(d => d.aliases.includes(clean));
+  if (matchedDaemon) {
+    executeDaemon(matchedDaemon);
+    return;
+  }
+
+  soundManager.play("multihit", { pitch: 0.7, volume: 0.4 });
+  addConsoleLog(`UNKNOWN EXPLOIT '${rawInput}'. Type 'scan' or 'help' for valid payloads.`, "err");
+}
+
+function toggleCyberConsole(forceState) {
+  if (!consoleModalEl) return;
+  const isOpen = consoleModalEl.style.display === "flex";
+  const nextState = typeof forceState === "boolean" ? forceState : !isOpen;
+
+  if (nextState) {
+    toggleArcadeGuide(false);
+    if (!breachGridBytes.length) generateBreachPuzzle();
+    if (!gameOver && gameRunning && !ballIsStuck) {
+      togglePause();
+      pausedByConsole = true;
+    } else {
+      pausedByConsole = false;
+    }
+    renderCyberConsole();
+    consoleModalEl.style.display = "flex";
+    soundManager.play("bounce", { pitch: 1.55, volume: 0.4 });
+    setTimeout(() => {
+      const inp = document.getElementById("console-cli-input");
+      if (inp) inp.focus();
+    }, 30);
+  } else {
+    consoleModalEl.style.display = "none";
+    if (pausedByConsole && !gameOver && !gameRunning) {
+      pausedByConsole = false;
+      togglePause();
+    }
+  }
+}
+
+if (consoleBtnEl) {
+  consoleBtnEl.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    toggleCyberConsole();
+  });
+}
+if (tipConsoleBtn) {
+  tipConsoleBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    toggleCyberConsole();
+  });
+}
+if (consoleModalEl) {
+  consoleModalEl.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    if (ev.target === consoleModalEl) toggleCyberConsole(false);
+  });
+}
