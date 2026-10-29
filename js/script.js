@@ -585,6 +585,8 @@ function initGame() {
     awaitingInitials = false;
     
     startScreen.style.display = 'flex';
+    const headerLeft = document.querySelector('.header-left');
+    if (headerLeft) headerLeft.classList.add('title-page-hidden');
     renderCallsignBuilder();
     updateStartLeaderboard();
     updateHighScoreDisplay();
@@ -896,6 +898,8 @@ function startGame() {
         rowBonusLevel = 0;
         
         startScreen.style.display = 'none';
+        const headerLeft = document.querySelector('.header-left');
+        if (headerLeft) headerLeft.classList.remove('title-page-hidden');
         scoreDisplay.style.display = 'block';
         statusIndicatorsContainer.style.display = 'flex';
         ball.style.display = 'block';
