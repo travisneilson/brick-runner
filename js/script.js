@@ -120,6 +120,10 @@ const soundManager = {
         return Promise.all(promises);
     },
     play(name, options = {}) {
+        if (isCatMode && typeof playCuteCatSound === 'function' && name !== 'winSong' && name !== 'loseSong') {
+            playCuteCatSound(name, options);
+            return;
+        }
         if (!this.context || !this.sounds[name]?.buffer) return;
         if (options.loop && this.nowPlaying[name]) {
             this.nowPlaying[name].stop();
@@ -209,7 +213,8 @@ const soundsToLoad = {
   'loseSong':    { url: "./sounds/LoserSong.mp3" }, 
   'grow':        { url: "./sounds/Grow.mp3", reversable: true }, 
   'magActivate': { url: "./sounds/mag1.mp3" }, 
-  'magLaunch':   { url: "./sounds/mag2.mp3" } 
+  'magLaunch':   { url: "./sounds/mag2.mp3" },
+  'catMeow':     { url: "./sounds/cat-meow.mp3" }
 };
 
 const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
@@ -758,6 +763,9 @@ function startGame() {
         
         gameArea.classList.add('hide-cursor');
         gameRunning = true; 
+        if (typeof applyArmedHackModesOnStart === 'function') {
+            applyArmedHackModesOnStart();
+        }
         requestAnimationFrame(gameLoop);
     }
 }
@@ -806,6 +814,9 @@ function gameLoop(timestamp) {
   updatePowerUps(delta);
   updateLasers(delta);
   updateStatusIndicators();
+  if (typeof updateHackModesFrame === "function") {
+    updateHackModesFrame(delta);
+  }
 
   // 4) Handle collisions
   checkCollisions();
@@ -836,10 +847,22 @@ function gameLoop(timestamp) {
     return;
   }
 
-  //    b) Loss if the ball falls below the bottom (and isn’t stuck)
-  if (ballY + BALL_SIZE > GAME_HEIGHT && !ballIsStuck) {
-    endGame(false);
-    return;
+  //    b) God Mode Immortal Floor Shield, Cat Mode 9-Lives Save, OR Loss if the ball falls below the bottom
+  if (typeof isHackModeActive === "function" && isHackModeActive("god") && ballY + BALL_SIZE >= GAME_HEIGHT - 14 && !ballIsStuck && ballSpeedY > 0) {
+    ballY = GAME_HEIGHT - BALL_SIZE - 15;
+    ballSpeedY = -Math.abs(ballSpeedY);
+    soundManager.play("bounce", { pitch: 1.45, volume: 0.65 });
+    showNotification("god-shield", { x: ballX + BALL_SIZE / 2 });
+    if (typeof triggerDivinePaddleSmite === "function") {
+      triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, GAME_HEIGHT - 16);
+    }
+  } else if (ballY + BALL_SIZE > GAME_HEIGHT && !ballIsStuck) {
+    if (typeof isHackModeActive === "function" && isHackModeActive("cat") && typeof handleCatNineLivesSave === "function" && handleCatNineLivesSave()) {
+      // Saved by one of the cat's 9 lives!
+    } else {
+      endGame(false);
+      return;
+    }
   }
 
   // 9) Request the next frame
@@ -849,14 +872,41 @@ function gameLoop(timestamp) {
 
 function updatePaddlePosition(dt) {
   const halfPaddle = paddleWidth / 2;
+  const speedMult = (typeof isHackModeActive === "function" && isHackModeActive("juice")) ? 1.45 : 1;
   if (leftPressed) {
-    paddleX = Math.max(halfPaddle, paddleX - PADDLE_SPEED * dt);
+    paddleX = Math.max(halfPaddle, paddleX - PADDLE_SPEED * speedMult * dt);
   }
   if (rightPressed) {
-    paddleX = Math.min(GAME_WIDTH - halfPaddle, paddleX + PADDLE_SPEED * dt);
+    paddleX = Math.min(GAME_WIDTH - halfPaddle, paddleX + PADDLE_SPEED * speedMult * dt);
   }
 }
-function updateBallPosition(e){if(ballIsStuck)return;const t=activePowerUps["slow-mo"]?.length||0,o=Math.pow(.75,t);ballX+=ballSpeedX*o*e,ballY+=ballSpeedY*o*e}
+function updateBallPosition(e) {
+  if (ballIsStuck) {
+    if (!isRoofBonusActive) ball.style.transform = "";
+    return;
+  }
+  const t = activePowerUps["slow-mo"]?.length || 0;
+  let o = Math.pow(0.75, t);
+  if (typeof isHackModeActive === "function" && isHackModeActive("juice") && !isHackModeActive("god")) {
+    o *= 1.6;
+  }
+  if (isCatMode) {
+    // Parabolic leaping arc trajectory for Cat Mode!
+    const CAT_LEAP_GRAVITY = 680;
+    ballSpeedY += CAT_LEAP_GRAVITY * o * e;
+    if (Math.abs(ballSpeedX) < 120) {
+      ballSpeedX = (ballSpeedX >= 0 ? 1 : -1) * 165;
+    }
+    if (!isRoofBonusActive) {
+      const tilt = Math.max(-28, Math.min(28, (ballSpeedY / 420) * (ballSpeedX >= 0 ? 20 : -20)));
+      ball.style.transform = `rotate(${tilt.toFixed(1)}deg)`;
+    }
+  } else if (!isRoofBonusActive) {
+    ball.style.transform = "";
+  }
+  ballX += ballSpeedX * o * e;
+  ballY += ballSpeedY * o * e;
+}
 function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left||e.left>t.right)}
 
 
@@ -1260,6 +1310,12 @@ function updateLasers(dt) {
         // 5) Break the brick, evaluate row clear, spawn any power-up, remove the bolt
         b.isBroken = true;
         b.element.classList.add('broken');
+        if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+          triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
+        }
+        if (typeof isHackModeActive === "function" && isHackModeActive("poop") && typeof spawnBrickPoops === "function") {
+          spawnBrickPoops(b.x + b.width / 2, b.y + b.height / 2, 2);
+        }
         if (typeof b.row === "number" && !b.isExtraSpawn) {
           evaluateRowClear(b.row);
         }
@@ -1302,8 +1358,15 @@ function checkCollisions() {
   if ((ballX <= 0 && ballSpeedX < 0) ||
       (ballX + BALL_SIZE >= GAME_WIDTH && ballSpeedX > 0)) {
     ballSpeedX *= -1;
+    if (isCatMode) {
+      // Cat wall-jumps upward in an arc when touching a side wall!
+      ballSpeedY = -(INITIAL_BALL_SPEED * 1.36);
+    }
     soundManager.play("bounce");
     justBounced = true;
+    if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+      triggerCollisionSparklers(ballX <= 0 ? 10 : GAME_WIDTH - 10, ballY + BALL_SIZE / 2, "wall");
+    }
   }
 
   // Ceiling
@@ -1312,6 +1375,9 @@ function checkCollisions() {
     ballSpeedY *= -1;
     soundManager.play("bounce", { pitch: 0.8 });
     justBounced = true;
+    if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+      triggerCollisionSparklers(ballX + BALL_SIZE / 2, 10, "ceiling");
+    }
 
     // Apply roof bonus if not already active
     if (!isRoofBonusActive) {
@@ -1337,6 +1403,12 @@ const padRect = {
 // only proceed if the ball is coming down
 if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
   soundManager.play("bounce");
+  if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+    triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
+  }
+  if (typeof isHackModeActive === "function" && isHackModeActive("god") && typeof triggerDivinePaddleSmite === "function") {
+    triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, padRect.top);
+  }
 
   // clear any roof bonus
   if (isRoofBonusActive) {
@@ -1344,7 +1416,7 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
     ball.classList.remove("bonus-active");
   }
 
-  if (isStickyPaddle) {
+  if (isStickyPaddle && !(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
     // stick the ball
     ballIsStuck = true;
     ballSpeedX  = 0;
@@ -1353,8 +1425,12 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
     // bounce off the paddle
     // 1) reposition the ball just above the paddle
     ballY = padRect.top - BALL_SIZE;
-    // 2) invert Y velocity
-    ballSpeedY *= -1;
+    // 2) invert Y velocity (high parabolic pounce in Cat Mode!)
+    if (isCatMode) {
+      ballSpeedY = -(INITIAL_BALL_SPEED * 1.55);
+    } else {
+      ballSpeedY *= -1;
+    }
 
     // 3) compute X-velocity based on hit position
     const padWidth    = padRect.right - padRect.left;
@@ -1362,6 +1438,9 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
     const paddleCenter= padRect.left + halfPaddle;
     const impactPos   = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
     ballSpeedX        = impactPos * INITIAL_BALL_SPEED * 1.5;
+    if (isCatMode && Math.abs(ballSpeedX) < 135) {
+      ballSpeedX = (impactPos >= 0 ? 1 : -1) * 175;
+    }
   }
 
   // finally, clear your bank-shot flag
@@ -1447,6 +1526,15 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         // 2) Mark the brick as broken
         brick.isBroken = true;
         brick.element.classList.add("broken");
+        if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+          triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "brick");
+        }
+        if (typeof isHackModeActive === "function" && isHackModeActive("juice") && typeof triggerOverdriveChainBlast === "function") {
+          triggerOverdriveChainBlast(brick);
+        }
+        if (typeof isHackModeActive === "function" && isHackModeActive("poop") && typeof spawnBrickPoops === "function") {
+          spawnBrickPoops(brick.x + brick.width / 2, brick.y + brick.height / 2, 2);
+        }
 
         // 3) Apply row-clear and 2-hit brick multipliers before adding to score
         points *= (rowBonusLevel + 1);
@@ -1518,6 +1606,9 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           soundManager.play("multihit", { pitch: 1.5, volume: 0.7 });
         }, 50);
         brick.element.classList.add("damaged");
+        if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+          triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "wall");
+        }
       }
 
       // 8) Finally, update the score display
@@ -1575,9 +1666,15 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       if (minOverlapX < minOverlapY) {
         ballSpeedX *= -1;
         ballX += overlapLeft < overlapRight ? -overlapLeft : overlapRight;
+        if (isCatMode) {
+          ballSpeedY = -(INITIAL_BALL_SPEED * 1.18);
+        }
       } else {
         ballSpeedY *= -1;
         ballY += overlapTop < overlapBottom ? -overlapTop : overlapBottom;
+        if (isCatMode && overlapTop < overlapBottom) {
+          ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.22);
+        }
       }
       ballSpeedX *= 1.005;
       ballSpeedY *= 1.005;
@@ -1618,7 +1715,7 @@ function endGame(won) {
   if (pauseButton) pauseButton.style.display = "none";
   if (won) {
     soundManager.play("winSong");
-    confettiBlast();
+    spawnConfettiShards(100);
   } else {
     soundManager.play("loseSong");
   }
@@ -1645,20 +1742,25 @@ function endGame(won) {
     <div id="end-leaderboard" class="leaderboard-panel">
       ${renderLeaderboardHTML(savedEntry ? savedEntry.id : lastSavedEntryId)}
     </div>
-    <p class="game-message-prompt">Press SPACE to Play Again &bull; <span id="change-callsign-btn" class="change-callsign-link">[C] Callsign</span></p>
   `;
   gameMessage.style.display = "block";
   gameArea.classList.remove("hide-cursor");
-
-  const changeBtn = document.getElementById("change-callsign-btn");
-  if (changeBtn) {
-    changeBtn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      initGame();
-    });
+}
+function launchStuckBall() {
+  if (ballIsStuck) {
+    clearTimeout(autoLaunchTimeout);
+    soundManager.stop("winSong");
+    ballIsStuck = false;
+    ballSpeedY = isCatMode ? -(INITIAL_BALL_SPEED * 1.54) : -INITIAL_BALL_SPEED;
+    const e = paddleWidth / 2;
+    let t = (ballX + BALL_SIZE / 2 - paddleX) / e * INITIAL_BALL_SPEED * 1.5;
+    if (isCatMode && Math.abs(t) < 135) {
+      t = (Math.random() > 0.5 ? 1 : -1) * 180;
+    }
+    ballSpeedX = t;
+    soundManager.play("magLaunch");
   }
 }
-function launchStuckBall(){if(ballIsStuck){clearTimeout(autoLaunchTimeout),soundManager.stop("winSong"),ballIsStuck=!1,ballSpeedY=-INITIAL_BALL_SPEED;const e=paddleWidth/2,t=(ballX+BALL_SIZE/2-paddleX)/e*INITIAL_BALL_SPEED*1.5;ballSpeedX=t,soundManager.play("magLaunch")}}
 function fireLaser() {
   if (!canFire || !isLaserActive) return;
   canFire = false;
@@ -1888,201 +1990,1114 @@ window.devSetScore = function(newScore) {
   console.log(`🛠️  Dev: score force‐set to ${score}`);
 };
 
-// ─── 1) Poop Storm ───
-// ─── Enhanced Poop Storm ───
-function poopStorm() {
-  const drops = [];
-  const area   = document.getElementById('game-area');
-  const POO_SIZE = 48;      // px
-  const BOUNCE_DAMP = 0.7;  // how “bouncy” the poop is
+// ─── HACK MODES: FRAME, LIGHTING, HUD & GAMEPLAY ENGINE ───
+const activeHackModes = new Set();
+let primaryHackModeId = null;
+let poopDrops = [];
+let poopLoopRunning = false;
+let poopRainInterval = null;
+let catLives = 9;
+let catMeowScaleIdx = 0;
+let overdriveAutoFireAccum = 0;
+let partyTrailAccum = 0;
+let godMusicInterval = null;
+let godChordIdx = 0;
 
-  // 1) Spawn 30 drops with varied start‐heights and start‐velocities
-  for (let i = 0; i < 30; i++) {
-    const el = document.createElement('div');
-    el.textContent = '💩';
-    el.className   = 'poop-drop';
-    el.style.position = 'absolute';
-    el.style.width    = el.style.height = `${POO_SIZE}px`;
+// ─── Zero-Allocation 60fps HTML5 Canvas Sparkler & Confetti Engine ───
+const MAX_SPARKS = 880;
+const sparkPool = Array.from({ length: MAX_SPARKS }, () => ({
+  active: false,
+  x: 0,
+  y: 0,
+  px: 0,
+  py: 0,
+  vx: 0,
+  vy: 0,
+  life: 0,
+  maxLife: 1,
+  color: "#00ffff",
+  size: 2,
+  kind: 0, // 0 = white-hot sparkler streak, 1 = spinning confetti ribbon, 2 = crackle star
+  angle: 0,
+  spin: 0
+}));
+let sparkCursor = 0;
+const SPARK_COLORS = ["#00FFFF", "#FF00FF", "#FFE600", "#00FF66", "#FF2A85", "#FF8C00", "#FFFFFF"];
 
-    // X anywhere across the width:
-    const startX = Math.random() * (GAME_WIDTH - POO_SIZE);
-    // Y a bit above the top — between -POO_SIZE and -POO_SIZE*3
-    const startY = -POO_SIZE * (1 + Math.random() * 2);
+function emitSparkParticle(x, y, vx, vy, color, maxLife, size, kind = 0) {
+  const s = sparkPool[sparkCursor];
+  sparkCursor = (sparkCursor + 1) % MAX_SPARKS;
+  s.active = true;
+  s.x = x;
+  s.y = y;
+  s.px = x;
+  s.py = y;
+  s.vx = vx;
+  s.vy = vy;
+  s.life = 0;
+  s.maxLife = maxLife;
+  s.color = color;
+  s.size = size;
+  s.kind = kind;
+  s.angle = Math.random() * Math.PI * 2;
+  s.spin = (Math.random() - 0.5) * 14;
+}
 
-    el.style.left          = `${startX}px`;
-    el.style.top           = `${startY}px`;
-    el.style.pointerEvents = 'none';
-    area.appendChild(el);
+function triggerCollisionSparklers(x, y, hitType = "brick") {
+  const burstCount = hitType === "brick" ? 68 : (hitType === "paddle" ? 56 : 44);
+  for (let i = 0; i < burstCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = (hitType === "brick" ? 90 : 75) + Math.random() * 420;
+    let vx = Math.cos(angle) * speed;
+    let vy = Math.sin(angle) * speed;
+    if (hitType === "paddle") vy = -Math.abs(vy) - 40;
+    if (hitType === "ceiling") vy = Math.abs(vy) + 30;
+    const color = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+    const kind = i % 4 === 0 ? 1 : (i % 7 === 0 ? 2 : 0);
+    const maxLife = 0.28 + Math.random() * 0.55;
+    const size = kind === 1 ? (4 + Math.random() * 4) : (1.6 + Math.random() * 2.2);
+    emitSparkParticle(x, y, vx, vy, color, maxLife, size, kind);
+  }
+}
 
-    drops.push({
-      el,
-      x:  startX,
-      y:  startY,
-      // vary the initial downward speed (50 to 200 px/sec)
-      vx: (Math.random() - 0.5) * 100,
-      vy: 50 + Math.random() * 150
+function updateAndRenderSparklers(dt) {
+  const canvas = document.getElementById("party-sparkler-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+  let anyActive = false;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  for (let i = 0; i < MAX_SPARKS; i++) {
+    const s = sparkPool[i];
+    if (!s.active) continue;
+    s.life += dt;
+    if (s.life >= s.maxLife) {
+      s.active = false;
+      continue;
+    }
+    anyActive = true;
+    s.px = s.x;
+    s.py = s.y;
+
+    // Air drag + gravity
+    s.vx *= Math.pow(0.92, dt * 60);
+    s.vy = s.vy * Math.pow(0.94, dt * 60) + 360 * dt;
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.angle += s.spin * dt;
+
+    // Bounce sparklers lightly off the floor or side walls
+    if (s.x < 2 || s.x > GAME_WIDTH - 2) s.vx *= -0.75;
+
+    const alpha = Math.max(0, 1 - s.life / s.maxLife);
+    ctx.globalAlpha = alpha;
+
+    if (s.kind === 0) {
+      // Glowing sparkler streak + white-hot core tip
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.size;
+      ctx.beginPath();
+      ctx.moveTo(s.px - s.vx * 0.018, s.py - s.vy * 0.018);
+      ctx.lineTo(s.x, s.y);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(s.x - 1, s.y - 1, 2, 2);
+    } else if (s.kind === 1) {
+      // Spinning neon confetti ribbon
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.angle);
+      ctx.fillStyle = s.color;
+      ctx.fillRect(-s.size, -s.size * 0.45, s.size * 2, s.size * 0.9);
+      ctx.restore();
+    } else {
+      // Twinkling crackle star at the tip
+      const flicker = (Math.sin(s.life * 55) > 0) ? 1.4 : 0.6;
+      const r = s.size * flicker;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(s.x - r * 2.2, s.y);
+      ctx.lineTo(s.x + r * 2.2, s.y);
+      ctx.moveTo(s.x, s.y - r * 2.2);
+      ctx.lineTo(s.x, s.y + r * 2.2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  return anyActive;
+}
+
+// Always run a lightweight canvas loop when particles are active even if on start/win screen
+let standaloneSparkLoop = false;
+function kickStandaloneSparkLoop() {
+  if (standaloneSparkLoop) return;
+  standaloneSparkLoop = true;
+  let lastT = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    if (!gameRunning) {
+      const hasMore = updateAndRenderSparklers(dt);
+      if (hasMore) {
+        requestAnimationFrame(frame);
+        return;
+      }
+    }
+    standaloneSparkLoop = false;
+  }
+  requestAnimationFrame(frame);
+}
+
+// ─── Real Recorded Cat Meow Sample Player (with Pitch Variation + Synth Fallback) ───
+const CAT_PITCH_STEPS = [0.94, 1.02, 1.10, 1.18, 1.26, 1.34];
+
+function playCuteCatSound(name, options = {}) {
+  try {
+    soundManager.init();
+    const ctx = soundManager.context;
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+
+    const now = ctx.currentTime;
+    const pitchStep = CAT_PITCH_STEPS[catMeowScaleIdx % CAT_PITCH_STEPS.length];
+    catMeowScaleIdx++;
+
+    const meowBuf = soundManager.sounds["catMeow"] && soundManager.sounds["catMeow"].buffer;
+    if (meowBuf) {
+      const source = ctx.createBufferSource();
+      source.buffer = meowBuf;
+
+      const gain = ctx.createGain();
+      const baseVol = Math.min(0.95, (options.volume !== undefined ? options.volume : 0.8) * 0.85);
+
+      let rate = pitchStep;
+      let playDur = meowBuf.duration;
+
+      if (name === "bounce" || name === "magLaunch") {
+        // Playful pounce meow
+        rate = pitchStep * (0.98 + Math.random() * 0.08);
+        playDur = Math.min(meowBuf.duration, 0.52);
+      } else if (name.startsWith("destroy")) {
+        // Excited higher-pitched brick-smash meow!
+        rate = pitchStep * 1.12;
+        playDur = Math.min(meowBuf.duration, 0.68);
+      } else {
+        // Quick kitten chirp for multihit / laser / powerup
+        rate = 1.28 + (catMeowScaleIdx % 3) * 0.08;
+        playDur = Math.min(meowBuf.duration, 0.42);
+      }
+
+      source.playbackRate.setValueAtTime(rate, now);
+      gain.gain.setValueAtTime(baseVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + playDur);
+
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(now, 0, playDur);
+      return;
+    }
+
+    // Fallback synth only if buffer is still decoding
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(580 * pitchStep, now);
+    osc.frequency.exponentialRampToValueAtTime(920 * pitchStep, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(640 * pitchStep, now + 0.22);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  } catch (e) {
+    // Ignore audio errors
+  }
+}
+
+// ─── Cat Mode 9-Lives Save Handler ───
+function handleCatNineLivesSave() {
+  if (catLives <= 1) {
+    catLives = 0;
+    syncHackModeVisuals();
+    return false;
+  }
+  catLives--;
+  playCuteCatSound("destroy1", { volume: 1.0 });
+  setTimeout(() => playCuteCatSound("bounce", { volume: 1.0 }), 110);
+
+  // Place ball back on paddle and launch after a brief beat
+  ballIsStuck = true;
+  ballSpeedX = 0;
+  ballSpeedY = 0;
+  ballX = paddleX - BALL_SIZE / 2;
+  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+
+  showNotification({
+    title: "NINE-LIVES PAW SAVE",
+    emoji: "🐾",
+    name: `${catLives} LIVES LEFT!`,
+    description: "KITTY REFLEXES CAUGHT THE BALL!",
+    color: "#ff2a9d",
+    mode: "burst"
+  }, { x: paddleX });
+
+  syncHackModeVisuals();
+  clearTimeout(autoLaunchTimeout);
+  autoLaunchTimeout = setTimeout(() => {
+    if (gameRunning && !gameOver && ballIsStuck) {
+      launchStuckBall();
+    }
+  }, 850);
+  return true;
+}
+
+// ─── God Mode Celestial Choir & Cathedral Organ Synth + Sequential Chain-Smite ───
+const GOD_CHORDS = [
+  [293.66, 369.99, 440.00, 587.33], // D Major (D4, F#4, A4, D5)
+  [220.00, 277.18, 329.63, 440.00], // A Major (A3, C#4, E4, A4)
+  [246.94, 293.66, 369.99, 493.88], // B Minor (B3, D4, F#4, B4)
+  [196.00, 246.94, 293.66, 369.99]  // G Major 7 (G3, B3, D4, F#4)
+];
+
+function playGodChoirMeasure() {
+  if (!activeHackModes.has("god")) return;
+  try {
+    soundManager.init();
+    const ctx = soundManager.context;
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+
+    const now = ctx.currentTime;
+    const chord = GOD_CHORDS[godChordIdx % GOD_CHORDS.length];
+    godChordIdx++;
+
+    // Sustained angelic choir pad + celestial harp arpeggio
+    chord.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc2.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now);
+      osc2.frequency.setValueAtTime(freq * 1.003, now); // warm choir chorus detune
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(1350, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.032, now + 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 2.35);
+
+      osc.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 2.4);
+      osc2.stop(now + 2.4);
+
+      // Golden harp arpeggio note
+      const harpOsc = ctx.createOscillator();
+      const harpGain = ctx.createGain();
+      const noteStart = now + idx * 0.28;
+      harpOsc.type = "sine";
+      harpOsc.frequency.setValueAtTime(freq * 2, noteStart);
+      harpGain.gain.setValueAtTime(0.0001, noteStart);
+      harpGain.gain.linearRampToValueAtTime(0.038, noteStart + 0.02);
+      harpGain.gain.exponentialRampToValueAtTime(0.0005, noteStart + 0.65);
+      harpOsc.connect(harpGain).connect(ctx.destination);
+      harpOsc.start(noteStart);
+      harpOsc.stop(noteStart + 0.7);
     });
+  } catch (e) {
+    // Ignore audio errors
+  }
+}
+
+function startGodMusic() {
+  stopGodMusic();
+  godChordIdx = 0;
+  playGodChoirMeasure();
+  godMusicInterval = setInterval(() => {
+    if (!activeHackModes.has("god")) {
+      stopGodMusic();
+      return;
+    }
+    playGodChoirMeasure();
+  }, 2200);
+}
+
+function stopGodMusic() {
+  if (godMusicInterval) {
+    clearInterval(godMusicInterval);
+    godMusicInterval = null;
+  }
+}
+
+function triggerDivinePaddleSmite(hitX, hitY) {
+  const area = document.getElementById("game-area");
+  if (!area) return;
+
+  // 1) Golden shockwave ring expanding from paddle impact point
+  const wave = document.createElement("div");
+  wave.className = "divine-paddle-wave";
+  wave.style.left = `${hitX}px`;
+  wave.style.top = `${hitY}px`;
+  area.appendChild(wave);
+  setTimeout(() => wave.remove(), 600);
+
+  // 2) Sequential "Boom, Boom, Boom!" Heavenly Lightning Barrage (4 staggered strikes!)
+  const totalStrikes = 4;
+  for (let sIdx = 0; sIdx < totalStrikes; sIdx++) {
+    setTimeout(() => {
+      if (gameOver) return;
+      const intact = bricks.filter(b => !b.isBroken);
+      if (intact.length === 0) return;
+
+      const targetBrick = intact[Math.floor(Math.random() * intact.length)];
+      const cx = targetBrick.x + targetBrick.width / 2;
+      const cy = targetBrick.y + targetBrick.height / 2;
+
+      // Heavenly Lightning Pillar from the top of the arena
+      const beam = document.createElement("div");
+      beam.className = "divine-smite-beam";
+      beam.style.left = `${cx}px`;
+      beam.style.height = `${cy + 18}px`;
+      area.appendChild(beam);
+      setTimeout(() => beam.remove(), 520);
+
+      // Golden Proximity Explosion Shockwave Ring
+      const ring = document.createElement("div");
+      ring.className = "divine-chain-shockwave";
+      ring.style.left = `${cx}px`;
+      ring.style.top = `${cy}px`;
+      area.appendChild(ring);
+      setTimeout(() => ring.remove(), 480);
+
+      // Thunderous sound effect on each sequential strike ("Boom, boom, boom!")
+      const randomDestroy = destroySounds[Math.floor(Math.random() * destroySounds.length)];
+      soundManager.play(randomDestroy, { pitch: 0.72 + sIdx * 0.16, volume: 0.85 });
+
+      // Burst golden & white sparklers from the smited brick!
+      for (let s = 0; s < 42; s++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 90 + Math.random() * 320;
+        emitSparkParticle(
+          cx,
+          cy,
+          Math.cos(ang) * spd,
+          Math.sin(ang) * spd,
+          s % 2 === 0 ? "#FFD700" : "#FFFFFF",
+          0.48,
+          2.3,
+          s % 4 === 0 ? 2 : 0
+        );
+      }
+
+      // Break the primary smited brick
+      targetBrick.isBroken = true;
+      targetBrick.element.classList.add("broken");
+      if (typeof targetBrick.row === "number" && !targetBrick.isExtraSpawn) {
+        evaluateRowClear(targetBrick.row);
+      }
+      if (targetBrick.powerUpType) spawnPowerUp(targetBrick.powerUpType, targetBrick);
+      if (activeHackModes.has("poop")) {
+        spawnBrickPoops(cx, cy, 2);
+      }
+
+      const smitePts = isCatMode ? 9999 : 1000;
+      score += smitePts;
+      if (isCatMode) score = score - (score % 10) + 9;
+      scoreDisplay.textContent = `Score: ${score}`;
+      showBrickScore(cx, targetBrick.y, smitePts);
+
+      // Chain-detonate adjacent bricks in proximity!
+      const maxDistX = BRICK_WIDTH * 1.38;
+      const maxDistY = BRICK_HEIGHT * 1.48;
+      const neighbors = bricks.filter(nb => {
+        if (nb.isBroken || nb === targetBrick) return false;
+        const nbx = nb.x + nb.width / 2;
+        const nby = nb.y + nb.height / 2;
+        return Math.abs(nbx - cx) <= maxDistX && Math.abs(nby - cy) <= maxDistY;
+      });
+
+      neighbors.slice(0, 2).forEach(nb => {
+        nb.isBroken = true;
+        nb.element.classList.add("broken");
+        const nbx = nb.x + nb.width / 2;
+        const nby = nb.y + nb.height / 2;
+
+        for (let k = 0; k < 18; k++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 60 + Math.random() * 200;
+          emitSparkParticle(nbx, nby, Math.cos(ang) * spd, Math.sin(ang) * spd, "#FFD700", 0.35, 1.9, 0);
+        }
+
+        const chainPts = isCatMode ? 499 : 500;
+        score += chainPts;
+        if (isCatMode) score = score - (score % 10) + 9;
+        scoreDisplay.textContent = `Score: ${score}`;
+        showBrickScore(nbx, nb.y, chainPts);
+
+        if (typeof nb.row === "number" && !nb.isExtraSpawn) {
+          evaluateRowClear(nb.row);
+        }
+        if (nb.powerUpType) spawnPowerUp(nb.powerUpType, nb);
+        if (activeHackModes.has("poop")) {
+          spawnBrickPoops(nbx, nby, 1);
+        }
+      });
+
+      if (sIdx === 0) {
+        showNotification("god-smite", { x: cx });
+      }
+
+      if (bricks.every(b => b.isBroken) && !gameOver) {
+        endGame(true);
+      }
+    }, sIdx * 175);
+  }
+}
+
+// ─── Max Overdrive: Chain-Detonation Shockwave & Auto-Gatling ───
+function triggerOverdriveChainBlast(originBrick) {
+  const area = document.getElementById("game-area");
+  const cx = originBrick.x + originBrick.width / 2;
+  const cy = originBrick.y + originBrick.height / 2;
+
+  if (area) {
+    const ring = document.createElement("div");
+    ring.className = "overdrive-chain-shockwave";
+    ring.style.left = `${cx}px`;
+    ring.style.top = `${cy}px`;
+    area.appendChild(ring);
+    setTimeout(() => ring.remove(), 420);
   }
 
-  // 2) Physics loop
+  // Erupt electric cyan/crimson sparks from the chain blast
+  for (let i = 0; i < 32; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 90 + Math.random() * 310;
+    emitSparkParticle(cx, cy, Math.cos(ang) * spd, Math.sin(ang) * spd, i % 2 === 0 ? "#00FFFF" : "#FF2A55", 0.35, 2.0, 0);
+  }
+
+  // Find adjacent intact bricks within 1.35 brick widths and chain-shatter up to 2 of them!
+  const maxDistX = BRICK_WIDTH * 1.35;
+  const maxDistY = BRICK_HEIGHT * 1.45;
+  const neighbors = bricks.filter(b => {
+    if (b.isBroken || b === originBrick) return false;
+    const bx = b.x + b.width / 2;
+    const by = b.y + b.height / 2;
+    return Math.abs(bx - cx) <= maxDistX && Math.abs(by - cy) <= maxDistY;
+  });
+
+  const chainTargets = neighbors.slice(0, 2);
+  chainTargets.forEach(nb => {
+    nb.isBroken = true;
+    nb.element.classList.add("broken");
+    const nbx = nb.x + nb.width / 2;
+    const nby = nb.y;
+    let chainPts = 40 * (rowBonusLevel + 1);
+    if (isCatMode) chainPts = chainPts - (chainPts % 10) + 9;
+    score += chainPts;
+    if (isCatMode) score = score - (score % 10) + 9;
+    scoreDisplay.textContent = `Score: ${score}`;
+    showBrickScore(nbx, nby, chainPts);
+    if (typeof nb.row === "number" && !nb.isExtraSpawn) {
+      evaluateRowClear(nb.row);
+    }
+    if (nb.powerUpType) spawnPowerUp(nb.powerUpType, nb);
+    if (activeHackModes.has("poop")) {
+      spawnBrickPoops(nbx, nb.y + nb.height / 2, 2);
+    }
+  });
+}
+
+// ─── Per-Frame Hack Modes Update (Sparkler Field + Overdrive Auto-Gatling) ───
+function updateHackModesFrame(dt) {
+  // 1) If Confetti Blast ('party') is active, emit continuous sparkler fountains from behind the ball & paddle corners!
+  if (activeHackModes.has("party")) {
+    partyTrailAccum += dt;
+    if (partyTrailAccum >= 0.016) {
+      partyTrailAccum = 0;
+      const bx = ballX + BALL_SIZE / 2;
+      const by = ballY + BALL_SIZE / 2;
+      // Offset emission point slightly behind the ball's travel direction so it trails behind the avatar
+      const spdMag = Math.hypot(ballSpeedX, ballSpeedY) || 1;
+      const trailX = bx - (ballSpeedX / spdMag) * 14;
+      const trailY = by - (ballSpeedY / spdMag) * 14;
+      for (let i = 0; i < 4; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 35 + Math.random() * 140;
+        const col = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+        emitSparkParticle(trailX, trailY, Math.cos(ang) * spd, Math.sin(ang) * spd, col, 0.22 + Math.random() * 0.25, 1.8, i === 0 ? 2 : 0);
+      }
+      // Twin Roman-candle sparkler fountains on the left & right edges of the paddle
+      const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+      const leftEdge = paddleX - paddleWidth / 2 + 6;
+      const rightEdge = paddleX + paddleWidth / 2 - 6;
+      const colL = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+      const colR = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+      emitSparkParticle(leftEdge, padTop, (Math.random() - 0.5) * 90, -140 - Math.random() * 150, colL, 0.28, 1.7, 0);
+      emitSparkParticle(rightEdge, padTop, (Math.random() - 0.5) * 90, -140 - Math.random() * 150, colR, 0.28, 1.7, 0);
+    }
+  }
+
+  // 2) If Max Overdrive ('juice') is active, leave a plasma afterburner trail & auto-fire twin gatling bolts!
+  if (activeHackModes.has("juice") && !ballIsStuck) {
+    const bx = ballX + BALL_SIZE / 2;
+    const by = ballY + BALL_SIZE / 2;
+    emitSparkParticle(bx, by, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, Math.random() > 0.5 ? "#FF2A55" : "#00FFFF", 0.18, 2.2, 0);
+
+    overdriveAutoFireAccum += dt;
+    if (overdriveAutoFireAccum >= 0.28) {
+      overdriveAutoFireAccum = 0;
+      isLaserActive = true;
+      paddle.classList.add("paddle-armed");
+      fireLaser();
+    }
+  }
+
+  // 3) Render active canvas sparklers
+  updateAndRenderSparklers(dt);
+}
+
+const HACK_MODE_META = {
+  cat: {
+    id: "cat",
+    emoji: "🐱",
+    name: "CAT MODE",
+    hudTag: "🐱 CAT MODE",
+    getHudSub: () => `🐾 ${catLives} LIVES • LEAPING ARC • MEOW SFX`,
+    color: "#ff2a9d",
+    titleText: "🐱 CAT RUNNER",
+    wmTitle: "CAT MODE // NINE LIVES",
+    getWmRule: () => `🐾 ${catLives} LIVES LEFT • WALL-JUMP LEAPING ARCS • REAL MEOW SFX`
+  },
+  poop: {
+    id: "poop",
+    emoji: "💩",
+    name: "POOP STORM",
+    hudTag: "💩 POOP STORM",
+    getHudSub: () => "BOUNCE 💩 TO SMASH BRICKS!",
+    color: "#ffaa00",
+    titleText: "💩 POOP RUNNER",
+    wmTitle: "POOP STORM // BIO-HAZARD",
+    getWmRule: () => "⚠️ BOUNCE 💩 UP INTO BRICKS TO SMASH THEM & ERUPT MORE 💩!"
+  },
+  party: {
+    id: "party",
+    emoji: "🎉",
+    name: "CONFETTI BLAST",
+    hudTag: "🎉 CONFETTI BLAST",
+    getHudSub: () => "SPARKLER FIELD ON EVERY HIT",
+    color: "#00ffcc",
+    titleText: "🎉 PARTY RUNNER",
+    wmTitle: "CONFETTI BLAST // SPARKLERS",
+    getWmRule: () => "✨ EVERY WALL, PADDLE & BRICK HIT ERUPTS IN SPARKLERS!"
+  },
+  god: {
+    id: "god",
+    emoji: "🎮",
+    name: "GOD MODE",
+    hudTag: "🎮 GOD MODE",
+    getHudSub: () => "CHAIN SMITE BARRAGE + HYMN",
+    color: "#ffd700",
+    titleText: "⚡ GOD RUNNER",
+    wmTitle: "GOD MODE // IMMORTAL",
+    getWmRule: () => "⚡ PADDLE HITS UNLEASH 4× SEQUENTIAL CHAIN-SMITE LIGHTNING!"
+  },
+  juice: {
+    id: "juice",
+    emoji: "⚡",
+    name: "MAX OVERDRIVE",
+    hudTag: "⚡ MAX OVERDRIVE",
+    getHudSub: () => "1.6× TURBO + DISCO STROBE + CHAIN BLAST",
+    color: "#ff2a55",
+    titleText: "🔥 OVERDRIVE RUNNER",
+    wmTitle: "MAX OVERDRIVE // HYPER-SPEED",
+    getWmRule: () => "🔥 1.6× TURBO • CYBER-DISCO LIGHTS • AUTO-GATLING • CHAIN BRICKS"
+  }
+};
+
+function isHackModeActive(id) {
+  return activeHackModes.has(id);
+}
+
+function syncHackModeVisuals() {
+  const area = document.getElementById("game-area");
+  const hud = document.getElementById("hack-mode-hud");
+  const wm = document.getElementById("hack-floor-watermark");
+  const headerTitle = document.querySelector(".game-title-glitch");
+  const startTitle = document.querySelector("#start-screen .game-title");
+
+  if (!area) return;
+
+  // 1) Update #game-area frame & lighting theme classes
+  ["cat", "poop", "party", "god", "juice"].forEach(m => {
+    area.classList.remove(`hack-theme-${m}`);
+  });
+  if (primaryHackModeId && activeHackModes.has(primaryHackModeId)) {
+    area.classList.add(`hack-theme-${primaryHackModeId}`);
+  } else if (activeHackModes.size > 0) {
+    primaryHackModeId = Array.from(activeHackModes).slice(-1)[0];
+    area.classList.add(`hack-theme-${primaryHackModeId}`);
+  } else {
+    primaryHackModeId = null;
+  }
+
+  // 2) Update Top-Center Active Hack Mode HUD pills (#hack-mode-hud)
+  if (hud) {
+    if (activeHackModes.size === 0) {
+      hud.innerHTML = "";
+    } else {
+      hud.innerHTML = Array.from(activeHackModes).map(id => {
+        const meta = HACK_MODE_META[id];
+        if (!meta) return "";
+        return `
+          <div class="hack-hud-pill" style="--pill-color: ${meta.color};">
+            <span class="pill-tag">${meta.hudTag}</span>
+            <span class="pill-sub">${meta.getHudSub()}</span>
+            <button type="button" class="pill-close" data-disable-hack="${id}" title="Disable ${meta.name}">✕</button>
+          </div>
+        `;
+      }).join("");
+
+      hud.querySelectorAll("[data-disable-hack]").forEach(btn => {
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const targetId = btn.dataset.disableHack;
+          deactivateHackMode(targetId);
+        });
+      });
+    }
+  }
+
+  // 3) Update Arena Floor Marquee Watermark (#hack-floor-watermark)
+  if (wm) {
+    const activeMeta = primaryHackModeId ? HACK_MODE_META[primaryHackModeId] : null;
+    if (activeMeta) {
+      wm.style.setProperty("--wm-color", activeMeta.color);
+      wm.innerHTML = `
+        <div class="hack-wm-emoji">${activeMeta.emoji}</div>
+        <div class="hack-wm-title">${activeMeta.wmTitle}</div>
+        <div class="hack-wm-rule">${activeMeta.getWmRule()}</div>
+      `;
+      wm.classList.add("visible");
+    } else {
+      wm.classList.remove("visible");
+      wm.innerHTML = "";
+    }
+  }
+
+  // 4) Update Cabinet Header Title & Start Screen Title
+  const activeMeta = primaryHackModeId ? HACK_MODE_META[primaryHackModeId] : null;
+  if (headerTitle) {
+    if (activeMeta) {
+      headerTitle.textContent = activeMeta.titleText;
+      headerTitle.setAttribute("data-text", activeMeta.titleText);
+      headerTitle.style.setProperty("--hack-title-color", activeMeta.color);
+      headerTitle.classList.add("hack-title-active");
+    } else {
+      headerTitle.textContent = "BRICK RUNNER";
+      headerTitle.setAttribute("data-text", "BRICK RUNNER");
+      headerTitle.classList.remove("hack-title-active");
+    }
+  }
+  if (startTitle) {
+    if (activeMeta) {
+      startTitle.textContent = activeMeta.titleText;
+      startTitle.style.color = activeMeta.color;
+      startTitle.style.textShadow = `0 0 10px ${activeMeta.color}, 0 0 24px ${activeMeta.color}`;
+    } else {
+      startTitle.textContent = "BRICK RUNNER";
+      startTitle.style.color = "";
+      startTitle.style.textShadow = "";
+    }
+  }
+}
+
+function activateHackMode(id, notify = true) {
+  activeHackModes.add(id);
+  primaryHackModeId = id;
+  syncHackModeVisuals();
+  if (notify) {
+    showNotification(`hack-${id}`);
+  }
+}
+
+function deactivateHackMode(id) {
+  activeHackModes.delete(id);
+  if (id === "cat") {
+    catModeArmed = false;
+    isCatMode = false;
+    BALL_EMOJI = isNeonLegend ? "😎" : "😊";
+    ball.textContent = BALL_EMOJI;
+  } else if (id === "poop") {
+    if (poopRainInterval) {
+      clearInterval(poopRainInterval);
+      poopRainInterval = null;
+    }
+    poopDrops.forEach(d => d.el.remove());
+    poopDrops = [];
+  } else if (id === "god") {
+    stopGodMusic();
+    delete activePowerUps["slow-mo"];
+    const stale = document.getElementById("status-slow-mo");
+    if (stale) stale.remove();
+  } else if (id === "juice") {
+    if (!activePowerUps["laser-blast"]) {
+      isLaserActive = false;
+      paddle.classList.remove("paddle-armed");
+    }
+  }
+  if (primaryHackModeId === id) {
+    primaryHackModeId = activeHackModes.size > 0 ? Array.from(activeHackModes).slice(-1)[0] : null;
+  }
+  syncHackModeVisuals();
+  if (consoleModalEl && consoleModalEl.style.display === "flex") {
+    renderCyberConsole();
+  }
+}
+
+function applyArmedHackModesOnStart() {
+  if (activeHackModes.has("cat")) {
+    catModeArmed = true;
+    isCatMode = true;
+    catLives = 9;
+    BALL_EMOJI = "🐱";
+    ball.textContent = "🐱";
+  }
+  if (activeHackModes.has("god")) {
+    if (typeof devSetScore === "function") devSetScore(999999);
+    activePowerUps["slow-mo"] = Array(10).fill({ endTime: Date.now() + 999999 });
+    createOrUpdateStatusIndicator("slow-mo");
+    updateStatusIndicators();
+    startGodMusic();
+  }
+  if (activeHackModes.has("juice")) {
+    // Arm permanent Auto-Gatling lasers (NO sticky Mag-Lock or Slow-Mo!)
+    isStickyPaddle = false;
+    paddle.classList.remove("paddle-sticky");
+    isLaserActive = true;
+    paddle.classList.add("paddle-armed");
+  }
+  if (activeHackModes.has("poop")) {
+    spawnPoopWave(16);
+    ensurePoopRainInterval();
+  }
+  if (activeHackModes.has("party")) {
+    spawnConfettiShards(120);
+  }
+  syncHackModeVisuals();
+}
+
+// ─── 1) Poop Storm (Upward Bounced Poops Smash Bricks + Bricks Erupt Poops!) ───
+const POO_SIZE = 42;
+
+function startPoopPhysicsLoop() {
+  if (poopLoopRunning) return;
+  const area = document.getElementById("game-area");
+  if (!area) return;
+
+  poopLoopRunning = true;
   let lastT = null;
+
   function step(t) {
     if (!lastT) lastT = t;
-    const dt = (t - lastT) / 1000;
+    const dt = Math.min(0.05, (t - lastT) / 1000);
     lastT = t;
 
-    // get paddle bounds in game‐space (scale-aware)
-    const padBox  = paddle.getBoundingClientRect();
+    const padBox = paddle.getBoundingClientRect();
     const areaBox = area.getBoundingClientRect();
     const areaScale = areaBox.width / GAME_WIDTH || 1;
-    const padLeft = (padBox.left   - areaBox.left) / areaScale;
-    const padTop  = (padBox.top    - areaBox.top)  / areaScale;
-    const padRight= (padBox.right  - areaBox.left) / areaScale;
+    const padLeft = (padBox.left - areaBox.left) / areaScale;
+    const padTop = (padBox.top - areaBox.top) / areaScale;
+    const padRight = (padBox.right - areaBox.left) / areaScale;
 
-    for (let i = drops.length - 1; i >= 0; i--) {
-      const d = drops[i];
-
-      // apply gravity
+    for (let i = poopDrops.length - 1; i >= 0; i--) {
+      const d = poopDrops[i];
       d.vy += GRAVITY * dt;
-
-      // move
       d.x += d.vx * dt;
       d.y += d.vy * dt;
 
-      // bounce off paddle?
+      // Wall bounce
+      if (d.x <= 0 && d.vx < 0) {
+        d.x = 0;
+        d.vx *= -0.85;
+      } else if (d.x + POO_SIZE >= GAME_WIDTH && d.vx > 0) {
+        d.x = GAME_WIDTH - POO_SIZE;
+        d.vx *= -0.85;
+      }
+
+      // Ceiling bounce
+      if (d.y <= 0 && d.vy < 0) {
+        d.y = 0;
+        d.vy *= -0.65;
+      }
+
+      // Paddle bounce — launch high upward so it flies up into the brick grid!
       if (
         d.y + POO_SIZE >= padTop &&
-        d.y < padTop &&
+        d.y < padTop + 22 &&
         d.x + POO_SIZE >= padLeft &&
         d.x <= padRight &&
         d.vy > 0
       ) {
-        d.vy = -d.vy * BOUNCE_DAMP;
-        d.y  = padTop - POO_SIZE;
-        soundManager.play("bounce", { pitch: 0.55 + Math.random() * 0.25, volume: 0.35 });
+        // Launch strongly upward toward the bricks!
+        d.vy = -(530 + Math.random() * 140);
+        const padCenter = (padLeft + padRight) / 2;
+        const offsetFromCenter = (d.x + POO_SIZE / 2) - padCenter;
+        d.vx = offsetFromCenter * 2.5 + (Math.random() - 0.5) * 110;
+        d.y = padTop - POO_SIZE;
+        d.canBreakBricks = true;
+        d.el.style.filter = "drop-shadow(0 0 10px #ffaa00) drop-shadow(0 0 18px #ff5500)";
+
+        soundManager.play("bounce", { pitch: 0.62 + Math.random() * 0.25, volume: 0.45 });
+        if (gameRunning && !gameOver) {
+          const pts = isCatMode ? 9 : 5;
+          score += pts;
+          if (isCatMode) score = score - (score % 10) + 9;
+          scoreDisplay.textContent = `Score: ${score}`;
+          showBrickScore(d.x + POO_SIZE / 2, padTop - 8, pts);
+        }
       }
 
-      // remove if below bottom
+      // Brick collision: upward-bounced poops (or brick-spawned poops) smash bricks!
+      if (d.canBreakBricks && gameRunning && !gameOver) {
+        for (let bIdx = 0; bIdx < bricks.length; bIdx++) {
+          const b = bricks[bIdx];
+          if (b.isBroken) continue;
+
+          if (
+            d.x + POO_SIZE * 0.85 > b.x &&
+            d.x + POO_SIZE * 0.15 < b.x + b.width &&
+            d.y + POO_SIZE * 0.85 > b.y &&
+            d.y + POO_SIZE * 0.15 < b.y + b.height
+          ) {
+            b.isBroken = true;
+            b.element.classList.add("broken");
+
+            const bx = b.x + b.width / 2;
+            const by = b.y + b.height / 2;
+            const randomDestroy = destroySounds[Math.floor(Math.random() * destroySounds.length)];
+            soundManager.play(randomDestroy, { pitch: 0.85 + Math.random() * 0.3, volume: 0.6 });
+
+            const brickPts = isCatMode ? 29 : 25;
+            score += brickPts;
+            if (isCatMode) score = score - (score % 10) + 9;
+            scoreDisplay.textContent = `Score: ${score}`;
+            showBrickScore(bx, b.y, brickPts);
+
+            if (typeof b.row === "number" && !b.isExtraSpawn) {
+              evaluateRowClear(b.row);
+            }
+            if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+
+            // Deflect the poop and spawn 2 bonus poops flying out of the smashed brick!
+            d.vy *= -0.7;
+            d.vx += (Math.random() - 0.5) * 140;
+            spawnBrickPoops(bx, by, 2);
+
+            if (bricks.every(br => br.isBroken) && !gameOver) {
+              endGame(true);
+            }
+            break;
+          }
+        }
+      }
+
       if (d.y > GAME_HEIGHT + 50) {
         d.el.remove();
-        drops.splice(i, 1);
+        poopDrops.splice(i, 1);
       } else {
         d.el.style.left = `${d.x}px`;
-        d.el.style.top  = `${d.y}px`;
+        d.el.style.top = `${d.y}px`;
       }
     }
 
-    // continue until none left
-    if (drops.length > 0) {
+    if (poopDrops.length > 0) {
       requestAnimationFrame(step);
+    } else {
+      poopLoopRunning = false;
     }
   }
 
-  // kick off
   requestAnimationFrame(step);
 }
 
-// expose to console if you haven’t already
-window.poopStorm = poopStorm;
+function spawnBrickPoops(centerX, centerY, count = 2) {
+  const area = document.getElementById("game-area");
+  if (!area || poopDrops.length >= 42) return;
 
+  for (let i = 0; i < count; i++) {
+    if (poopDrops.length >= 42) break;
+    const el = document.createElement("div");
+    el.textContent = "💩";
+    el.className = "poop-drop";
+    el.style.position = "absolute";
+    el.style.width = el.style.height = `${POO_SIZE}px`;
+    const startX = Math.max(0, Math.min(GAME_WIDTH - POO_SIZE, centerX - POO_SIZE / 2));
+    const startY = Math.max(0, centerY - POO_SIZE / 2);
+    el.style.left = `${startX}px`;
+    el.style.top = `${startY}px`;
+    el.style.pointerEvents = "none";
+    el.style.filter = "drop-shadow(0 0 8px #ffaa00)";
+    area.appendChild(el);
 
-// expose to console
-window.poopStorm = poopStorm;
-
-// ─── 2) Confetti Blast ───
-function confettiBlast() {
-  const area = document.getElementById('game-area');
-  const colors = ['#00FFFF', '#FF00FF', '#00FF00', '#FFD700', '#FF3366', '#FF8C00'];
-  for (let i = 0; i < 100; i++) {
-    const c = document.createElement('div');
-    c.className = 'confetti';
-    c.style.left = `${Math.random() * 100}%`;
-    c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    c.style.animationDuration = `${1.2 + Math.random() * 1.2}s`;
-    c.style.animationDelay = `${Math.random() * 0.4}s`;
-    c.style.setProperty('--confetti-drift', `${(Math.random() - 0.5) * 160}px`);
-    area.appendChild(c);
-    setTimeout(() => c.remove(), 2600);
+    const spreadDir = i % 2 === 0 ? -1 : 1;
+    poopDrops.push({
+      el,
+      x: startX,
+      y: startY,
+      vx: spreadDir * (75 + Math.random() * 135),
+      vy: -(180 + Math.random() * 160),
+      canBreakBricks: false // Becomes brick-breaking once bounced off the paddle!
+    });
   }
-  console.log('🎉 Confetti Blast!');
+
+  startPoopPhysicsLoop();
+}
+
+function spawnPoopWave(count = 24) {
+  const area = document.getElementById("game-area");
+  if (!area) return;
+
+  for (let i = 0; i < count; i++) {
+    if (poopDrops.length >= 42) break;
+    const el = document.createElement("div");
+    el.textContent = "💩";
+    el.className = "poop-drop";
+    el.style.position = "absolute";
+    el.style.width = el.style.height = `${POO_SIZE}px`;
+
+    const startX = Math.random() * (GAME_WIDTH - POO_SIZE);
+    const startY = -POO_SIZE * (1 + Math.random() * 2.5);
+
+    el.style.left = `${startX}px`;
+    el.style.top = `${startY}px`;
+    el.style.pointerEvents = "none";
+    area.appendChild(el);
+
+    poopDrops.push({
+      el,
+      x: startX,
+      y: startY,
+      vx: (Math.random() - 0.5) * 110,
+      vy: 55 + Math.random() * 145,
+      canBreakBricks: false
+    });
+  }
+
+  startPoopPhysicsLoop();
+}
+
+function ensurePoopRainInterval() {
+  if (poopRainInterval) clearInterval(poopRainInterval);
+  poopRainInterval = setInterval(() => {
+    if (!activeHackModes.has("poop")) {
+      clearInterval(poopRainInterval);
+      poopRainInterval = null;
+      return;
+    }
+    if (gameRunning && !gameOver && poopDrops.length < 24) {
+      spawnPoopWave(3);
+    }
+  }, 1800);
+}
+
+function poopStorm() {
+  activateHackMode("poop");
+  spawnPoopWave(22);
+  ensurePoopRainInterval();
+  console.log("💩 Poop Storm Active!");
+}
+window.poopStorm = poopStorm;
+
+// ─── 2) Confetti Blast (Sparkler Field Mode!) ───
+function spawnConfettiShards(count = 140) {
+  for (let i = 0; i < count; i++) {
+    const x = 60 + Math.random() * (GAME_WIDTH - 120);
+    const y = 60 + Math.random() * (GAME_HEIGHT * 0.65);
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 60 + Math.random() * 380;
+    const col = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+    emitSparkParticle(x, y, Math.cos(ang) * spd, Math.sin(ang) * spd - 60, col, 0.5 + Math.random() * 0.7, 2.2, i % 3 === 0 ? 1 : (i % 5 === 0 ? 2 : 0));
+  }
+  kickStandaloneSparkLoop();
+}
+
+function confettiBlast() {
+  activateHackMode("party");
+  spawnConfettiShards(180);
+  console.log("🎉 Confetti Blast Sparkler Field Active!");
 }
 window.confettiBlast = confettiBlast;
-window['🎉']         = confettiBlast;
+window["🎉"] = confettiBlast;
 
-// ─── 3) God Mode ───
+// ─── 3) God Mode (Celestial Choir + Immortal Floor Shield + Sequential Chain Smite!) ───
 function godMode() {
-  // super high score
-  if (typeof devSetScore === 'function') devSetScore(999999);
-  // infinite slow-mo stacks
-  activePowerUps['slow-mo'] = Array(10).fill({ endTime: Date.now() + 999999 });
+  activateHackMode("god");
+  if (typeof devSetScore === "function") devSetScore(999999);
+  activePowerUps["slow-mo"] = Array(10).fill({ endTime: Date.now() + 999999 });
+  createOrUpdateStatusIndicator("slow-mo");
   updateStatusIndicators();
-  console.log('🎮 God Mode: score=999999 + infinite Slow-Mo!');
+  startGodMusic();
+  console.log("🎮 God Mode Active: Celestial Hymn + 4× Sequential Chain-Smite + Immortal Slow-Mo!");
 }
-window.godMode   = godMode;
-window['🎮']     = godMode;
+window.godMode = godMode;
+window["🎮"] = godMode;
 
-// ─── 4) Cat Mode (Nine Lives!) ───
+// ─── 4) Cat Mode (9 Lives + Parabolic Leaping Arc + Real Cat Meow SFX + Scores End in 9!) ───
 function catMode() {
   catModeArmed = true;
   isCatMode = true;
-  BALL_EMOJI = '🐱';
-  ball.textContent = '🐱';
-  window.BALL_EMOJI = '🐱';
-  soundManager.play("powerUpSpawn", { pitch: 1.8, volume: 0.6 });
-  console.log('🐱 Cat Mode: Permanent 9s!');
+  catLives = 9;
+  BALL_EMOJI = "🐱";
+  ball.textContent = "🐱";
+  window.BALL_EMOJI = "🐱";
+  activateHackMode("cat");
+  playCuteCatSound("destroy1", { volume: 1.0 });
+  console.log("🐱 Cat Mode Active: 9 Lives + Parabolic Leaping Arc + Real Meow SFX + Permanent 9s!");
 }
 window.catMode = catMode;
-window['🐱']   = catMode;
+window["🐱"] = catMode;
 
-// ─── 5) Max Overdrive (All Power-Ups Armed!) ───
+// ─── 5) Max Overdrive (1.6× Hyper-Speed + Cyber-Disco Lights + Full-Auto Gatling + Chain-Detonation Bricks!) ───
 function maxOverdrive() {
-  activatePowerUp('wide-paddle');
-  activatePowerUp('wide-paddle');
-  activatePowerUp('wide-paddle');
-  activatePowerUp('laser-blast');
-  activatePowerUp('sticky-paddle');
-  console.log('⚡ Max Overdrive: 3× Expando + Twin Lasers + Mag-Lock!');
+  // Remove any conflicting slow-mo or sticky Mag-Lock so Overdrive feels fast & explosive!
+  delete activePowerUps["slow-mo"];
+  const staleSlow = document.getElementById("status-slow-mo");
+  if (staleSlow) staleSlow.remove();
+  delete activePowerUps["sticky-paddle"];
+  const staleMag = document.getElementById("status-sticky-paddle");
+  if (staleMag) staleMag.remove();
+  isStickyPaddle = false;
+  paddle.classList.remove("paddle-sticky");
+  if (ballIsStuck && gameRunning && !gameOver) {
+    launchStuckBall();
+  }
+
+  isLaserActive = true;
+  paddle.classList.add("paddle-armed");
+  activateHackMode("juice");
+  soundManager.play("laserFire", { pitch: 1.35 });
+  console.log("⚡ Max Overdrive Active: 1.6× Hyper-Speed + Cyber-Disco Lights + Full-Auto Gatling + Explosive Chain Bricks!");
 }
 window.maxOverdrive = maxOverdrive;
 
-// ─── Pro‐tip HUD Ticker ───
-const TIPS = [
-  { badge: "⚡ COMBO",      text: "Bounce off the ceiling for ROOF BONUS (15 base pts on your next brick)!" },
-  { badge: "🚀 MULTIPLIER", text: "Stack 🪴 EXPANDO up to 3× to widen your paddle & boost score to ×4!" },
-  { badge: "🔥 EDGE RUNNER", text: "Clear a full horizontal brick row to unlock ×2 / ×3 / ×4 row bonuses!" },
-  { badge: "🎯 TWIN LASER", text: "Grab 🎯 LASER BLAST & press SPACE (or F / Click) to fire twin cannons!" },
-  { badge: "🧲 MAG-LOCK",   text: "Catch with 🧲 MAG-LOCK & launch near paddle edges for a sharp angle!" },
-  { badge: "🧱 STRATEGY",   text: "Bank-shots off side walls add +2 base points to your next brick smash!" },
-  { badge: "💻 HACK DECK",  text: "Click [~] HACK to breach Neon-Corp ICE for 🐱 Cat Mode & 💩 Poop Storm!" }
-];
-
-const tipBadgeEl = document.getElementById("tip-badge");
-const tipText    = document.getElementById("tip-text");
-const tipNextBtn = document.getElementById("tip-next-btn");
-let   tipIndex   = 0;
-
-function renderTip(idx) {
-  const item = TIPS[idx] || TIPS[0];
-  if (tipBadgeEl) tipBadgeEl.textContent = item.badge;
-  if (tipText) tipText.textContent = item.text;
-}
-
-function advanceTip() {
-  tipIndex = (tipIndex + 1) % TIPS.length;
-  renderTip(tipIndex);
-}
-
-renderTip(tipIndex);
-
-if (tipNextBtn) {
-  tipNextBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    advanceTip();
-  });
-}
-
-setInterval(advanceTip, 8000);
-
+// ─── Global Keyboard Shortcuts for Arcade Guide & Console ───
 document.addEventListener("keydown", (e) => {
   if (consoleModalEl && consoleModalEl.style.display === "flex") return;
   if (e.key === "Escape") {
@@ -2099,9 +3114,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (isStartScreenOpen()) return;
-  if (e.key.toLowerCase() === "t") {
-    advanceTip();
-  } else if (e.key.toLowerCase() === "g") {
+  if (e.key.toLowerCase() === "g") {
     e.preventDefault();
     toggleArcadeGuide();
   }
@@ -2316,67 +3329,67 @@ const DAEMONS = [
   {
     id: "cat",
     emoji: "🐱",
-    name: "NINE-LIVES",
+    name: "CAT MODE",
     cmd: "catMode()",
     aliases: ["cat", "catmode", "catmode()", "9", "meow", "🐱"],
-    desc: "Swaps ball to 🐱 & forces every brick score to end in 9!",
+    desc: "🐾 9 Lives + parabolic leaping arcs & wall-jumps + real cat meow SFX + scores end in 9!",
     unlocked: false,
     run: () => {
       catMode();
-      return "NINE-LIVES PROTOCOL ACTIVE // ALL SCORES ROUNDED TO ...9";
+      return "CAT MODE ACTIVE // 9 LIVES + LEAPING ARCS + REAL MEOW SFX";
     }
   },
   {
     id: "poop",
     emoji: "💩",
-    name: "BIO-STORM",
+    name: "POOP STORM",
     cmd: "poopStorm()",
     aliases: ["poop", "poopstorm", "poopstorm()", "poo", "storm", "💩"],
-    desc: "Unleashes 30 gravity-driven 💩 projectiles that bounce off your paddle!",
+    desc: "Bounce 💩 off your paddle to smash bricks overhead — broken bricks erupt more 💩!",
     unlocked: false,
     run: () => {
       poopStorm();
-      return "BIO-HAZARD PAYLOAD DEPLOYED // 30 DROPS INBOUND";
+      return "POOP STORM DEPLOYED // BOUNCE 💩 UP INTO BRICKS TO SMASH THEM!";
     }
   },
   {
     id: "party",
     emoji: "🎉",
-    name: "PRISM-BURST",
+    name: "CONFETTI BLAST",
     cmd: "confettiBlast()",
     aliases: ["party", "confetti", "confettiblast", "confettiblast()", "🎉"],
-    desc: "Detonates 100 glowing cyber-confetti shards across the cabinet!",
+    desc: "Chaotic sparkler field! Every wall, paddle & brick hit erupts in sparklers!",
     unlocked: false,
     run: () => {
       confettiBlast();
       soundManager.play("winSong");
-      return "PRISM CANNON FIRED // 100 SHARDS DEPLOYED";
+      return "CONFETTI BLAST ACTIVE // SPARKLER FIELD ERUPTS ON EVERY HIT";
     }
   },
   {
     id: "god",
     emoji: "🎮",
-    name: "GOD-OVERCLOCK",
+    name: "GOD MODE",
     cmd: "godMode()",
     aliases: ["god", "godmode", "godmode()", "overclock", "🎮"],
-    desc: "Sets Score to 999,999 + injects 10× Slow-Mo bullet-time stacks!",
+    desc: "4× Sequential Chain-Smite lightning barrage on paddle hit + Celestial Hymn + Immortal!",
     unlocked: false,
     run: () => {
       godMode();
-      return "OVERCLOCK ENGAGED // SCORE=999999 + 10× BULLET-TIME";
+      return "GOD MODE ACTIVE // 4× SEQUENTIAL CHAIN-SMITE + CELESTIAL HYMN";
     }
   },
   {
     id: "juice",
     emoji: "⚡",
-    name: "MAX-OVERDRIVE",
+    name: "MAX OVERDRIVE",
     cmd: "maxOverdrive()",
     aliases: ["juice", "overdrive", "maxoverdrive", "maxoverdrive()", "max", "⚡"],
-    desc: "Arms 3× EXPANDO (×4 Multiplier) + Twin Lasers + Mag-Lock at once!",
+    desc: "1.6× Hyper-Speed + Cyber-Disco strobe lights + Full-Auto Gatling + Chain-Blast bricks!",
     unlocked: false,
     run: () => {
       maxOverdrive();
-      return "MAX OVERDRIVE ARMED // 3× EXPANDO + TWIN LASERS + MAG-LOCK";
+      return "MAX OVERDRIVE ARMED // 1.6× TURBO + CYBER-DISCO + CHAIN BLASTS";
     }
   }
 ];
@@ -2387,7 +3400,7 @@ let breachGridBytes = [];
 let breachStep = 0;
 let consoleLogs = [
   { text: "BLACKWALL DECK-OS v2.4 // CONNECTED TO NEON-CORP MAINFRAME", type: "ok" },
-  { text: "5 ENCRYPTED GAME MODES DETECTED BEHIND ICE FIREWALL.", type: "warn" },
+  { text: "BREACH ANY MODE BELOW TO UNLOCK & DEPLOY IT IMMEDIATELY!", type: "warn" },
   { text: "TIP: Click the 3 matching HEX BYTES in order — or type 'scan' / 'help' below!", type: "" }
 ];
 
@@ -2427,15 +3440,21 @@ function renderCyberConsole() {
 
   const daemonsHTML = DAEMONS.map(d => {
     const isTargeted = !d.unlocked && d.id === targetDaemon.id;
+    const isActive = activeHackModes.has(d.id);
     const cardClasses = ["daemon-card"];
     if (d.unlocked) cardClasses.push("unlocked");
+    if (isActive) cardClasses.push("active-mode");
     if (isTargeted) cardClasses.push("targeted");
 
-    const cmdPill = d.unlocked
-      ? `<span class="daemon-cmd-pill">${d.cmd}</span>`
-      : `<span class="daemon-cmd-pill">🔒 ICE-ENCRYPTED</span>`;
+    const cmdPill = isActive
+      ? `<span class="daemon-cmd-pill" style="color:#00ff88;">🟢 ACTIVE IN ARENA</span>`
+      : (d.unlocked
+        ? `<span class="daemon-cmd-pill">${d.cmd}</span>`
+        : `<span class="daemon-cmd-pill">🔒 ICE-ENCRYPTED</span>`);
 
-    const btnLabel = d.unlocked ? "▶ EXECUTE" : (isTargeted ? "🎯 BREACHING..." : "🔒 TARGET ICE");
+    const btnLabel = isActive
+      ? "🟢 ACTIVE [RE-FIRE]"
+      : (d.unlocked ? "▶ ACTIVATE" : (isTargeted ? "🎯 BREACHING..." : "🔒 TARGET ICE"));
 
     return `
       <div class="${cardClasses.join(" ")}" data-daemon="${d.id}">
@@ -2478,8 +3497,8 @@ function renderCyberConsole() {
 
         <div class="console-daemons-panel">
           <div class="console-panel-header">
-            <span>🔓 DAEMONS (${DAEMONS.filter(d => d.unlocked).length}/${DAEMONS.length} UNLOCKED)</span>
-            <span>BREACH OR TYPE CMD</span>
+            <span>🔓 HACK MODES (${DAEMONS.filter(d => d.unlocked).length}/${DAEMONS.length} UNLOCKED)</span>
+            <span>BREACH TO AUTO-DEPLOY</span>
           </div>
           <div class="daemon-list">${daemonsHTML}</div>
         </div>
@@ -2515,20 +3534,20 @@ function renderCyberConsole() {
         soundManager.play("bounce", { pitch: 1.2 + breachStep * 0.28, volume: 0.45 });
 
         if (breachStep >= breachSequence.length) {
-          // Sequence cracked!
-          const toUnlock = DAEMONS.find(d => d.id === targetedDaemonId && !d.unlocked) || getNextLockedDaemon();
+          // Sequence cracked! Unlock AND immediately deploy the breached mode!
+          const toUnlock = DAEMONS.find(d => d.id === targetedDaemonId && !d.unlocked) || getNextLockedDaemon() || targetDaemon;
           soundManager.play("powerUpSpawn", { pitch: 1.9, volume: 0.65 });
+          generateBreachPuzzle();
           if (toUnlock) {
             toUnlock.unlocked = true;
-            addConsoleLog(`ICE BREACHED! Unlocked [${toUnlock.emoji} ${toUnlock.name}] -> Click EXECUTE or type ${toUnlock.cmd}`, "ok");
             const nextLocked = getNextLockedDaemon();
             if (nextLocked) targetedDaemonId = nextLocked.id;
+            addConsoleLog(`ICE BREACHED! Deploying [${toUnlock.emoji} ${toUnlock.name}] into arena...`, "ok");
+            executeDaemon(toUnlock);
           } else {
-            addConsoleLog(`ALL DAEMONS UNLOCKED! Firing bonus PRISM-BURST...`, "ok");
             confettiBlast();
+            setTimeout(renderCyberConsole, 140);
           }
-          generateBreachPuzzle();
-          setTimeout(renderCyberConsole, 140);
         } else {
           renderCyberConsole();
         }
@@ -2554,7 +3573,7 @@ function renderCyberConsole() {
         targetedDaemonId = daemon.id;
         generateBreachPuzzle();
         soundManager.play("bounce", { pitch: 1.35, volume: 0.35 });
-        addConsoleLog(`TARGET LOCKED: [${daemon.emoji} ${daemon.name}] — Match the 3-byte hex signature to breach!`, "warn");
+        addConsoleLog(`TARGET LOCKED: [${daemon.emoji} ${daemon.name}] — Match the 3-byte hex signature to breach & deploy!`, "warn");
         renderCyberConsole();
       }
     });
@@ -2579,10 +3598,10 @@ function executeDaemon(daemon) {
   const msg = daemon.run();
   addConsoleLog(`EXECUTING ${daemon.cmd} ➔ ${msg}`, "ok");
   renderCyberConsole();
-  // Close modal smoothly after a brief beat so the player sees the effect in the arena!
+  // Close modal smoothly after a brief beat so the player sees the frame, lighting, HUD & jumbotron in the arena!
   setTimeout(() => {
     toggleCyberConsole(false);
-  }, 420);
+  }, 460);
 }
 
 function handleConsoleCommand(rawInput) {
