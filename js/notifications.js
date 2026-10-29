@@ -127,6 +127,64 @@ const NOTIFICATION_MESSAGES = {
     description: 'ULTIMATE ×4 ROW MULTIPLIER!',
     color:       '#ffea00',
     mode:        'jumbotron'
+  },
+
+  // --- Hack Mode Jumbotron & Arena Callouts ---
+  'hack-cat': {
+    title:       'HACK DEPLOYED // NEKO-OS',
+    emoji:       '🐱',
+    name:        'CAT MODE: 9 LIVES',
+    description: '🐾 9 LIVES SHIELD • MEOW SFX • SCORES END IN 9!',
+    color:       '#ff2a9d',
+    mode:        'jumbotron'
+  },
+  'hack-poop': {
+    title:       'HACK DEPLOYED // HAZARD RAIN',
+    emoji:       '💩',
+    name:        'POOP STORM!',
+    description: 'BOUNCE FALLING 💩 FOR +5 BONUS PTS!',
+    color:       '#ffaa00',
+    mode:        'jumbotron'
+  },
+  'hack-party': {
+    title:       'HACK DEPLOYED // SPARKLER FIELD',
+    emoji:       '🎉',
+    name:        'CONFETTI BLAST!',
+    description: 'CHAOTIC SPARKLER BURSTS ON EVERY SINGLE HIT!',
+    color:       '#00ffcc',
+    mode:        'jumbotron'
+  },
+  'hack-god': {
+    title:       'HACK DEPLOYED // CELESTIAL',
+    emoji:       '🎮',
+    name:        'GOD MODE ON',
+    description: 'DIVINE HYMN • PADDLE SMITE • IMMORTAL BULLET-TIME!',
+    color:       '#ffd700',
+    mode:        'jumbotron'
+  },
+  'hack-juice': {
+    title:       'HACK DEPLOYED // HYPER-SPEED',
+    emoji:       '⚡',
+    name:        'MAX OVERDRIVE!',
+    description: '1.65× TURBO BALL • AUTO-GATLING • CHAIN BLASTS!',
+    color:       '#ff3355',
+    mode:        'jumbotron'
+  },
+  'god-shield': {
+    title:       'IMMORTAL INTERCEPT',
+    emoji:       '🛡️',
+    name:        'GOD SHIELD!',
+    description: 'SAVED BY IMMORTAL BARRIER + DIVINE SMITE!',
+    color:       '#ffd700',
+    mode:        'burst'
+  },
+  'god-smite': {
+    title:       'WRATH OF THE PADDLE',
+    emoji:       '⚡',
+    name:        'DIVINE SMITE!',
+    description: 'HEAVENLY LIGHTNING VAPORIZED THE GRID!',
+    color:       '#ffd700',
+    mode:        'burst'
   }
 };
 
