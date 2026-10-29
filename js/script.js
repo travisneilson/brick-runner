@@ -675,14 +675,175 @@ function createBricks() {
 
 
 let pauseStartTime = null;
+let attractArenaActive = false;
+
+function startArenaAttractMode() {
+    if (attractArenaActive) return;
+    attractArenaActive = true;
+
+    ball.style.display = 'block';
+    ballIsStuck = false;
+    ballX = GAME_WIDTH / 2 - BALL_SIZE / 2;
+    ballY = GAME_HEIGHT - 160;
+    ballSpeedX = 240;
+    ballSpeedY = -285;
+    paddleX = GAME_WIDTH / 2;
+    paddle.classList.add('paddle-armed');
+
+    let lastAttractT = null;
+    let attractLaserAccum = 0;
+
+    function stepAttract(ts) {
+        if (!attractArenaActive) return;
+        if (!lastAttractT) lastAttractT = ts;
+        const dt = Math.min(0.04, (ts - lastAttractT) / 1000);
+        lastAttractT = ts;
+
+        // 1) Move ball
+        ballX += ballSpeedX * dt;
+        ballY += ballSpeedY * dt;
+
+        // Wall & ceiling bounces
+        if (ballX <= 0 && ballSpeedX < 0) {
+            ballX = 0;
+            ballSpeedX *= -1;
+            if (typeof triggerCollisionSparklers === "function") triggerCollisionSparklers(8, ballY + BALL_SIZE / 2, "wall");
+        } else if (ballX + BALL_SIZE >= GAME_WIDTH && ballSpeedX > 0) {
+            ballX = GAME_WIDTH - BALL_SIZE;
+            ballSpeedX *= -1;
+            if (typeof triggerCollisionSparklers === "function") triggerCollisionSparklers(GAME_WIDTH - 8, ballY + BALL_SIZE / 2, "wall");
+        }
+        if (ballY <= 0 && ballSpeedY < 0) {
+            ballY = 0;
+            ballSpeedY *= -1;
+            if (typeof triggerCollisionSparklers === "function") triggerCollisionSparklers(ballX + BALL_SIZE / 2, 8, "ceiling");
+        }
+
+        // 2) Smooth AI Paddle tracking
+        const targetPadX = ballX + BALL_SIZE / 2 + Math.sin(ts * 0.0022) * 34;
+        paddleX += (targetPadX - paddleX) * Math.min(1, dt * 9.5);
+        const halfPad = paddleWidth / 2;
+        paddleX = Math.max(halfPad, Math.min(GAME_WIDTH - halfPad, paddleX));
+
+        // 3) Paddle bounce
+        const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+        if (ballSpeedY > 0 && ballY + BALL_SIZE >= padTop) {
+            ballY = padTop - BALL_SIZE;
+            ballSpeedY = -(275 + Math.random() * 45);
+            const hitOffset = ((ballX + BALL_SIZE / 2) - paddleX) / halfPad;
+            ballSpeedX = hitOffset * 290 + (Math.random() - 0.5) * 40;
+            if (Math.abs(ballSpeedX) < 120) ballSpeedX = (ballSpeedX >= 0 ? 1 : -1) * 165;
+            if (typeof triggerCollisionSparklers === "function") {
+                triggerCollisionSparklers(ballX + BALL_SIZE / 2, padTop, "paddle");
+            }
+        }
+
+        // 4) Brick collisions (ball)
+        const ballRect = { left: ballX, right: ballX + BALL_SIZE, top: ballY, bottom: ballY + BALL_SIZE };
+        for (let i = 0; i < bricks.length; i++) {
+            const b = bricks[i];
+            if (b.isBroken) continue;
+            const bRect = { left: b.x, right: b.x + b.width, top: b.y, bottom: b.y + b.height };
+            if (isColliding(ballRect, bRect)) {
+                b.isBroken = true;
+                b.element.classList.add('broken');
+                ballSpeedY *= -1;
+                if (typeof triggerCollisionSparklers === "function") {
+                    triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
+                }
+                const idx = Math.floor(Math.random() * CHAOTIC_EMOJIS.length);
+                ball.textContent = CHAOTIC_EMOJIS[idx];
+                clearTimeout(emojiSwapTimeout);
+                emojiSwapTimeout = setTimeout(() => {
+                    ball.textContent = BALL_EMOJI;
+                }, 250);
+                break;
+            }
+        }
+
+        // 5) Twin Laser Auto-Fire in Attract Mode
+        attractLaserAccum += dt;
+        if (attractLaserAccum >= 0.85) {
+            attractLaserAccum = 0;
+            const leftWing = paddleX - paddleWidth / 2 + 10;
+            const rightWing = paddleX + paddleWidth / 2 - 16;
+            [leftWing, rightWing].forEach(lx => {
+                const bolt = document.createElement("div");
+                bolt.className = "laser-bolt";
+                bolt.style.left = `${lx}px`;
+                bolt.style.top = `${padTop - 16}px`;
+                gameArea.appendChild(bolt);
+                lasers.push({ element: bolt, x: lx, y: padTop - 16, width: 6, height: 20 });
+            });
+        }
+
+        for (let i = lasers.length - 1; i >= 0; i--) {
+            const l = lasers[i];
+            l.y -= LASER_SPEED * dt;
+            l.element.style.top = `${l.y}px`;
+            if (l.y + l.height < 0) {
+                l.element.remove();
+                lasers.splice(i, 1);
+                continue;
+            }
+            const lRect = { left: l.x, right: l.x + l.width, top: l.y, bottom: l.y + l.height };
+            for (let j = 0; j < bricks.length; j++) {
+                const b = bricks[j];
+                if (b.isBroken) continue;
+                const bRect = { left: b.x, right: b.x + b.width, top: b.y, bottom: b.y + b.height };
+                if (isColliding(lRect, bRect)) {
+                    b.isBroken = true;
+                    b.element.classList.add('broken');
+                    if (typeof triggerCollisionSparklers === "function") {
+                        triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
+                    }
+                    l.element.remove();
+                    lasers.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // Respawn bricks when fewer than 14 remain intact
+        if (bricks.filter(b => !b.isBroken).length < 14) {
+            createBricks();
+        }
+
+        renderGame();
+        if (typeof updateAndRenderSparklers === "function") {
+            updateAndRenderSparklers(dt);
+        }
+
+        requestAnimationFrame(stepAttract);
+    }
+
+    requestAnimationFrame(stepAttract);
+}
+
+function stopArenaAttractMode() {
+    if (!attractArenaActive) return;
+    attractArenaActive = false;
+    lasers.forEach(l => l.element.remove());
+    lasers = [];
+    paddle.classList.remove('paddle-armed');
+    const canvas = document.getElementById("party-sparkler-canvas");
+    if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    }
+    initGame();
+}
 
 function setupGame() {
     updateHighScoreDisplay();
+    initGame();
     startScreen.style.display = 'none';
     clickToStartOverlay.style.display = 'flex';
+    startArenaAttractMode();
 
     clickToStartOverlay.addEventListener('click', () => {
         clearInterval(emojiCycleInterval);
+        stopArenaAttractMode();
         if (loadingEmoji) loadingEmoji.style.display = 'none';
         clickToStartOverlay.style.opacity = '0';
         setTimeout(() => {
@@ -718,7 +879,6 @@ function setupGame() {
         });
     }, { once: true });
     
-    initGame();
     if (startPrompt) {
         startPrompt.addEventListener('click', (e) => {
             e.stopPropagation();
