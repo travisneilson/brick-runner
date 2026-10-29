@@ -681,16 +681,6 @@ function setupGame() {
     startScreen.style.display = 'none';
     clickToStartOverlay.style.display = 'flex';
 
-    const allEmojis = [BALL_EMOJI, ...Object.values(POWER_UP_TYPES).map(p => p.emoji)];
-    let emojiIndex = 0;
-    clearInterval(emojiCycleInterval);
-    emojiCycleInterval = setInterval(() => {
-        if(loadingEmoji) {
-            loadingEmoji.textContent = allEmojis[emojiIndex];
-            emojiIndex = (emojiIndex + 1) % allEmojis.length;
-        }
-    }, 500);
-
     clickToStartOverlay.addEventListener('click', () => {
         clearInterval(emojiCycleInterval);
         if (loadingEmoji) loadingEmoji.style.display = 'none';
