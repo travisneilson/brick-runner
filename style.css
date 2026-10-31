@@ -695,6 +695,52 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     max-width: 92%;
     box-sizing: border-box;
 }
+
+#game-message.end-overlay-mode {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.end-modal-card {
+    background-color: rgba(16, 18, 26, 0.97);
+    padding: 18px 24px 16px;
+    border-radius: 10px;
+    border: 2px solid var(--clr-neon-blue);
+    box-shadow: 0 0 18px var(--clr-neon-blue), 0 0 36px rgba(0, 255, 255, 0.35);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+@keyframes victoryCardPulse {
+    0%, 100% {
+        border-color: #ffd700;
+        box-shadow:
+            0 0 24px rgba(255, 215, 0, 0.8),
+            0 0 54px rgba(255, 0, 255, 0.45),
+            inset 0 0 32px rgba(255, 215, 0, 0.18);
+    }
+    50% {
+        border-color: #00ffff;
+        box-shadow:
+            0 0 32px rgba(0, 255, 255, 0.85),
+            0 0 64px rgba(255, 215, 0, 0.55),
+            inset 0 0 38px rgba(0, 255, 255, 0.2);
+    }
+}
+
+.end-modal-card.win-card {
+    background: radial-gradient(circle at 50% 0%, rgba(46, 30, 10, 0.98) 0%, rgba(16, 14, 28, 0.98) 72%);
+    animation: victoryCardPulse 2s ease-in-out infinite;
+}
+
+#game-area.victory-arena-glow {
+    box-shadow:
+        0 0 36px rgba(255, 215, 0, 0.85),
+        0 0 75px rgba(255, 0, 255, 0.5),
+        inset 0 0 65px rgba(255, 215, 0, 0.28) !important;
+}
 .game-message-prompt {
     font-family: 'Press Start 2P', cursive;
     font-size: 0.62em;
@@ -872,18 +918,41 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     }
 }
 #game-message .title { font-family: 'Roboto', sans-serif; font-weight: bold; font-size: 0.95em; color: var(--clr-text-main); opacity: 0.72; display: block; letter-spacing: 2px; text-transform: uppercase; }
+#game-message .title.win-kicker {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.72rem;
+    color: #ffd700;
+    opacity: 1;
+    letter-spacing: 1.5px;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.85), 0 0 24px rgba(255, 140, 0, 0.6);
+}
 #game-message .name { font-family: 'Press Start 2P', cursive; font-size: 1.55em; color: var(--clr-neon-green); text-shadow: 0 0 10px var(--clr-neon-green); margin: 8px 0 6px 0; display: flex; justify-content: center; align-items: center; gap: 10px; white-space: nowrap; }
-#game-message .description { font-family: 'Press Start 2P', cursive; font-size: 0.85em; color: var(--clr-text-main); display: block; margin-top: 6px; }
+#game-message .description { font-family: 'Press Start 2P', cursive; font-size: 0.78em; color: var(--clr-text-main); display: block; margin-top: 6px; line-height: 1.5; }
 #game-message .rating { color: var(--clr-neon-pink); text-shadow: 0 0 10px var(--clr-neon-pink); margin: 10px 0 6px 0; }
+@keyframes victoryTitleShimmer {
+    0%, 100% {
+        color: #ffd700;
+        text-shadow: 0 0 14px #ffd700, 0 0 30px #ff00ff;
+        transform: scale(1);
+    }
+    50% {
+        color: #90ff5a;
+        text-shadow: 0 0 18px #90ff5a, 0 0 36px #00ffff;
+        transform: scale(1.04);
+    }
+}
+#game-message .rating.win-rating {
+    animation: victoryTitleShimmer 1.6s ease-in-out infinite;
+}
 #game-message .high-score { opacity: 0.85; font-size: 0.75em; }
 .record-saved-banner {
     display: inline-block;
     margin-top: 8px;
-    padding: 6px 12px;
+    padding: 6px 14px;
     font-family: 'Press Start 2P', cursive;
     font-size: 0.56rem;
     color: var(--clr-gold-glow);
-    background: rgba(255, 215, 0, 0.12);
+    background: rgba(255, 215, 0, 0.14);
     border: 1px solid rgba(255, 215, 0, 0.65);
     border-radius: 999px;
     text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
@@ -917,45 +986,61 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .end-game-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+    width: 100%;
 }
 
 .end-action-btn {
     font-family: 'Press Start 2P', cursive;
-    font-size: 0.58rem;
-    padding: 9px 14px 8px;
-    border-radius: 6px;
+    font-size: 0.72rem;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 8px;
     cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.14s ease;
+    letter-spacing: 0.8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .end-play-btn {
-    background: var(--clr-neon-green);
-    color: #061008;
-    border: 1.5px solid #b8ffcf;
-    box-shadow: 0 0 12px rgba(0, 255, 0, 0.55);
+    background: linear-gradient(90deg, #00ff66, #90ff5a);
+    color: #051208;
+    border: 2px solid #d4ffbf;
+    box-shadow:
+        0 0 18px rgba(0, 255, 100, 0.7),
+        0 8px 20px rgba(0, 0, 0, 0.65);
 }
 
 .end-play-btn:hover {
-    transform: translateY(-1px) scale(1.03);
-    box-shadow: 0 0 18px var(--clr-neon-green);
+    transform: translateY(-2px) scale(1.03);
+    background: linear-gradient(90deg, #52ff88, #b8ff80);
+    box-shadow:
+        0 0 26px rgba(0, 255, 100, 0.95),
+        0 10px 24px rgba(0, 0, 0, 0.75);
 }
 
 .end-switch-btn {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(14, 22, 34, 0.96);
     color: var(--clr-neon-blue);
-    border: 1.5px solid rgba(0, 255, 255, 0.55);
+    border: 2px solid var(--clr-neon-blue);
+    box-shadow:
+        0 0 14px rgba(0, 255, 255, 0.38),
+        0 8px 20px rgba(0, 0, 0, 0.65);
 }
 
 .end-switch-btn:hover {
+    transform: translateY(-2px) scale(1.03);
     background: var(--clr-neon-blue);
-    color: #061014;
-    box-shadow: 0 0 14px var(--clr-neon-blue);
+    color: #051014;
+    box-shadow:
+        0 0 22px var(--clr-neon-blue),
+        0 10px 24px rgba(0, 0, 0, 0.75);
 }
 
 /* --- Power-Ups and Status UI --- */

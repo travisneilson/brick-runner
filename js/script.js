@@ -486,27 +486,11 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
   const hacksArmedNow = armedHacks.length > 0;
 
   let statusStripHTML = "";
-  if (!isHackedTab) {
-    if (hacksArmedNow) {
-      statusStripHTML = `
-        <div class="leaderboard-mode-strip warn-strip">
-          <span>⚠️ HACKS ON (${armedHacks.join("")}) • NEXT RUN GOES TO HACKED</span>
-          <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">DISABLE HACKS</button>
-        </div>
-      `;
-    } else {
-      statusStripHTML = `
-        <div class="leaderboard-mode-strip legit-strip">
-          <span>🛡️ 100% CHEAT-FREE • PURE SKILL RECORDS</span>
-          <span class="lb-verified-pill">✓ VERIFIED</span>
-        </div>
-      `;
-    }
-  } else {
+  if (!isHackedTab && hacksArmedNow) {
     statusStripHTML = `
-      <div class="leaderboard-mode-strip hacked-strip">
-        <span>💻 HACK CONSOLE &amp; CHEAT MODE RECORDS</span>
-        <span class="lb-hacked-pill">${hacksArmedNow ? `ARMED: ${armedHacks.join("")}` : "HACK BOARD"}</span>
+      <div class="leaderboard-mode-strip warn-strip">
+        <span>💻 HACKS ACTIVE (${armedHacks.join("")}) • SAVES TO HACKED TOP 5</span>
+        <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">TURN OFF</button>
       </div>
     `;
   }
@@ -525,14 +509,11 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
       const classEmoji = item.classEmoji || "";
       const sectorLvlTag = (item.sector || item.level)
-        ? `<span class="lb-sector-pill" title="${item.className || "Runner"} • Level ${item.level || 1} • Sector ${item.sector || 1}">${classEmoji}L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
+        ? `<span class="lb-sector-pill" title="Level ${item.level || 1} • Board ${item.sector || 1}">${classEmoji}L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
         : "";
       const hackIcons = isHackedTab
         ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
         : sectorLvlTag;
-      const moveBtn = !isHackedTab
-        ? `<button type="button" class="lb-flag-cheat-btn" data-move-to-hacked="${item.id}" title="Used cheats on this run? Move to Hacked Leaderboard">➔💻</button>`
-        : "";
 
       slots.push(`
         <div class="${classes.join(" ")}">
@@ -544,7 +525,6 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
           <span class="lb-score">${formatArcadeScore(item.score)}</span>
           <span class="lb-tier-wrap">
             <span class="lb-tier">${item.rating || getRating(item.score, item.won)}</span>
-            ${moveBtn}
           </span>
         </div>
       `);
@@ -1259,7 +1239,7 @@ function syncRogueHUD() {
 
   if (classBadge) {
     const boardMult = getSectorScoreMultiplier();
-    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
+    classBadge.textContent = `${cDef.emoji} LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
   }
   syncBoardLevelAtmosphere();
   updateMultiplierBadge();
@@ -1677,6 +1657,8 @@ function initGame() {
     renderCallsignBuilder();
     updateStartLeaderboard();
     updateHighScoreDisplay();
+    stopVictoryCelebrationShow();
+    gameMessage.classList.remove('end-overlay-mode', 'victory-celebration');
     gameMessage.style.display = 'none';
     scoreDisplay.style.display = 'none';
      statusIndicatorsContainer.style.display = 'none';
@@ -2071,6 +2053,7 @@ function togglePause() {
     pauseStartTime = Date.now();
     cancelAnimationFrame(animationFrameId);
     if (pauseButton) pauseButton.textContent = "▶ RESUME [P]";
+    gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
     gameMessage.innerHTML = `<span class="name">PAUSED</span><p class="game-message-prompt">Press P / ESC or Click to Resume</p>`;
     gameMessage.style.display = "block";
     gameArea.classList.remove("hide-cursor");
@@ -3021,6 +3004,44 @@ function renderGame() {
 
 
 
+let victoryCelebrationInterval = null;
+
+function stopVictoryCelebrationShow() {
+  if (victoryCelebrationInterval) {
+    clearInterval(victoryCelebrationInterval);
+    victoryCelebrationInterval = null;
+  }
+  if (gameArea) {
+    gameArea.classList.remove("victory-arena-glow");
+  }
+}
+
+function startVictoryCelebrationShow() {
+  stopVictoryCelebrationShow();
+  if (gameArea) {
+    gameArea.classList.add("victory-arena-glow");
+  }
+  spawnConfettiShards(180);
+  if (typeof triggerCollisionSparklers === "function") {
+    triggerCollisionSparklers(140, 180, "brick");
+    triggerCollisionSparklers(GAME_WIDTH - 140, 180, "brick");
+  }
+  victoryCelebrationInterval = setInterval(() => {
+    if (!gameOver || !pendingEndGameWon || gameMessage.style.display === "none") {
+      stopVictoryCelebrationShow();
+      return;
+    }
+    spawnConfettiShards(75);
+    if (typeof triggerCollisionSparklers === "function") {
+      const fxX = Math.random() < 0.5
+        ? 60 + Math.random() * 140
+        : GAME_WIDTH - 60 - Math.random() * 140;
+      const fxY = 90 + Math.random() * 340;
+      triggerCollisionSparklers(fxX, fxY, "brick");
+    }
+  }, 900);
+}
+
 function endGame(won) {
   gameOver = true;
   gameRunning = false;
@@ -3032,8 +3053,9 @@ function endGame(won) {
   if (pauseButton) pauseButton.style.display = "none";
   if (won) {
     soundManager.play("winSong");
-    spawnConfettiShards(100);
+    startVictoryCelebrationShow();
   } else {
+    stopVictoryCelebrationShow();
     soundManager.play("loseSong");
   }
 
@@ -3051,36 +3073,44 @@ function endGame(won) {
   if (isNewLegitHigh) saveHighScore(score);
 
   const rating = getRating(score, won);
-  const titleText = won ? `Sector ${currentSector} Reached!` : "System Failure!";
+  const titleText = won
+    ? (currentSector >= MAX_LEVELS
+        ? `🏆 VICTORY // ALL ${MAX_LEVELS} LEVELS CLEARED! 🏆`
+        : `🎉 LEVEL ${currentSector} CLEARED! 🎉`)
+    : "SYSTEM FAILURE!";
   const augSummary = getActiveAugmentIcons().join(" ");
 
   let savedBannerHTML = "";
   if (isHackedRun) {
     const hackBadgeStr = hacksUsed.join("");
     savedBannerHTML = savedEntry
-      ? `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} SAVED TO HACKED TOP 5 &bull; 🏆 TOP 5 BOARD PROTECTED!</div>`
-      : `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} HACKED RUN &bull; 🏆 TOP 5 LEADERBOARD PROTECTED!</div>`;
+      ? `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} SAVED TO HACKED TOP 5!</div>`
+      : `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} HACKED RUN</div>`;
   } else if (savedEntry) {
     savedBannerHTML = `<div class="record-saved-banner">${
       isNewLegitHigh
-        ? `👑 NEW #1 HIGH SCORE FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
-        : `🏆 TOP 5 RECORD SAVED FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
+        ? `👑 NEW #1 HIGH SCORE FOR ${savedEntry.initials}!`
+        : `🏆 TOP 5 RECORD SAVED FOR ${savedEntry.initials}!`
     }</div>`;
   } else {
     const legitBoard = getLeaderboard("legit");
     const minNeeded = legitBoard.length >= MAX_LEADERBOARD_ENTRIES ? (legitBoard[legitBoard.length - 1].score + 1 - score) : 1;
-    savedBannerHTML = `<div class="record-saved-banner legit-try-banner">🛡️ VERIFIED RUN &bull; ${formatArcadeScore(Math.max(1, minNeeded))} MORE PTS FOR TOP 5!</div>`;
+    savedBannerHTML = `<div class="record-saved-banner legit-try-banner">🏆 ${formatArcadeScore(Math.max(1, minNeeded))} MORE PTS FOR TOP 5!</div>`;
   }
 
   const highlightId = savedEntry ? savedEntry.id : lastSavedEntryId;
 
+  gameMessage.classList.add("end-overlay-mode");
+  gameMessage.classList.toggle("victory-celebration", !!won);
   gameMessage.innerHTML = `
-    <span class="title">${titleText}</span>
-    <span class="name rating">${rating}</span>
-    <span class="description">Runner: ${runnerCallsign} &bull; Sector ${currentSector} &bull; LVL ${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ VERIFIED)</span>`}</span>
-    ${savedBannerHTML}
-    <div id="end-leaderboard" class="leaderboard-panel">
-      ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
+    <div class="end-modal-card ${won ? "win-card" : "loss-card"}">
+      <span class="title ${won ? "win-kicker" : ""}">${titleText}</span>
+      <span class="name rating ${won ? "win-rating" : ""}">${rating}</span>
+      <span class="description">Runner: ${runnerCallsign} &bull; Level ${currentSector}/${MAX_LEVELS} &bull; Tier L${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
+      ${savedBannerHTML}
+      <div id="end-leaderboard" class="leaderboard-panel">
+        ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
+      </div>
     </div>
     <div class="end-game-actions">
       <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">▶ PLAY AGAIN [SPACE]</button>
