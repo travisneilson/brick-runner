@@ -1053,12 +1053,18 @@ body::before {
 
 .callsign-heading {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   color: var(--clr-neon-pink);
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   margin-bottom: 10px;
   text-align: center;
   text-shadow: 0 0 6px var(--clr-neon-pink);
+  transition: color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.callsign-heading.callsign-ready {
+  color: var(--clr-neon-green);
+  text-shadow: 0 0 8px var(--clr-neon-green);
 }
 
 .callsign-slots {
@@ -1086,10 +1092,45 @@ body::before {
   transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
+.callsign-slot.slot-empty {
+  border-style: dashed;
+  border-color: rgba(255, 0, 255, 0.45);
+}
+
+.callsign-slot .slot-placeholder {
+  color: rgba(255, 0, 255, 0.55);
+  text-shadow: 0 0 6px rgba(255, 0, 255, 0.45);
+  animation: blink-caret 1.1s infinite;
+}
+
 .callsign-slot.active {
+  border-style: solid;
   border-color: var(--clr-neon-pink);
   box-shadow: 0 0 12px var(--clr-neon-pink), inset 0 0 8px rgba(255, 0, 255, 0.25);
   transform: translateY(-2px);
+}
+
+.callsign-panel.callsign-required-shake {
+  animation: shake-animation 0.35s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: var(--clr-neon-pink);
+  box-shadow: 0 0 22px rgba(255, 0, 255, 0.65), inset 0 0 20px rgba(255, 0, 255, 0.25);
+}
+
+.start-play-btn.callsign-locked {
+  background: rgba(255, 0, 255, 0.14);
+  color: #ffb8ff;
+  border-color: rgba(255, 0, 255, 0.65);
+  box-shadow: 0 0 14px rgba(255, 0, 255, 0.35);
+  font-size: 0.92rem;
+}
+
+.start-play-btn.callsign-locked::before {
+  border-left-color: #ffb8ff;
+}
+
+.callsign-subhint.subhint-ready {
+  color: var(--clr-neon-green);
+  opacity: 0.9;
 }
 
 .keypad-grid {

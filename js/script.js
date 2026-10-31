@@ -253,10 +253,19 @@ const HACK_BADGE_EMOJI = {
 let memoryHighScore = 0;
 let memoryLeaderboard = null;
 let memoryHackedLeaderboard = null;
-let memoryLastInitials = "TRV";
+let callsignSlots = ["", "", ""];
 let awaitingInitials = false;
 let pendingEndGameWon = false;
 let lastSavedEntryId = null;
+
+function isCallsignComplete() {
+  return callsignSlots.every(ch => /^[A-Z]$/.test(ch));
+}
+
+function clearCallsignSlots() {
+  callsignSlots = ["", "", ""];
+  activeCallsignSlot = 0;
+}
 
 function isAnyHackCurrentlyArmed() {
   return activeHackModes.size > 0 || isCatMode || catModeArmed;
@@ -291,20 +300,12 @@ function markRunAsHacked(hackId = "dev") {
 }
 
 function getLastInitials() {
-  try {
-    return (localStorage.getItem(LAST_INITIALS_KEY) || memoryLastInitials || "TRV").toUpperCase().slice(0, 3);
-  } catch (err) {
-    return memoryLastInitials;
-  }
+  return isCallsignComplete() ? callsignSlots.join("") : "";
 }
 
 function saveLastInitials(initials) {
-  memoryLastInitials = initials;
-  try {
-    localStorage.setItem(LAST_INITIALS_KEY, initials);
-  } catch (err) {
-    // Ignore storage errors in sandboxed iframes
-  }
+  const clean = (initials || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+  callsignSlots = [clean[0] || "", clean[1] || "", clean[2] || ""];
 }
 
 function sanitizeAndMigrateLeaderboards() {
@@ -630,7 +631,7 @@ function updateStartLeaderboard() {
 }
 
 // --- Pre-Game Arcade Callsign Keypad ---
-const CALLSIGN_PRESETS = ["NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "TRV"];
+const CALLSIGN_PRESETS = ["NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "JET"];
 const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let activeCallsignSlot = 0;
 
@@ -639,35 +640,76 @@ function isStartScreenOpen() {
 }
 
 function getCallsignChars() {
-  const raw = getLastInitials().padEnd(3, "A").slice(0, 3);
-  return [raw[0], raw[1], raw[2]];
+  return [callsignSlots[0] || "", callsignSlots[1] || "", callsignSlots[2] || ""];
+}
+
+function syncStartPlayButtonState() {
+  if (!startPrompt) return;
+  if (!assetsReady) {
+    startPrompt.textContent = "Loading...";
+    startPrompt.classList.add("loading");
+    startPrompt.classList.remove("callsign-locked");
+    return;
+  }
+  startPrompt.classList.remove("loading");
+  if (isCallsignComplete()) {
+    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")}`;
+    startPrompt.classList.remove("callsign-locked");
+  } else {
+    startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
+    startPrompt.classList.add("callsign-locked");
+  }
+}
+
+function promptCallsignRequired() {
+  const firstEmpty = callsignSlots.findIndex(ch => !/^[A-Z]$/.test(ch));
+  if (firstEmpty !== -1) activeCallsignSlot = firstEmpty;
+  renderCallsignBuilder();
+  const container = document.getElementById("callsign-builder");
+  if (container) {
+    container.classList.remove("callsign-required-shake");
+    void container.offsetWidth;
+    container.classList.add("callsign-required-shake");
+  }
+  soundManager.play("multihit", { pitch: 0.78, volume: 0.45 });
 }
 
 function renderCallsignBuilder() {
   const container = document.getElementById("callsign-builder");
   if (!container) return;
   const chars = getCallsignChars();
+  const complete = isCallsignComplete();
 
   const slotsHTML = chars.map((ch, idx) => `
-    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""}" data-slot="${idx}">
-      ${ch}
+    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}">
+      ${ch || `<span class="slot-placeholder">_</span>`}
     </div>
   `).join("");
 
   const keysHTML = [
     ...KEYPAD_LETTERS.map(letter => `<button type="button" class="keypad-key" data-key="${letter}">${letter}</button>`),
     `<button type="button" class="keypad-key key-special" data-key="RANDOM" title="Random Cyber Callsign">🎲</button>`,
-    `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace">⌫</button>`
+    `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace / Clear">⌫</button>`
   ].join("");
+
+  const headingText = complete
+    ? `🕹️ CALLSIGN LOCKED: ${chars.join("")}`
+    : `🕹️ CREATE CALLSIGN TO START`;
+
+  const subhintText = complete
+    ? `Ready to roll! Click PLAY AS ${chars.join("")} or press SPACE`
+    : `Pick 3 letters (A–Z) or roll 🎲 Random to unlock PLAY`;
 
   container.innerHTML = `
     <div>
-      <div class="callsign-heading">🕹️ RUNNER CALLSIGN</div>
+      <div class="callsign-heading ${complete ? "callsign-ready" : ""}">${headingText}</div>
       <div class="callsign-slots">${slotsHTML}</div>
       <div class="keypad-grid">${keysHTML}</div>
     </div>
-    <div class="callsign-subhint">Pick from keypad or type A–Z &bull; Saved automatically</div>
+    <div class="callsign-subhint ${complete ? "subhint-ready" : ""}">${subhintText}</div>
   `;
+
+  syncStartPlayButtonState();
 
   container.querySelectorAll(".callsign-slot").forEach(slotEl => {
     slotEl.addEventListener("click", (ev) => {
@@ -696,18 +738,38 @@ function renderCallsignBuilder() {
 function setCallsignLetter(letter) {
   const clean = letter.toUpperCase().replace(/[^A-Z]/g, "");
   if (!clean) return;
-  const chars = getCallsignChars();
-  chars[activeCallsignSlot] = clean[0];
-  saveLastInitials(chars.join(""));
-  soundManager.play("bounce", { pitch: 1.3 + activeCallsignSlot * 0.18, volume: 0.35 });
-  activeCallsignSlot = (activeCallsignSlot + 1) % 3;
+  const wasComplete = isCallsignComplete();
+  callsignSlots[activeCallsignSlot] = clean[0];
+
+  // Advance to next empty slot if any, otherwise cycle 0->1->2
+  const nextEmpty = callsignSlots.findIndex((ch, idx) => idx > activeCallsignSlot && !ch);
+  const anyEmpty = callsignSlots.findIndex(ch => !ch);
+  if (nextEmpty !== -1) {
+    activeCallsignSlot = nextEmpty;
+  } else if (anyEmpty !== -1) {
+    activeCallsignSlot = anyEmpty;
+  } else {
+    activeCallsignSlot = (activeCallsignSlot + 1) % 3;
+  }
+
+  if (!wasComplete && isCallsignComplete()) {
+    soundManager.play("powerUpSpawn", { pitch: 1.65, volume: 0.45 });
+  } else {
+    soundManager.play("bounce", { pitch: 1.3 + activeCallsignSlot * 0.18, volume: 0.35 });
+  }
   updateHighScoreDisplay();
   renderCallsignBuilder();
 }
 
 function backspaceCallsign() {
-  activeCallsignSlot = (activeCallsignSlot + 2) % 3;
+  if (callsignSlots[activeCallsignSlot]) {
+    callsignSlots[activeCallsignSlot] = "";
+  } else {
+    activeCallsignSlot = (activeCallsignSlot + 2) % 3;
+    callsignSlots[activeCallsignSlot] = "";
+  }
   soundManager.play("multihit", { pitch: 0.9, volume: 0.3 });
+  updateHighScoreDisplay();
   renderCallsignBuilder();
 }
 
@@ -782,7 +844,7 @@ function saveHighScore(e) {
 }
 function updateHighScoreDisplay() {
   const board = getLeaderboard("legit");
-  const runner = getLastInitials();
+  const runner = getLastInitials() || "---";
   const modeTag = (runUsedCheats || isAnyHackCurrentlyArmed())
     ? ` • 💻 HACKED (${getArmedHackEmojis().join("") || getRunHackEmojis().join("")})`
     : "";
@@ -1150,8 +1212,7 @@ function setupGame() {
         const markReady = () => {
             if (assetsReady) return;
             assetsReady = true;
-            startPrompt.textContent = "PLAY GAME";
-            startPrompt.classList.remove('loading');
+            syncStartPlayButtonState();
         };
         const safetyTimer = setTimeout(markReady, 1500);
 
@@ -1174,6 +1235,13 @@ function setupGame() {
 
 function startGame() {
     if (gameOver && assetsReady) {
+        if (!isCallsignComplete()) {
+            if (!isStartScreenOpen()) {
+                initGame();
+            }
+            promptCallsignRequired();
+            return;
+        }
         initGame(); 
         score = 0;
         lives = 1;
@@ -2237,6 +2305,7 @@ function endGame(won) {
   if (switchRunnerBtn) {
     switchRunnerBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
+      clearCallsignSlots();
       initGame();
     });
   }
@@ -2432,6 +2501,7 @@ document.addEventListener("keydown", e => {
 
   if (gameOver && gameMessage.style.display === "block" && "c" === t) {
     e.preventDefault();
+    clearCallsignSlots();
     initGame();
     return;
   }
