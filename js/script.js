@@ -420,6 +420,7 @@ function addLeaderboardEntry(rawInitials, newScore, won, mode = "legit", hacksUs
   const cleanInitials = (rawInitials || "AAA").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3).padEnd(3, "A");
   saveLastInitials(cleanInitials);
   const isHacked = mode === "hacked";
+  const classDef = typeof getSelectedClassDef === "function" ? getSelectedClassDef() : { id: "striker", emoji: "⚡", name: "STRIKER" };
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     initials: cleanInitials,
@@ -428,6 +429,9 @@ function addLeaderboardEntry(rawInitials, newScore, won, mode = "legit", hacksUs
     won: !!won,
     sector: typeof currentSector === "number" ? currentSector : 1,
     level: typeof rogueLevel === "number" ? rogueLevel : 1,
+    classId: classDef.id,
+    classEmoji: classDef.emoji,
+    className: classDef.name,
     augments: typeof getActiveAugmentIcons === "function" ? getActiveAugmentIcons() : [],
     hacked: isHacked,
     hacks: isHacked ? (hacksUsed.length > 0 ? hacksUsed : ["💻"]) : [],
@@ -519,8 +523,9 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       if (highlightId && item.id === highlightId) classes.push("current-run");
 
       const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
+      const classEmoji = item.classEmoji || "";
       const sectorLvlTag = (item.sector || item.level)
-        ? `<span class="lb-sector-pill" title="Reached Sector ${item.sector || 1} • Level ${item.level || 1}">S${item.sector || 1}•L${item.level || 1}</span>`
+        ? `<span class="lb-sector-pill" title="${item.className || "Runner"} • Level ${item.level || 1} • Sector ${item.sector || 1}">${classEmoji}L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
         : "";
       const hackIcons = isHackedTab
         ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
@@ -636,10 +641,70 @@ function updateStartLeaderboard() {
   bindLeaderboardEvents(el, lastSavedEntryId);
 }
 
-// --- Pre-Game Arcade Callsign Keypad ---
+// --- Pre-Game Arcade Callsign & Runner Class Selector ---
 const CALLSIGN_PRESETS = ["NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "JET"];
 const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let activeCallsignSlot = 0;
+let selectedRunnerClass = "striker";
+
+const RUNNER_CLASSES = {
+  striker: {
+    id: "striker",
+    emoji: "⚡",
+    name: "STRIKER",
+    color: "#00ffff",
+    tagline: "Tesla Arcs & Twin Auto-Turrets",
+    tiers: [
+      { level: 1, label: "Tesla Arc I", short: "Paddle bounces zap 1 brick", augments: { tesla: 1 } },
+      { level: 2, label: "Wing Turrets I", short: "Auto-fires twin plasma bolts", augments: { tesla: 1, turret: 1 } },
+      { level: 3, label: "Twin Arcs + Turrets II", short: "Zaps 2 bricks + faster turrets", augments: { tesla: 2, turret: 2 } },
+      { level: 4, label: "Storm Core MAX", short: "Zaps 3 bricks + hyper turrets", augments: { tesla: 3, turret: 3 } }
+    ]
+  },
+  guardian: {
+    id: "guardian",
+    emoji: "🛡️",
+    name: "GUARDIAN",
+    color: "#39ff14",
+    tagline: "Wide Titan Deck & Floor Shield",
+    tiers: [
+      { level: 1, label: "Wide Deck I", short: "+22% wider & faster paddle", augments: { titan: 1 } },
+      { level: 2, label: "Aegis Shield I", short: "Floor forcefield saves missed ball", augments: { titan: 1, aegis: 1 } },
+      { level: 3, label: "Titan II + Shield II", short: "+44% paddle + faster shield", augments: { titan: 2, aegis: 2 } },
+      { level: 4, label: "Fortress Deck MAX", short: "+66% paddle + rapid 8s shield", augments: { titan: 3, aegis: 3 } }
+    ]
+  },
+  demolisher: {
+    id: "demolisher",
+    emoji: "💥",
+    name: "DEMOLISHER",
+    color: "#ff7b00",
+    tagline: "Piercing Ball & Plasma Nova",
+    tiers: [
+      { level: 1, label: "Armor Pierce I", short: "2× hit damage & pierces 1 brick", augments: { pierce: 1 } },
+      { level: 2, label: "Plasma Nova I", short: "Shockwave ring every 5th brick", augments: { pierce: 1, nova: 1 } },
+      { level: 3, label: "Pierce II + Nova II", short: "Pierces 2 bricks + Nova every 4th", augments: { pierce: 2, nova: 2 } },
+      { level: 4, label: "Supernova Core MAX", short: "Pierces 3 bricks + Nova every 3rd", augments: { pierce: 3, nova: 3 } }
+    ]
+  },
+  highroller: {
+    id: "highroller",
+    emoji: "💎",
+    name: "HIGH-ROLLER",
+    color: "#ffd700",
+    tagline: "Power-Up Magnet & Score Jackpot",
+    tiers: [
+      { level: 1, label: "Gravity Magnet I", short: "Pulls power-ups +50 PTS on catch", augments: { magnet: 1 } },
+      { level: 2, label: "1.4× Score Jackpot", short: "1.4× all points + stronger magnet", augments: { magnet: 2, greed: 1 } },
+      { level: 3, label: "1.85× Score + Magnet MAX", short: "1.85× all points +175 PTS catch", augments: { magnet: 3, greed: 2 } },
+      { level: 4, label: "2.5× Jackpot Core MAX", short: "2.5× all points + max magnet!", augments: { magnet: 3, greed: 3 } }
+    ]
+  }
+};
+
+function getSelectedClassDef() {
+  return RUNNER_CLASSES[selectedRunnerClass] || RUNNER_CLASSES.striker;
+}
 
 function isStartScreenOpen() {
   return gameOver && startScreen && startScreen.style.display === "flex" && (!clickToStartOverlay || clickToStartOverlay.style.display === "none");
@@ -658,8 +723,9 @@ function syncStartPlayButtonState() {
     return;
   }
   startPrompt.classList.remove("loading");
+  const cls = getSelectedClassDef();
   if (isCallsignComplete()) {
-    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")}`;
+    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")} • ${cls.emoji} ${cls.name}`;
     startPrompt.classList.remove("callsign-locked");
   } else {
     startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
@@ -685,6 +751,7 @@ function renderCallsignBuilder() {
   if (!container) return;
   const chars = getCallsignChars();
   const complete = isCallsignComplete();
+  const activeClass = getSelectedClassDef();
 
   const slotsHTML = chars.map((ch, idx) => `
     <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}">
@@ -698,13 +765,23 @@ function renderCallsignBuilder() {
     `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace / Clear">⌫</button>`
   ].join("");
 
-  const headingText = complete
-    ? `🕹️ CALLSIGN LOCKED: ${chars.join("")}`
-    : `🕹️ CREATE CALLSIGN TO START`;
+  const classesHTML = Object.values(RUNNER_CLASSES).map(cls => {
+    const isSel = cls.id === activeClass.id;
+    return `
+      <button type="button" class="class-select-btn ${isSel ? "active" : ""}" data-runner-class="${cls.id}" style="--cls-color: ${cls.color};">
+        <span class="cls-btn-emoji">${cls.emoji}</span>
+        <span class="cls-btn-name">${cls.name}</span>
+      </button>
+    `;
+  }).join("");
 
-  const subhintText = complete
-    ? `Ready to roll! Click PLAY AS ${chars.join("")} or press SPACE`
-    : `Pick 3 letters (A–Z) or roll 🎲 Random to unlock PLAY`;
+  const pathStepsHTML = activeClass.tiers.map(t => `
+    <span class="class-path-step"><strong>L${t.level}</strong> ${t.label}</span>
+  `).join(`<span class="class-path-arrow">➔</span>`);
+
+  const headingText = complete
+    ? `🕹️ CALLSIGN: ${chars.join("")} • ${activeClass.emoji} ${activeClass.name}`
+    : `🕹️ 1. ENTER CALLSIGN &amp; 2. PICK CLASS`;
 
   container.innerHTML = `
     <div>
@@ -712,7 +789,13 @@ function renderCallsignBuilder() {
       <div class="callsign-slots">${slotsHTML}</div>
       <div class="keypad-grid">${keysHTML}</div>
     </div>
-    <div class="callsign-subhint ${complete ? "subhint-ready" : ""}">${subhintText}</div>
+    <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
+      <div class="class-picker-grid">${classesHTML}</div>
+      <div class="class-linear-preview">
+        <div class="class-preview-tagline">${activeClass.emoji} <strong>${activeClass.name}:</strong> ${activeClass.tagline}</div>
+        <div class="class-path-track">${pathStepsHTML}</div>
+      </div>
+    </div>
   `;
 
   syncStartPlayButtonState();
@@ -736,6 +819,19 @@ function renderCallsignBuilder() {
         backspaceCallsign();
       } else if (k && k.length === 1) {
         setCallsignLetter(k);
+      }
+    });
+  });
+
+  container.querySelectorAll("[data-runner-class]").forEach(clsBtn => {
+    clsBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const nextId = clsBtn.dataset.runnerClass;
+      if (RUNNER_CLASSES[nextId]) {
+        selectedRunnerClass = nextId;
+        soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
+        renderCallsignBuilder();
+        updateHighScoreDisplay();
       }
     });
   });
@@ -1025,7 +1121,7 @@ function initRogueProgression() {
   sectorsCleared = 0;
   rogueLevel = 1;
   rogueXP = 0;
-  rogueXPToNext = 8;
+  rogueXPToNext = 12;
   activeAugments = {};
   isDraftModalOpen = false;
   pendingDraftReasons = [];
@@ -1036,8 +1132,6 @@ function initRogueProgression() {
   aegisCooldownLeft = 0;
   pierceChargesLeft = 0;
   draftResumeGraceTimer = 0;
-  const draftModal = document.getElementById("augment-draft-modal");
-  if (draftModal) draftModal.style.display = "none";
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
   const aegisBar = document.getElementById("aegis-barrier-bar");
@@ -1045,56 +1139,67 @@ function initRogueProgression() {
   ball.classList.remove("ball-piercing");
 }
 
+function applyRunnerClassTier() {
+  const cDef = getSelectedClassDef();
+  const tierIndex = Math.max(0, Math.min(cDef.tiers.length - 1, rogueLevel - 1));
+  const tier = cDef.tiers[tierIndex];
+  const prevAegis = getAugmentRank("aegis");
+
+  activeAugments = { ...(tier ? tier.augments : {}) };
+  updatePaddleWidth();
+
+  const newAegis = getAugmentRank("aegis");
+  if (newAegis > 0 && prevAegis === 0) {
+    aegisReady = true;
+    aegisCooldownLeft = 0;
+  }
+
+  const pierceRank = getAugmentRank("pierce");
+  if (pierceRank > 0 && ballIsStuck) {
+    pierceChargesLeft = pierceRank;
+    ball.classList.add("ball-piercing");
+  }
+
+  syncRogueHUD();
+  return tier;
+}
+
 function syncRogueHUD() {
   const rogueHud = document.getElementById("rogue-hud");
   if (!rogueHud) return;
-  const sectorBadge = document.getElementById("rogue-sector-badge");
-  const levelBadge = document.getElementById("rogue-level-badge");
+  const classBadge = document.getElementById("rogue-class-badge");
   const xpFill = document.getElementById("rogue-xp-fill");
   const xpText = document.getElementById("rogue-xp-text");
-  const dock = document.getElementById("augment-dock");
+  const nextPerk = document.getElementById("rogue-next-perk");
 
-  if (sectorBadge) {
-    const sMult = getSectorScoreMultiplier();
-    sectorBadge.textContent = sMult > 1 ? `SECTOR ${currentSector} (×${sMult.toFixed(1)})` : `SECTOR ${currentSector}`;
-  }
-  if (levelBadge) {
-    const bankedCount = pendingDraftReasons.length;
-    levelBadge.textContent = bankedCount > 0 ? `LVL ${rogueLevel} (⚡+${bankedCount})` : `LVL ${rogueLevel}`;
+  const cDef = getSelectedClassDef();
+  const maxLvl = cDef.tiers.length;
+  const isMax = rogueLevel >= maxLvl;
+
+  rogueHud.style.setProperty("--class-color", cDef.color);
+
+  if (classBadge) {
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LVL ${rogueLevel}/${maxLvl}`;
   }
   if (xpFill) {
-    const pct = Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
+    const pct = isMax ? 100 : Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
     xpFill.style.width = `${pct}%`;
   }
   if (xpText) {
-    xpText.textContent = `${rogueXP}/${rogueXPToNext} XP`;
+    xpText.textContent = isMax ? `MAX LVL • ${rogueXP}/${rogueXPToNext} XP` : `${rogueXP}/${rogueXPToNext} XP`;
   }
-  if (dock) {
-    const ids = Object.keys(activeAugments);
-    if (ids.length === 0) {
-      dock.innerHTML = "";
+  if (nextPerk) {
+    const sectorSuffix = currentSector > 1 ? ` • S${currentSector}` : "";
+    if (!isMax) {
+      const nextTier = cDef.tiers[rogueLevel];
+      nextPerk.textContent = `Next: L${rogueLevel + 1} ${nextTier ? nextTier.short : ""}${sectorSuffix}`;
     } else {
-      dock.innerHTML = ids.map(id => {
-        const def = ROGUE_AUGMENTS.find(a => a.id === id);
-        const rank = activeAugments[id];
-        if (!def) return "";
-        let extraStatus = "";
-        if (id === "aegis") {
-          extraStatus = aegisReady ? "•RDY" : `•${Math.ceil(aegisCooldownLeft)}s`;
-        } else if (id === "pierce" && pierceChargesLeft > 0) {
-          extraStatus = `•×${pierceChargesLeft}`;
-        }
-        return `
-          <span class="augment-chip" style="--aug-color: ${def.color};" title="${def.name} (LVL ${rank})">
-            <span>${def.emoji}</span>
-            <span class="aug-chip-rank">L${rank}${extraStatus}</span>
-          </span>
-        `;
-      }).join("");
+      const curTier = cDef.tiers[maxLvl - 1];
+      nextPerk.textContent = `★ MAX: ${curTier ? curTier.short : ""}${sectorSuffix}`;
     }
   }
 
-  // Update bottom Aegis Barrier Bar
+  // Update bottom Aegis Barrier Bar (Guardian Class)
   const aegisBar = document.getElementById("aegis-barrier-bar");
   if (aegisBar) {
     const aegisRank = getAugmentRank("aegis");
@@ -1115,207 +1220,52 @@ function syncRogueHUD() {
 
 function awardRogueXP(amount) {
   if (gameOver || attractArenaActive || amount <= 0) return;
+  const cDef = getSelectedClassDef();
+  const maxLvl = cDef.tiers.length;
   rogueXP += amount;
-  let leveledUpThisHit = false;
+
+  let leveledUpTier = null;
+  let overclockBonuses = 0;
+
   while (rogueXP >= rogueXPToNext) {
     rogueXP -= rogueXPToNext;
-    rogueLevel++;
-    rogueXPToNext = Math.round(rogueXPToNext * 1.35 + 4);
-    leveledUpThisHit = true;
-    // Bank the upgrade for the Between-Round Intermission — NEVER interrupt active gameplay!
-    pendingDraftReasons.push({
-      title: `BETWEEN-ROUND UPGRADE // LEVEL ${rogueLevel} REWARD`,
-      subtitle: "CHOOSE 1 OF 3 CYBER-AUGMENTS FOR THE NEXT ROUND (CLICK OR PRESS [1] [2] [3])"
-    });
+    if (rogueLevel < maxLvl) {
+      rogueLevel++;
+      rogueXPToNext = Math.round(rogueXPToNext * 1.45 + 6);
+      leveledUpTier = applyRunnerClassTier();
+    } else {
+      overclockBonuses++;
+      rogueXPToNext = Math.round(rogueXPToNext * 1.25 + 6);
+    }
   }
-  if (leveledUpThisHit) {
-    soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.8 });
+
+  if (leveledUpTier) {
+    soundManager.play("grow", { pitch: 1.4, volume: 0.85 });
     showNotification({
-      title: `RUNNER LEVEL ${rogueLevel}!`,
-      emoji: "⚡",
-      name: `+1 UPGRADE BANKED`,
-      description: `${pendingDraftReasons.length} UPGRADE${pendingDraftReasons.length > 1 ? "S" : ""} READY AFTER THIS ROUND!`,
-      color: "#39ff14",
+      title: `${cDef.name} LEVEL ${rogueLevel}!`,
+      emoji: cDef.emoji,
+      name: leveledUpTier.title,
+      description: leveledUpTier.desc.toUpperCase(),
+      color: cDef.color,
       mode: "burst"
     }, { x: paddleX });
-  }
-  syncRogueHUD();
-}
-
-function openBetweenRoundUpgrades() {
-  if (gameOver || attractArenaActive || pendingDraftReasons.length === 0) return;
-  if (isDraftModalOpen) return;
-  const nextReason = pendingDraftReasons.shift();
-  openAugmentDraftModal(nextReason);
-}
-
-function openAugmentDraftModal(reasonObj) {
-  const upgradable = ROGUE_AUGMENTS.filter(a => getAugmentRank(a.id) < a.maxRank);
-  if (upgradable.length === 0) {
-    // All 8 augments are maxed at Rank 3 — award an instant Overclock Score Bonus!
-    const bonus = 300 * currentSector;
-    score += bonus;
+  } else if (overclockBonuses > 0) {
+    const bonusPts = 250 * currentSector * overclockBonuses;
+    score += bonusPts;
     if (isCatMode) score = score - (score % 10) + 9;
     scoreDisplay.textContent = `Score: ${score}`;
+    soundManager.play("powerUpSpawn", { pitch: 1.75, volume: 0.75 });
     showNotification({
-      title: "ALL AUGMENTS MAXED",
+      title: `${cDef.name} OVERCLOCK`,
       emoji: "👑",
-      name: `+${bonus} PTS`,
-      description: "OVERCLOCK BONUS AWARDED!",
+      name: `+${bonusPts} PTS`,
+      description: "MAX-LEVEL XP OVERCLOCK BONUS!",
       color: "#ffd700",
       mode: "burst"
     }, { x: paddleX });
-    syncRogueHUD();
-    return;
   }
-
-  // Shuffle upgradable pool and pick up to 3 choices
-  const pool = [...upgradable];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  currentDraftChoices = pool.slice(0, 3);
-
-  const modal = document.getElementById("augment-draft-modal");
-  if (!modal) return;
-
-  // Ensure inner draft-window DOM exists so the modal can never fail to render
-  if (!document.getElementById("draft-cards-grid")) {
-    modal.innerHTML = `
-      <div class="draft-window">
-        <div class="draft-header">
-          <span id="draft-reason-pill" class="draft-reason-pill">ROUND INTERMISSION // CYBER-DECK UPGRADE</span>
-          <h2 id="draft-title" class="draft-title">SELECT A CYBER-AUGMENT</h2>
-          <p id="draft-subtext" class="draft-subtext">CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])</p>
-        </div>
-        <div id="draft-cards-grid" class="draft-cards-grid"></div>
-      </div>
-    `;
-  }
-
-  const reasonPill = document.getElementById("draft-reason-pill");
-  const subtext = document.getElementById("draft-subtext");
-  const grid = document.getElementById("draft-cards-grid");
-  if (!grid) return;
-
-  isDraftModalOpen = true;
-  if (gameRunning) {
-    gameRunning = false;
-    pauseStartTime = Date.now();
-    cancelAnimationFrame(animationFrameId);
-  }
-  clearTimeout(autoLaunchTimeout);
-  gameArea.classList.remove("hide-cursor");
-  soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.85 });
-
-  const remainingAfterThis = pendingDraftReasons.length;
-  const pickCounterSuffix = remainingAfterThis > 0
-    ? ` • +${remainingAfterThis} MORE UPGRADE${remainingAfterThis > 1 ? "S" : ""} QUEUED`
-    : "";
-  if (reasonPill && reasonObj?.title) {
-    reasonPill.textContent = `${reasonObj.title}${pickCounterSuffix}`;
-  }
-  if (subtext && reasonObj?.subtitle) {
-    subtext.textContent = reasonObj.subtitle;
-  }
-
-  grid.innerHTML = currentDraftChoices.map((aug, idx) => {
-    const curRank = getAugmentRank(aug.id);
-    const nextRank = curRank + 1;
-    const rankLabel = curRank === 0
-      ? `<span class="draft-rank-badge draft-rank-new">NEW // LVL 1</span>`
-      : `<span class="draft-rank-badge draft-rank-up">UPGRADE // LVL ${curRank} ➔ ${nextRank}</span>`;
-    return `
-      <button type="button" class="draft-card" data-draft-idx="${idx}" style="--card-color: ${aug.color};">
-        <div class="draft-card-top">
-          <span class="draft-key-hint">[${idx + 1}]</span>
-          <span class="draft-rarity-pill">${aug.rarity}</span>
-        </div>
-        <div class="draft-card-emoji">${aug.emoji}</div>
-        <div class="draft-card-name">${aug.name}</div>
-        ${rankLabel}
-        <p class="draft-card-desc">${aug.getDesc(nextRank)}</p>
-        <span class="draft-card-cta">⚡ INSTALL AUGMENT</span>
-      </button>
-    `;
-  }).join("");
-
-  grid.querySelectorAll(".draft-card").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const idx = parseInt(btn.getAttribute("data-draft-idx"), 10);
-      selectAugmentChoice(idx);
-    });
-  });
-
-  modal.style.display = "flex";
-}
-
-function selectAugmentChoice(idx) {
-  if (!isDraftModalOpen) return;
-  const chosen = currentDraftChoices[idx];
-  if (!chosen) return;
-
-  const newRank = Math.min(chosen.maxRank, getAugmentRank(chosen.id) + 1);
-  activeAugments[chosen.id] = newRank;
-  soundManager.play("grow", { pitch: 1.35, volume: 0.85 });
-
-  // Apply immediate augment state updates
-  if (chosen.id === "titan") {
-    updatePaddleWidth();
-  } else if (chosen.id === "aegis") {
-    aegisReady = true;
-    aegisCooldownLeft = 0;
-  } else if (chosen.id === "pierce") {
-    pierceChargesLeft = newRank;
-    ball.classList.add("ball-piercing");
-  }
-
-  showNotification({
-    title: "AUGMENT INSTALLED",
-    emoji: chosen.emoji,
-    name: `${chosen.name} L${newRank}`,
-    description: "CYBER-DECK UPGRADED!",
-    color: chosen.color,
-    mode: "burst"
-  }, { x: paddleX });
 
   syncRogueHUD();
-
-  if (pendingDraftReasons.length > 0) {
-    const nextReason = pendingDraftReasons.shift();
-    openAugmentDraftModal(nextReason);
-    return;
-  }
-
-  const modal = document.getElementById("augment-draft-modal");
-  if (modal) modal.style.display = "none";
-  isDraftModalOpen = false;
-  currentDraftChoices = [];
-
-  if (!gameOver) {
-    if (pauseStartTime !== null) {
-      const pausedDuration = Date.now() - pauseStartTime;
-      for (const type in activePowerUps) {
-        activePowerUps[type].forEach(timer => {
-          timer.endTime += pausedDuration;
-        });
-      }
-      pauseStartTime = null;
-    }
-    draftResumeGraceTimer = 0.75;
-    gameArea.classList.add("hide-cursor");
-    gameRunning = true;
-    lastTime = 0;
-    if (ballIsStuck) {
-      clearTimeout(autoLaunchTimeout);
-      autoLaunchTimeout = setTimeout(() => {
-        if (ballIsStuck && gameRunning && !isDraftModalOpen) launchStuckBall();
-      }, 950);
-    }
-    requestAnimationFrame(gameLoop);
-  }
 }
 
 function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 5) {
@@ -1550,22 +1500,22 @@ function advanceToNextSector() {
   }
 
   showNotification({
-    title: `SECTOR ${clearedSectorNum} CLEARED!`,
+    title: `ROUND ${clearedSectorNum} CLEARED!`,
     emoji: "🚀",
     name: `+${sectorBonus} PTS`,
-    description: `WARPING TO SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE)!`,
+    description: `SECTOR ${currentSector} UNLOCKED (×${getSectorScoreMultiplier().toFixed(1)} SCORE)!`,
     color: "#00ffff",
     mode: "burst"
   }, { x: GAME_WIDTH / 2 });
 
-  // Always grant 1 Sector-Clear Upgrade Pick + spend any banked Level-Up Picks between rounds!
-  pendingDraftReasons.unshift({
-    title: `ROUND ${clearedSectorNum} CLEARED // +${sectorBonus} PTS`,
-    subtitle: `ENTERING SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE) — PICK YOUR CYBER-AUGMENT!`
-  });
-
+  // Grant +6 XP bonus on clearing a round toward the player's linear Class Path
+  awardRogueXP(6);
   syncRogueHUD();
-  openBetweenRoundUpgrades();
+
+  clearTimeout(autoLaunchTimeout);
+  autoLaunchTimeout = setTimeout(() => {
+    if (ballIsStuck && gameRunning && !gameOver) launchStuckBall();
+  }, 1350);
 }
 
 function initGame() {
@@ -1637,8 +1587,8 @@ function initGame() {
 }
 
 function createBricks() {
-  // vertical offset from top (leave clean room for top HUD & XP bar)
-  const offsetY = 54 * GAME_SCALE;
+  // vertical offset from top
+  const offsetY = 50 * GAME_SCALE;
   // center the grid horizontally
   const gridLeft = (GAME_WIDTH 
                   - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) 
@@ -1648,12 +1598,8 @@ function createBricks() {
   bricksContainer.innerHTML = '';
   bricks = [];
 
-  // Escalating wave size by Round/Sector:
-  // Sector 1: 3 rows (fast Round 1 so players reach Between-Round Upgrades quickly!)
-  // Sector 2: 4 rows
-  // Sector 3: 5 rows
-  // Sector 4+: 6 rows
-  const totalRows = attractArenaActive ? BRICK_ROWS : Math.min(6, 2 + currentSector);
+  // Always spawn all 5 classic brick rows (Pink, Red, Orange, Green, Cyan)!
+  const totalRows = BRICK_ROWS;
   const armorChance = Math.min(0.6, 0.22 + (currentSector - 1) * 0.12);
   const vaultChance = currentSector >= 2 ? Math.min(0.28, 0.12 + (currentSector - 2) * 0.08) : 0;
 
@@ -1949,6 +1895,8 @@ function startGame() {
         lives = 1;
         gameOver = false;
         rowBonusLevel = 0;
+        ballIsStuck = true;
+        applyRunnerClassTier();
 
         // Track whether this run started with any Hack/Cheat mode armed
         runUsedCheats = false;
@@ -3190,22 +3138,22 @@ document.addEventListener("keydown", e => {
     return;
   }
 
-  if (isDraftModalOpen) {
-    if (e.key === "1" || e.key === "2" || e.key === "3") {
-      e.preventDefault();
-      selectAugmentChoice(parseInt(e.key, 10) - 1);
-    }
-    return;
-  }
-
   const t = e.key.toLowerCase();
 
-  // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad
+  // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad, or 1-4 to pick Class
   if (isStartScreenOpen()) {
     if (" " === t || "enter" === t) {
       e.preventDefault();
       assetsReady && startGame();
       return;
+    }
+    if (["1", "2", "3", "4"].includes(t)) {
+      const cId = RUNNER_CLASS_ORDER[parseInt(t, 10) - 1];
+      if (cId) {
+        e.preventDefault();
+        setRunnerClass(cId);
+        return;
+      }
     }
     if (e.key === "Backspace") {
       e.preventDefault();
@@ -3762,7 +3710,7 @@ function triggerDivinePaddleSmite(hitX, hitY) {
       }
 
       if (bricks.every(b => b.isBroken) && !gameOver) {
-        endGame(true);
+        advanceToNextSector();
       }
     }, sIdx * 175);
   }
