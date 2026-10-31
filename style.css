@@ -2074,87 +2074,84 @@ body::before {
    HACK MODE FRAMES, ATMOSPHERIC LIGHTING & HUD OVERLAYS
    ========================================================================== */
 
-/* 1) Top-Center Active Hack Mode HUD Bar inside #game-area */
+/* 1) Active Hack Mode Undo Buttons inside .game-header (outside playfield — cursor always visible!) */
 .hack-mode-hud {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 16;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
-  max-width: 540px;
-  pointer-events: none;
+  margin: 0 auto;
+  z-index: 25;
 }
 
 .hack-hud-pill {
-  pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.54rem;
-  letter-spacing: 0.8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(8, 10, 18, 0.92);
-  border: 1.5px solid var(--pill-color, #00ffff);
+  font-size: 0.56rem;
+  letter-spacing: 0.6px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: rgba(14, 18, 32, 0.96);
+  border: 2px solid var(--pill-color, #00ffff);
   color: #ffffff;
+  cursor: pointer;
   box-shadow:
-    0 0 12px var(--pill-color, #00ffff),
-    inset 0 0 10px rgba(255, 255, 255, 0.12);
-  animation: hackPillPulse 1.8s ease-in-out infinite alternate;
+    0 0 12px rgba(0, 0, 0, 0.7),
+    0 0 10px color-mix(in srgb, var(--pill-color, #00ffff) 45%, transparent);
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
 }
 
 .hack-hud-pill .pill-tag {
   color: var(--pill-color, #00ffff);
-  text-shadow: 0 0 6px var(--pill-color, #00ffff);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
 }
 
-.hack-hud-pill .pill-sub {
-  font-family: 'Roboto', sans-serif;
-  font-weight: 700;
-  font-size: 0.68rem;
-  color: #e9f5ff;
-  opacity: 0.92;
-}
-
-.hack-hud-pill .pill-close {
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #fff;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.48rem;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+.hack-hud-pill .pill-close-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  padding: 0;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.48rem;
+  color: #ffffff;
+  background: rgba(255, 42, 85, 0.88);
+  border: 1px solid #ff99b0;
+  padding: 4px 7px;
+  border-radius: 5px;
   line-height: 1;
-  transition: all 0.12s ease;
+  transition: background 0.12s ease, transform 0.12s ease;
 }
 
-.hack-hud-pill .pill-close:hover {
+.hack-hud-pill:hover {
+  transform: translateY(-1px) scale(1.03);
+  border-color: #ff2a55;
+  background: rgba(44, 10, 22, 0.96);
+  box-shadow: 0 0 16px rgba(255, 42, 85, 0.75);
+}
+
+.hack-hud-pill:hover .pill-close-badge {
   background: #ff2a55;
-  box-shadow: 0 0 8px #ff2a55;
-  transform: scale(1.15);
+  transform: scale(1.06);
 }
 
-@keyframes hackPillPulse {
-  0% {
-    transform: translateY(0) scale(1);
-    filter: brightness(1);
-  }
-  100% {
-    transform: translateY(-1px) scale(1.02);
-    filter: brightness(1.16);
-  }
+.hack-hud-clear-all {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 42, 85, 0.18);
+  border: 1.5px solid #ff2a55;
+  color: #ff8aa3;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.hack-hud-clear-all:hover {
+  background: #ff2a55;
+  color: #ffffff;
+  box-shadow: 0 0 14px #ff2a55;
 }
 
 /* 2) Atmospheric Lighting Overlay (#hack-lighting-overlay) */
@@ -2172,7 +2169,7 @@ body::before {
 .hack-floor-watermark {
   position: absolute;
   left: 50%;
-  top: 63%;
+  top: 66%;
   transform: translate(-50%, -50%);
   z-index: 1;
   pointer-events: none;
@@ -2191,31 +2188,19 @@ body::before {
 }
 
 .hack-wm-emoji {
-  font-size: 3.4rem;
-  opacity: 0.16;
-  filter: drop-shadow(0 0 18px var(--wm-color, #00ffff));
+  font-size: 2.9rem;
+  opacity: 0.09;
+  filter: drop-shadow(0 0 14px var(--wm-color, #00ffff));
   margin-bottom: 4px;
-  animation: wmFloat 3s ease-in-out infinite alternate;
 }
 
 .hack-wm-title {
   font-family: 'Press Start 2P', cursive;
-  font-size: 1.55rem;
+  font-size: 1.3rem;
   letter-spacing: 3px;
   color: transparent;
   -webkit-text-stroke: 1.5px var(--wm-color, #00ffff);
-  opacity: 0.22;
-  text-shadow: 0 0 22px var(--wm-color, #00ffff);
-  margin-bottom: 6px;
-}
-
-.hack-wm-rule {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.56rem;
-  letter-spacing: 1.5px;
-  color: var(--wm-color, #00ffff);
-  opacity: 0.34;
-  text-shadow: 0 0 8px var(--wm-color, #00ffff);
+  opacity: 0.11;
 }
 
 @keyframes wmFloat {
@@ -2479,12 +2464,18 @@ body::before {
   pointer-events: none;
 }
 
-/* Header Glitch Title Hack Mode Accents */
+/* Header Glitch Title Hack Mode Accents — crisp, legible & clickable to turn off */
 .game-title-glitch.hack-title-active {
   color: var(--hack-title-color, var(--clr-neon-blue));
   text-shadow:
-    0 0 8px var(--hack-title-color, var(--clr-neon-blue)),
-    0 0 18px var(--hack-title-color, var(--clr-neon-blue));
+    0 2px 0 #000000,
+    0 0 10px color-mix(in srgb, var(--hack-title-color, var(--clr-neon-blue)) 65%, transparent);
+  cursor: pointer;
+}
+
+.game-title-glitch.hack-title-active::before,
+.game-title-glitch.hack-title-active::after {
+  display: none;
 }
 
 /* High-Performance Canvas Overlay for Confetti & Sparklers (below #ball z-index: 9 & #paddle z-index: 8) */
@@ -2590,69 +2581,89 @@ body::before {
    ROGUELIKE CYBER-DECK PROGRESSION HUD, AUGMENTS, VAULT BRICKS & DRAFT MODAL
    ========================================================================== */
 
+/* Top Arena Row Layout:
+   - Left (16px): .game-stats-container (Score + Multiplier)
+   - Center (50%): .rogue-hud (Sector + Level + XP Bar + Augment Chips)
+   - Right (16px): #status-indicators (Active Power-Up Timers) */
+.game-stats-container {
+  top: 11px;
+  left: 16px;
+  gap: 8px;
+}
+
+.game-ui-text {
+  font-size: 1.05rem;
+}
+
+#status-indicators {
+  top: 8px;
+  right: 16px;
+}
+
 .rogue-hud {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 36px;
-  padding: 0 14px;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 28px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: linear-gradient(180deg, rgba(6, 10, 24, 0.92) 0%, rgba(6, 10, 24, 0.55) 75%, transparent 100%);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.22);
+  justify-content: center;
+  gap: 8px;
+  background: rgba(8, 12, 26, 0.88);
+  border: 1px solid rgba(0, 255, 255, 0.32);
+  border-radius: 99px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
   z-index: 11;
   pointer-events: none;
+  white-space: nowrap;
 }
 
 .rogue-hud-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rogue-sector-badge {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
+  font-size: 0.46rem;
   color: #00ffff;
   background: rgba(0, 255, 255, 0.14);
   border: 1px solid rgba(0, 255, 255, 0.55);
-  border-radius: 4px;
+  border-radius: 99px;
   padding: 3px 7px;
-  letter-spacing: 0.6px;
-  text-shadow: 0 0 6px rgba(0, 255, 255, 0.7);
+  letter-spacing: 0.5px;
 }
 
 .rogue-level-badge {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
+  font-size: 0.46rem;
   color: #39ff14;
   background: rgba(57, 255, 20, 0.14);
   border: 1px solid rgba(57, 255, 20, 0.55);
-  border-radius: 4px;
+  border-radius: 99px;
   padding: 3px 7px;
-  letter-spacing: 0.6px;
-  text-shadow: 0 0 6px rgba(57, 255, 20, 0.7);
+  letter-spacing: 0.5px;
 }
 
 .rogue-xp-track {
   position: relative;
-  width: 128px;
-  height: 13px;
-  background: rgba(8, 12, 26, 0.9);
-  border: 1px solid rgba(57, 255, 20, 0.48);
+  width: 108px;
+  height: 14px;
+  background: rgba(4, 8, 18, 0.95);
+  border: 1px solid rgba(57, 255, 20, 0.55);
   border-radius: 99px;
   overflow: hidden;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.85);
 }
 
 .rogue-xp-fill {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, #00e5ff, #39ff14);
-  box-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.75);
   transition: width 0.18s ease-out;
 }
 
@@ -2662,64 +2673,44 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.56rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.58rem;
   font-weight: 700;
   color: #ffffff;
-  text-shadow: 0 1px 3px #000000, 0 0 6px #000000;
-  letter-spacing: 0.4px;
+  text-shadow: 0 1px 2px #000000, 0 0 5px #000000;
+  letter-spacing: 0.3px;
 }
 
 .augment-dock {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: nowrap;
-  overflow: hidden;
 }
 
-.augment-dock-hint {
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: rgba(185, 225, 255, 0.68);
-  letter-spacing: 0.5px;
+.augment-dock:empty {
+  display: none;
 }
 
 .augment-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(12, 16, 34, 0.88);
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 99px;
+  background: rgba(12, 16, 34, 0.92);
   border: 1px solid var(--aug-color, #00ffff);
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.22);
-  font-family: 'Roboto Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.62rem;
   font-weight: 700;
   color: #f2f7ff;
   white-space: nowrap;
 }
 
-.aug-chip-name {
-  font-size: 0.54rem;
-  color: var(--aug-color, #00ffff);
-  letter-spacing: 0.3px;
-}
-
 .aug-chip-rank {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.42rem;
+  font-size: 0.4rem;
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 2px 4px;
-  border-radius: 3px;
-}
-
-/* Keep #score-display tucked cleanly below the top Rogue HUD bar */
-#score-display {
-  top: 36px;
 }
 
 /* Aegis Forcefield Floor Bar */

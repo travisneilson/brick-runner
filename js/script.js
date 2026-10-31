@@ -1071,7 +1071,7 @@ function syncRogueHUD() {
   if (dock) {
     const ids = Object.keys(activeAugments);
     if (ids.length === 0) {
-      dock.innerHTML = `<span class="augment-dock-hint">SMASH BRICKS TO LEVEL UP &amp; DRAFT AUGMENTS!</span>`;
+      dock.innerHTML = "";
     } else {
       dock.innerHTML = ids.map(id => {
         const def = ROGUE_AUGMENTS.find(a => a.id === id);
@@ -1079,14 +1079,13 @@ function syncRogueHUD() {
         if (!def) return "";
         let extraStatus = "";
         if (id === "aegis") {
-          extraStatus = aegisReady ? " • READY" : ` • ${Math.ceil(aegisCooldownLeft)}s`;
+          extraStatus = aegisReady ? "•RDY" : `•${Math.ceil(aegisCooldownLeft)}s`;
         } else if (id === "pierce" && pierceChargesLeft > 0) {
-          extraStatus = ` • ×${pierceChargesLeft}`;
+          extraStatus = `•×${pierceChargesLeft}`;
         }
         return `
           <span class="augment-chip" style="--aug-color: ${def.color};" title="${def.name} (LVL ${rank})">
             <span>${def.emoji}</span>
-            <span class="aug-chip-name">${def.name}</span>
             <span class="aug-chip-rank">L${rank}${extraStatus}</span>
           </span>
         `;
@@ -1165,6 +1164,28 @@ function openAugmentDraftModal(reasonObj) {
   }
   currentDraftChoices = pool.slice(0, 3);
 
+  const modal = document.getElementById("augment-draft-modal");
+  if (!modal) return;
+
+  // Ensure inner draft-window DOM exists so the modal can never fail to render
+  if (!document.getElementById("draft-cards-grid")) {
+    modal.innerHTML = `
+      <div class="draft-window">
+        <div class="draft-header">
+          <span id="draft-reason-pill" class="draft-reason-pill">LEVEL UP // CYBER-DECK UPGRADE</span>
+          <h2 id="draft-title" class="draft-title">SELECT A CYBER-AUGMENT</h2>
+          <p id="draft-subtext" class="draft-subtext">CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])</p>
+        </div>
+        <div id="draft-cards-grid" class="draft-cards-grid"></div>
+      </div>
+    `;
+  }
+
+  const reasonPill = document.getElementById("draft-reason-pill");
+  const subtext = document.getElementById("draft-subtext");
+  const grid = document.getElementById("draft-cards-grid");
+  if (!grid) return;
+
   isDraftModalOpen = true;
   if (gameRunning) {
     gameRunning = false;
@@ -1173,12 +1194,6 @@ function openAugmentDraftModal(reasonObj) {
   }
   gameArea.classList.remove("hide-cursor");
   soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.85 });
-
-  const modal = document.getElementById("augment-draft-modal");
-  const reasonPill = document.getElementById("draft-reason-pill");
-  const subtext = document.getElementById("draft-subtext");
-  const grid = document.getElementById("draft-cards-grid");
-  if (!modal || !grid) return;
 
   if (reasonPill && reasonObj?.title) reasonPill.textContent = reasonObj.title;
   if (subtext && reasonObj?.subtitle) subtext.textContent = reasonObj.subtitle;
@@ -3937,22 +3952,25 @@ function syncHackModeVisuals() {
     primaryHackModeId = null;
   }
 
-  // 2) Update Top-Center Active Hack Mode HUD pills (#hack-mode-hud)
+  // 2) Update Header Active Hack Mode Undo Buttons (#hack-mode-hud in .game-header — outside playfield!)
   if (hud) {
     if (activeHackModes.size === 0) {
       hud.innerHTML = "";
     } else {
-      hud.innerHTML = Array.from(activeHackModes).map(id => {
+      const pillsHTML = Array.from(activeHackModes).map(id => {
         const meta = HACK_MODE_META[id];
         if (!meta) return "";
         return `
-          <div class="hack-hud-pill" style="--pill-color: ${meta.color};">
+          <button type="button" class="hack-hud-pill" data-disable-hack="${id}" style="--pill-color: ${meta.color};" title="Click to turn off ${meta.name}">
             <span class="pill-tag">${meta.hudTag}</span>
-            <span class="pill-sub">${meta.getHudSub()}</span>
-            <button type="button" class="pill-close" data-disable-hack="${id}" title="Disable ${meta.name}">✕</button>
-          </div>
+            <span class="pill-close-badge">✕ OFF</span>
+          </button>
         `;
       }).join("");
+      const clearAllHTML = activeHackModes.size > 1
+        ? `<button type="button" class="hack-hud-clear-all" data-disable-all-hacks="true" title="Turn off all active Hack Modes">✕ OFF ALL</button>`
+        : "";
+      hud.innerHTML = pillsHTML + clearAllHTML;
 
       hud.querySelectorAll("[data-disable-hack]").forEach(btn => {
         btn.addEventListener("click", (ev) => {
@@ -3961,10 +3979,17 @@ function syncHackModeVisuals() {
           deactivateHackMode(targetId);
         });
       });
+      const clearAllBtn = hud.querySelector("[data-disable-all-hacks]");
+      if (clearAllBtn) {
+        clearAllBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          deactivateAllHackModes();
+        });
+      }
     }
   }
 
-  // 3) Update Arena Floor Marquee Watermark (#hack-floor-watermark)
+  // 3) Update Arena Floor Marquee Watermark (#hack-floor-watermark — subtle background emblem only)
   if (wm) {
     const activeMeta = primaryHackModeId ? HACK_MODE_META[primaryHackModeId] : null;
     if (activeMeta) {
@@ -3972,7 +3997,6 @@ function syncHackModeVisuals() {
       wm.innerHTML = `
         <div class="hack-wm-emoji">${activeMeta.emoji}</div>
         <div class="hack-wm-title">${activeMeta.wmTitle}</div>
-        <div class="hack-wm-rule">${activeMeta.getWmRule()}</div>
       `;
       wm.classList.add("visible");
     } else {
@@ -3989,10 +4013,14 @@ function syncHackModeVisuals() {
       headerTitle.setAttribute("data-text", activeMeta.titleText);
       headerTitle.style.setProperty("--hack-title-color", activeMeta.color);
       headerTitle.classList.add("hack-title-active");
+      headerTitle.title = `Click to turn off ${activeMeta.name}`;
+      headerTitle.onclick = () => deactivateHackMode(activeMeta.id);
     } else {
       headerTitle.textContent = "BRICK RUNNER";
       headerTitle.setAttribute("data-text", "BRICK RUNNER");
       headerTitle.classList.remove("hack-title-active");
+      headerTitle.title = "";
+      headerTitle.onclick = null;
     }
   }
   if (startTitle) {

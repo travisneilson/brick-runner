@@ -15,6 +15,7 @@
             <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
             <div id="high-score-display" class="high-score-header"></div>
         </div>
+        <div id="hack-mode-hud" class="hack-mode-hud"></div>
         <div class="header-actions">
             <button id="pause-button" class="reset-button">Pause [P]</button>
             <button id="reset-button" class="reset-button">Restart</button>
@@ -31,17 +32,17 @@
 
         <div class="game-stats-container">
             <span id="score" class="game-ui-text">Score: 0</span>
-            <span id="score-multiplier" class="multiplier-badge" style="display: none;">2X Score Miltiplier!</span>
+            <span id="score-multiplier" class="multiplier-badge" style="display: none;">2X</span>
         </div>
 
         <div id="rogue-hud" class="rogue-hud" style="display: none;">
-            <div class="rogue-hud-top">
+            <div class="rogue-hud-left">
                 <span id="rogue-sector-badge" class="rogue-sector-badge">SECTOR 1</span>
                 <span id="rogue-level-badge" class="rogue-level-badge">LVL 1</span>
                 <div class="rogue-xp-track">
                     <div id="rogue-xp-fill" class="rogue-xp-fill"></div>
+                    <span id="rogue-xp-text" class="rogue-xp-text">0/8 XP</span>
                 </div>
-                <span id="rogue-xp-text" class="rogue-xp-text">0/10 XP</span>
             </div>
             <div id="augment-dock" class="augment-dock"></div>
         </div>
@@ -51,7 +52,6 @@
         <div id="hack-lighting-overlay" class="hack-lighting-overlay"></div>
         <canvas id="party-sparkler-canvas" class="party-sparkler-canvas" width="900" height="600"></canvas>
         <div id="hack-floor-watermark" class="hack-floor-watermark"></div>
-        <div id="hack-mode-hud" class="hack-mode-hud"></div>
 
         <div id="status-indicators"></div>
         <div id="notifications-container"></div>
@@ -69,7 +69,16 @@
         <div id="paddle"></div>
         <div id="bricks-container"></div>
         <div id="game-message"></div>
-        <div id="augment-draft-modal" class="augment-draft-modal" style="display: none;"></div>
+        <div id="augment-draft-modal" class="augment-draft-modal" style="display: none;">
+            <div class="draft-window">
+                <div class="draft-header">
+                    <span id="draft-reason-pill" class="draft-reason-pill">LEVEL UP // CYBER-DECK UPGRADE</span>
+                    <h2 id="draft-title" class="draft-title">SELECT A CYBER-AUGMENT</h2>
+                    <p id="draft-subtext" class="draft-subtext">CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])</p>
+                </div>
+                <div id="draft-cards-grid" class="draft-cards-grid"></div>
+            </div>
+        </div>
         <div id="arcade-guide-modal" class="arcade-guide-modal" style="display: none;"></div>
         <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
     </div>
