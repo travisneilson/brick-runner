@@ -740,9 +740,8 @@ function syncStartPlayButtonState() {
     return;
   }
   startPrompt.classList.remove("loading");
-  const cls = getSelectedClassDef();
   if (isCallsignComplete()) {
-    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")} • ${cls.emoji} ${cls.name}`;
+    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")}`;
     startPrompt.classList.remove("callsign-locked");
   } else {
     startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
