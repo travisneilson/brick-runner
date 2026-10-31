@@ -2066,6 +2066,9 @@ function gameLoop(timestamp) {
   //    a) Advance to the next escalating Sector when all bricks in this Sector are broken!
   if (bricks.length > 0 && bricks.every(b => b.isBroken)) {
     advanceToNextSector();
+    if (gameRunning && !gameOver) {
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
     return;
   }
 
@@ -4234,7 +4237,7 @@ function startPoopPhysicsLoop() {
             spawnBrickPoops(bx, by, 2);
 
             if (bricks.every(br => br.isBroken) && !gameOver) {
-              endGame(true);
+              advanceToNextSector();
             }
             break;
           }
