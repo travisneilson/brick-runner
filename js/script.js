@@ -647,6 +647,9 @@ const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let activeCallsignSlot = 0;
 let selectedRunnerClass = "striker";
 
+const MAX_LEVELS = 5;
+window.MAX_LEVELS = MAX_LEVELS;
+
 const RUNNER_CLASSES = {
   striker: {
     id: "striker",
@@ -657,8 +660,9 @@ const RUNNER_CLASSES = {
     tiers: [
       { level: 1, label: "Tesla Arc I", short: "Paddle bounces zap 1 brick", augments: { tesla: 1 } },
       { level: 2, label: "Wing Turrets I", short: "Auto-fires twin plasma bolts", augments: { tesla: 1, turret: 1 } },
-      { level: 3, label: "Twin Arcs + Turrets II", short: "Zaps 2 bricks + faster turrets", augments: { tesla: 2, turret: 2 } },
-      { level: 4, label: "Storm Core MAX", short: "Zaps 3 bricks + hyper turrets", augments: { tesla: 3, turret: 3 } }
+      { level: 3, label: "Tesla Arc II", short: "Paddle bounces zap 2 bricks", augments: { tesla: 2, turret: 1 } },
+      { level: 4, label: "Wing Turrets II", short: "Faster twin auto-turrets", augments: { tesla: 2, turret: 2 } },
+      { level: 5, label: "Storm Core MAX", short: "Zaps 3 bricks + hyper turrets", augments: { tesla: 3, turret: 3 } }
     ]
   },
   guardian: {
@@ -670,8 +674,9 @@ const RUNNER_CLASSES = {
     tiers: [
       { level: 1, label: "Wide Deck I", short: "+22% wider & faster paddle", augments: { titan: 1 } },
       { level: 2, label: "Aegis Shield I", short: "Floor forcefield saves missed ball", augments: { titan: 1, aegis: 1 } },
-      { level: 3, label: "Titan II + Shield II", short: "+44% paddle + faster shield", augments: { titan: 2, aegis: 2 } },
-      { level: 4, label: "Fortress Deck MAX", short: "+66% paddle + rapid 8s shield", augments: { titan: 3, aegis: 3 } }
+      { level: 3, label: "Wide Deck II", short: "+44% wider & faster paddle", augments: { titan: 2, aegis: 1 } },
+      { level: 4, label: "Aegis Shield II", short: "Faster 13s floor shield recharge", augments: { titan: 2, aegis: 2 } },
+      { level: 5, label: "Fortress MAX", short: "+66% paddle + rapid 8s shield", augments: { titan: 3, aegis: 3 } }
     ]
   },
   demolisher: {
@@ -683,8 +688,9 @@ const RUNNER_CLASSES = {
     tiers: [
       { level: 1, label: "Armor Pierce I", short: "2× hit damage & pierces 1 brick", augments: { pierce: 1 } },
       { level: 2, label: "Plasma Nova I", short: "Shockwave ring every 5th brick", augments: { pierce: 1, nova: 1 } },
-      { level: 3, label: "Pierce II + Nova II", short: "Pierces 2 bricks + Nova every 4th", augments: { pierce: 2, nova: 2 } },
-      { level: 4, label: "Supernova Core MAX", short: "Pierces 3 bricks + Nova every 3rd", augments: { pierce: 3, nova: 3 } }
+      { level: 3, label: "Armor Pierce II", short: "Pierces 2 bricks on bounce", augments: { pierce: 2, nova: 1 } },
+      { level: 4, label: "Plasma Nova II", short: "Larger blast every 4th brick", augments: { pierce: 2, nova: 2 } },
+      { level: 5, label: "Supernova MAX", short: "Pierces 3 + Nova every 3rd", augments: { pierce: 3, nova: 3 } }
     ]
   },
   highroller: {
@@ -694,10 +700,11 @@ const RUNNER_CLASSES = {
     color: "#ffd700",
     tagline: "Power-Up Magnet & Score Jackpot",
     tiers: [
-      { level: 1, label: "Gravity Magnet I", short: "Pulls power-ups +50 PTS on catch", augments: { magnet: 1 } },
-      { level: 2, label: "1.4× Score Jackpot", short: "1.4× all points + stronger magnet", augments: { magnet: 2, greed: 1 } },
-      { level: 3, label: "1.85× Score + Magnet MAX", short: "1.85× all points +175 PTS catch", augments: { magnet: 3, greed: 2 } },
-      { level: 4, label: "2.5× Jackpot Core MAX", short: "2.5× all points + max magnet!", augments: { magnet: 3, greed: 3 } }
+      { level: 1, label: "Bounty Magnet I", short: "Pulls power-ups +50 PTS on catch", augments: { magnet: 1 } },
+      { level: 2, label: "1.4× Score Core", short: "1.4× all brick & laser points", augments: { magnet: 1, greed: 1 } },
+      { level: 3, label: "Bounty Magnet II", short: "Stronger pull +100 PTS on catch", augments: { magnet: 2, greed: 1 } },
+      { level: 4, label: "1.85× Score Core", short: "1.85× all brick & laser points", augments: { magnet: 2, greed: 2 } },
+      { level: 5, label: "2.5× Jackpot MAX", short: "2.5× points +175 PTS catch!", augments: { magnet: 3, greed: 3 } }
     ]
   }
 };
@@ -1120,7 +1127,25 @@ function getActiveAugmentIcons() {
 }
 
 function getSectorScoreMultiplier() {
-  return 1 + (Math.max(1, currentSector) - 1) * 0.5;
+  return Math.max(1, currentSector);
+}
+
+function getBoardDifficultySpeedMultiplier() {
+  return 1 + (Math.max(1, currentSector) - 1) * 0.14;
+}
+
+function updateMultiplierBadge() {
+  const badge = document.getElementById("score-multiplier");
+  if (!badge) return;
+  const expandoStacks = activePowerUps["wide-paddle"]?.length || 0;
+  const boardMult = getSectorScoreMultiplier();
+  const totalMult = boardMult * (expandoStacks + 1);
+  if (totalMult > 1 && !gameOver) {
+    badge.textContent = `×${totalMult}`;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
 }
 
 function getGreedScoreMultiplier() {
@@ -1192,9 +1217,10 @@ function syncRogueHUD() {
   rogueHud.style.setProperty("--class-color", cDef.color);
 
   if (classBadge) {
-    const sectorTag = currentSector > 1 ? ` • S${currentSector}` : "";
-    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LVL ${rogueLevel}/${maxLvl}${sectorTag}`;
+    const boardMult = getSectorScoreMultiplier();
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} • BOARD ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
   }
+  updateMultiplierBadge();
   if (xpFill) {
     const pct = isMax ? 100 : Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
     xpFill.style.width = `${pct}%`;
@@ -1484,6 +1510,12 @@ function advanceToNextSector() {
   if (isCatMode) score = score - (score % 10) + 9;
   scoreDisplay.textContent = `Score: ${score}`;
 
+  // If the player just cleared the final Board Level (MAX_LEVELS = 5), they beat the game!
+  if (currentSector >= MAX_LEVELS) {
+    endGame(true);
+    return;
+  }
+
   currentSector++;
   clearedRows.clear();
   rowBonusCount = 0;
@@ -1491,13 +1523,14 @@ function advanceToNextSector() {
   isRoofBonusActive = false;
   ball.classList.remove("bonus-active");
 
-  // Clear active lasers & leftover falling capsules before generating new Sector wave
+  // Clear active lasers & leftover falling capsules before replenishing the board at higher difficulty
   lasers.forEach(l => l.element.remove());
   lasers = [];
   gameArea.querySelectorAll(".brick.extra").forEach(el => el.remove());
   createBricks();
+  updatePaddleWidth();
 
-  // Dock ball to paddle for the start of the new Sector
+  // Dock ball to paddle for the start of the replenished Board Level
   ballIsStuck = true;
   ballSpeedX = 0;
   ballSpeedY = 0;
@@ -1514,17 +1547,19 @@ function advanceToNextSector() {
     spawnConfettiShards(55);
   }
 
+  const newMult = getSectorScoreMultiplier();
+  const spdPct = Math.round((getBoardDifficultySpeedMultiplier() - 1) * 100);
   showNotification({
-    title: `ROUND ${clearedSectorNum} CLEARED!`,
+    title: `BOARD ${clearedSectorNum}/${MAX_LEVELS} CLEARED! (+${sectorBonus} PTS)`,
     emoji: "🚀",
-    name: `+${sectorBonus} PTS`,
-    description: `SECTOR ${currentSector} UNLOCKED (×${getSectorScoreMultiplier().toFixed(1)} SCORE)!`,
+    name: `×${newMult} MULTIPLIER!`,
+    description: `BOARD ${currentSector}/${MAX_LEVELS} REPLENISHED • +${spdPct}% SPEED & TOUGHER BRICKS!`,
     color: "#00ffff",
     mode: "burst"
   }, { x: GAME_WIDTH / 2 });
 
-  // Grant +6 XP bonus on clearing a round toward the player's linear Class Path
-  awardRogueXP(6);
+  // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
+  awardRogueXP(8);
   syncRogueHUD();
 
   clearTimeout(autoLaunchTimeout);
@@ -1614,9 +1649,10 @@ function createBricks() {
   bricks = [];
 
   // Always spawn all 5 classic brick rows (Pink, Red, Orange, Green, Cyan)!
+  // Each time the board replenishes (currentSector 1..MAX_LEVELS), difficulty scales up with more Armored & Gold Vault bricks!
   const totalRows = BRICK_ROWS;
-  const armorChance = Math.min(0.6, 0.22 + (currentSector - 1) * 0.12);
-  const vaultChance = currentSector >= 2 ? Math.min(0.28, 0.12 + (currentSector - 2) * 0.08) : 0;
+  const armorChance = Math.min(0.62, 0.20 + (currentSector - 1) * 0.12);
+  const vaultChance = currentSector >= 2 ? Math.min(0.32, 0.12 + (currentSector - 2) * 0.07) : 0;
 
   for (let row = 0; row < totalRows; row++) {
     for (let col = 0; col < BRICK_COLS; col++) {
@@ -2079,7 +2115,7 @@ function updateBallPosition(e) {
     return;
   }
   const t = activePowerUps["slow-mo"]?.length || 0;
-  let o = Math.pow(0.75, t);
+  let o = Math.pow(0.75, t) * getBoardDifficultySpeedMultiplier();
   const greedRank = getAugmentRank("greed");
   if (greedRank > 0) {
     o *= (1 + greedRank * 0.10);
@@ -2113,9 +2149,10 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment)
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - slight difficulty tightening per board clear)
   const titanBonus = getAugmentRank("titan") * 0.22;
-  const scaleFactor = 1 + paddleSizeLevel * 0.35 + titanBonus;
+  const boardPressure = Math.max(0, (currentSector - 1) * 0.04);
+  const scaleFactor = Math.max(0.75, 1 + paddleSizeLevel * 0.35 + titanBonus - boardPressure);
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -2429,17 +2466,8 @@ function updateStatusIndicators() {
     }
   }
 
-  // --- NEW: update the score multiplier badge for Expando ---
-  const badge = document.getElementById("score-multiplier");
-  const expandoStacks = activePowerUps["wide-paddle"]?.length || 0;
-  if (expandoStacks > 0) {
-    // Multiplier is stacks + 1 (×2, ×3, ×4)
-    const mult = expandoStacks + 1;
-    badge.textContent = `×${mult}`;
-    badge.style.display = "inline-block";
-  } else {
-    badge.style.display = "none";
-  }
+  // --- Update the score multiplier badge (Board Clear Multiplier × Expando Multiplier) ---
+  updateMultiplierBadge();
 }
 
 
