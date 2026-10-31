@@ -31,45 +31,69 @@ const NOTIFICATION_MESSAGES = {
   'slow-mo-1': {
     title:       'TIME DILATION',
     emoji:       '🐌',
-    name:        'SLOW-MO ×1!',
-    description: 'BALL SPEED REDUCED',
+    name:        'SLOW-MO ×1.5 PTS!',
+    description: '75% SPEED • ×1.5 PRECISION SCORE',
     color:       '#00e5ff',
     mode:        'burst'
   },
   'slow-mo-2': {
     title:       'TIME DILATION',
     emoji:       '🐌',
-    name:        'SLOW-MO ×2!',
-    description: 'DEEP TIME SLOW',
+    name:        'SLOW-MO ×1.75 PTS!',
+    description: '56% SPEED • ×1.75 PRECISION SCORE',
     color:       '#00e5ff',
     mode:        'burst'
   },
   'slow-mo-3': {
     title:       'TIME DILATION',
     emoji:       '🐌',
-    name:        'SLOW-MO ×3!',
-    description: 'BULLET TIME!',
+    name:        'BULLET TIME ×2 PTS!',
+    description: '42% SPEED • ×2.0 PRECISION SCORE!',
     color:       '#00e5ff',
     mode:        'burst'
   },
 
   // Mag-Lock (sticky-paddle)
   'sticky-paddle': {
-    title:       'MAGNETIC FIELD',
+    title:       'MAGNETIC SLINGSHOT',
     emoji:       '🧲',
-    name:        'MAG-LOCK!',
-    description: 'CATCH & SPACE TO LAUNCH',
+    name:        'MAG-LOCK ×1.5!',
+    description: 'FLICK MOUSE WHILE LAUNCHING FOR ×1.5 PTS',
     color:       '#ff00ff',
     mode:        'burst'
   },
 
-  // Laser Blast
+  // Laser Blast stacking tiers
   'laser-blast': {
     title:       'WEAPONS HOT',
     emoji:       '🎯',
-    name:        'TWIN LASERS!',
-    description: 'MASH SPACE TO FIRE!',
+    name:        'TWIN AUTO-LASERS!',
+    description: 'AUTO-FIRE + ×1.25 LASER PTS!',
     color:       '#ff2a55',
+    mode:        'burst'
+  },
+  'laser-blast-1': {
+    title:       'LASER TIER I',
+    emoji:       '🎯',
+    name:        'TWIN PULSE LASERS!',
+    description: 'AUTO-FIRE + ×1.25 LASER PTS',
+    color:       '#ff2a55',
+    mode:        'burst'
+  },
+  'laser-blast-2': {
+    title:       'LASER TIER II',
+    emoji:       '⚡',
+    name:        'QUAD GATLING ×1.5!',
+    description: '4× RAPID BOLTS • ×1.5 LASER PTS',
+    color:       '#00ffff',
+    mode:        'burst'
+  },
+  'laser-blast-3': {
+    title:       'LASER TIER III',
+    emoji:       '👑',
+    name:        'HYPER-LANCE ×2.0!',
+    description: '2× ARMOR DMG • ×2.0 LASER PTS!',
+    color:       '#ffd700',
     mode:        'burst'
   },
 
@@ -78,7 +102,7 @@ const NOTIFICATION_MESSAGES = {
     title:       'GRID INJECTION',
     emoji:       '🧱',
     name:        'BRICKED UP!',
-    description: '+5 BONUS BRICKS SPAWNED!',
+    description: '+150×LVL BONUS & +8 BASE PTS/BRICK!',
     color:       '#ff9900',
     mode:        'burst'
   },
@@ -95,10 +119,10 @@ const NOTIFICATION_MESSAGES = {
 
   // Neon Legend status (Jumbotron milestone)
   'neon-legend': {
-    title:       'STATUS UNLOCKED',
+    title:       '10-STREAK OVERDRIVE UNLOCKED',
     emoji:       '😎',
-    name:        'NEON LEGEND',
-    description: '500+ SCORE OVERDRIVE!',
+    name:        'NEON LEGEND ×1.5',
+    description: 'ALL BRICK & LASER POINTS ×1.5 WHILE ALIVE!',
     color:       '#ffd700',
     mode:        'jumbotron'
   },

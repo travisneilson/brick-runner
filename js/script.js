@@ -158,12 +158,23 @@ const soundManager = {
 // --- Game State Variables ---
 let score = 0, gameOver = true, gameRunning = false, animationFrameId, emojiSwapTimeout = null, powerUps = [], activePowerUps = {}, paddleSizeLevel = 0, MAX_PADDLE_LEVEL = 3, isStickyPaddle = false, ballIsStuck = false, isLaserActive = false, canFire = true, lasers = [], assetsReady = !1, isRoofBonusActive = false, isNeonLegend = false, autoLaunchTimeout = null, emojiCycleInterval = null;
 let lives = 1;
+let prevPaddleX = 0;
+let paddleVelocityX = 0;
+let magSlingshotCharges = 0;
+let caughtByMagLock = false;
+let laserAutoFireAccum = 0;
+let unbrokenBrickStreak = 0;
+let catBounceCombo = 0;
+let highRollerDiceMultiplier = 1.0;
+let highRollerLastRoll = null;
+let isLevelIntermissionOpen = false;
+
 const POWER_UP_TYPES = {
   'wide-paddle': {
     type:        'stacking',
     emoji:       '🪴',
     name:        'EXPANDO',
-    description: 'Multiply your score!',
+    description: '+35% Paddle & ×2/×3/×4 PTS!',
     cssClass:    'wide-paddle',
     duration:    15000
   },
@@ -171,31 +182,31 @@ const POWER_UP_TYPES = {
     type:        'stacking',
     emoji:       '🐌',
     name:        'SLOW-MO',
-    description: 'Ball speed reduced',
+    description: 'Bullet-Time & ×1.5–×2.0 PTS!',
     cssClass:    'slow-mo',
-    duration:    5000
+    duration:    5500
   },
   'sticky-paddle': {
     type:        'refreshing',
     emoji:       '🧲',
     name:        'MAG-LOCK',
-    description: 'Catch & launch the ball',
+    description: 'Flick-Aim & ×1.5 Slingshot PTS',
     cssClass:    'sticky-paddle',
-    duration:    4000
+    duration:    5000
   },
   'laser-blast': {
-    type:        'refreshing',
+    type:        'stacking',
     emoji:       '🎯',
     name:        'LASER BLAST',
-    description: 'Press SPACE to fire!',
+    description: 'Auto-Fire Tiers 1–3 & ×1.25–×2 PTS!',
     cssClass:    'laser-blast',
-    duration:    5000
+    duration:    6500
   },
   'one-up': {
     type:        'instant',
     emoji:       '🧱',
     name:        'Bricked Up!',
-    description: 'New bricks incoming!',
+    description: '+150×LVL PTS & Grid Refill!',
     cssClass:    'one-up'
   }
 };
@@ -325,7 +336,7 @@ function sanitizeAndMigrateLeaderboards() {
       const isSuspectHacked =
         item.hacked === true ||
         (Array.isArray(item.hacks) && item.hacks.length > 0) ||
-        item.score >= 50000;
+        item.score >= 950000;
 
       if (isSuspectHacked) {
         migrated = true;
@@ -355,7 +366,7 @@ function sanitizeAndMigrateLeaderboards() {
     }
 
     const storedHigh = parseInt(localStorage.getItem("brickRunnerHighScore"), 10) || 0;
-    if (storedHigh >= 50000) {
+    if (storedHigh >= 950000) {
       const topLegit = cleanLegit.length > 0 ? cleanLegit[0].score : 0;
       localStorage.setItem("brickRunnerHighScore", topLegit);
       memoryHighScore = topLegit;
@@ -621,31 +632,139 @@ function updateStartLeaderboard() {
   bindLeaderboardEvents(el, lastSavedEntryId);
 }
 
-// --- Pre-Game Arcade Callsign & Runner Class Selector ---
-const CALLSIGN_PRESETS = [
-  "NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "JET",
-  "TRN", "FLY", "BIT", "RAM", "ROM", "CPU", "GPU", "BOT", "AIX", "NET", "WEB", "SYS",
-  "CMD", "EXE", "BUG", "FIX", "DEV", "PRO", "GOD", "MVP", "TOP", "WIN", "GGZ", "AFK",
-  "PWND", "LAG", "FPS", "RPG", "RNG", "XPX", "HPX", "MPX", "ATK", "DEF", "DEX", "STR",
-  "INT", "LUK", "CRT", "HIT", "KOX", "RIP", "FXX", "WIZ", "MAG", "ROG", "PAL", "BRB",
-  "NIN", "SAM", "RON", "SHD", "GHO", "PHA", "VMP", "ZOM", "SKL", "BON", "DRG", "WYR",
-  "PHX", "GRF", "HYD", "KRK", "TIT", "GOL", "260", "C64", "NES", "SNX", "N64", "PSX",
-  "ARC", "PIN", "JOY", "PAD", "BTN", "CRT", "VHS", "DVD", "LAS", "PLZ", "ION", " ARC",
-  "VLT", "AMP", "OHM", "WAT", "JOL", "SPK", "SHK", "BOL", "THN", "STR", "CLD", " SKY",
-  "SUN", "SOL", "LUN", "STR", "COM", "MET", "AST", "ORB", "GAL", "COS", "VOI", "ABY",
-  "RFT", "WRP", "HYP", "SPD", "VEL", "ACC", "BST", "NOZ", "TRB", "JTX", "RKT", "MSL",
-  "BMB", "NUK", "TNT", "C4X", "FRG", "2EZ", "404", "500", "777", "999", "007", "101",
-  "808", "909", "303", "WAV", "MP3", "SYN", "BAS", "DRP", "SUB", " WUB", "MIX", "DJX",
-  "MCX", "VIP", "CEO", "BOS", "KNG", "QUN", "PRN", "DUK", "KNT", "LRD", "SIR", "2P1",
-  "1UP", "HI5", "YO1", "SUP", "BRO", "DUDE", "RAD", "GNL", "2B2", "XOX", "ZIG", "ZAG",
-  "FOX", "WLF", "BRX", "TIG", "LIO", "PNT", "JAG", "24K", "AU7", "AG9", "PT1", "DIA",
-  "RUB", "EME", "SAP", "OPX", "ONY", "JAD", "obs", "KAI", "ZEN", "TAO", "CHI", "RYU",
-  "KEN", "AKM", "CHU", "GUI", "BLK", "ZNG", "DHS", "HON", "BAL", "VEG", "SAG", "BSN",
-  "SUB", "SCP", "RDN", "LIU", "KNG", "JNY", "SNY", "JAX", "KNO", "2KX", "Y2K", "90S",
-  "80S", "RET", "VNT", " Neo", "PIX", "VOX", "TEX", "SHD", "RAY", "TRC", "GLW", "BLR",
-  "2D1", "3D1", "VRX", "ARX", "MRX", "XR1", "HUD", "GUI", "CLI", "API", "SDK", "IDE",
-  "GIT", "SSH", "SSL", "TLS", "VPN", "DNS", "TCP", "UDP", "IPX", "MAC", "LAN", "WAN"
-].map(s => s.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3)).filter((s, i, arr) => s.length === 3 && arr.indexOf(s) === i);
+// --- Pre-Game Sci-Fi & Cyberpunk Callsign Database & Runner Class Selector ---
+const CALLSIGN_LORE_DB = {
+  NEO: { title: "Thomas 'Neo' Anderson", origin: "The Matrix (1999)" },
+  TRN: { title: "Tron // Security Program", origin: "TRON (1982)" },
+  FLY: { title: "Kevin Flynn // Grid Creator", origin: "TRON: Legacy" },
+  CLU: { title: "Codified Likeness Utility", origin: "TRON (1982)" },
+  QRA: { title: "Quorra // Last ISO", origin: "TRON: Legacy" },
+  KUS: { title: "Major Motoko Kusanagi", origin: "Ghost in the Shell" },
+  BAT: { title: "Batou // Section 9 Ranger", origin: "Ghost in the Shell" },
+  ROY: { title: "Roy Batty // Nexus-6", origin: "Blade Runner (1982)" },
+  DEK: { title: "Rick Deckard // Blade Runner", origin: "Blade Runner" },
+  RCH: { title: "Rachael // Tyrell Replicant", origin: "Blade Runner" },
+  JOI: { title: "Joi // Wallace Holo-AI", origin: "Blade Runner 2049" },
+  KND: { title: "Shotaro Kaneda // Capsule Gang", origin: "Akira (1988)" },
+  TET: { title: "Tetsuo Shima // Esper #41", origin: "Akira (1988)" },
+  AKR: { title: "Subject Akira // Neo-Tokyo", origin: "Akira (1988)" },
+  CAS: { title: "Henry Dorsett Case // Cowboy", origin: "Neuromancer" },
+  MOL: { title: "Molly Millions // Street Samurai", origin: "Neuromancer" },
+  WNT: { title: "Wintermute // Tessier-Ashpool AI", origin: "Neuromancer" },
+  HRO: { title: "Hiro Protagonist // Deliverator", origin: "Snow Crash" },
+  YTK: { title: "Y.T. // Kourier Thrasher", origin: "Snow Crash" },
+  LUC: { title: "Lucy Kushinada // Netrunner", origin: "Cyberpunk: Edgerunners" },
+  DAV: { title: "David Martinez // Sandevistan", origin: "Cyberpunk: Edgerunners" },
+  REB: { title: "Rebecca // Edgerunner Solo", origin: "Cyberpunk: Edgerunners" },
+  SLV: { title: "Johnny Silverhand // Rockerboy", origin: "Cyberpunk 2077" },
+  ALT: { title: "Alt Cunningham // Soulkiller", origin: "Cyberpunk 2077" },
+  VEX: { title: "V // Night City Mercenary", origin: "Cyberpunk 2077" },
+  HAL: { title: "HAL 9000 // Heuristically Programmed", origin: "2001: A Space Odyssey" },
+  RPL: { title: "Ellen Ripley // Warrant Officer", origin: "Alien (1979)" },
+  ash: { title: "Ash // Hyperdyne 120-A/2", origin: "Alien (1979)" },
+  BSH: { title: "Bishop // Lance Corporal Synth", origin: "Aliens (1986)" },
+  HUD: { title: "Private Hudson // Colonial Marines", origin: "Aliens (1986)" },
+  MUR: { title: "Alex Murphy // OCP Cyborg", origin: "RoboCop (1987)" },
+  EDX: { title: "ED-209 // Enforcement Droid", origin: "RoboCop (1987)" },
+  T80: { title: "T-800 // Cyberdyne Model 101", origin: "The Terminator" },
+  SKY: { title: "Skynet // Strategic Defense AI", origin: "Terminator 2" },
+  SAR: { title: "Sarah Connor // Resistance", origin: "Terminator 2" },
+  SPK: { title: "Spike Spiegel // Bebop Hunter", origin: "Cowboy Bebop" },
+  FAY: { title: "Faye Valentine // Red Tail", origin: "Cowboy Bebop" },
+  JET: { title: "Jet Black // Hammerhead", origin: "Cowboy Bebop" },
+  EDW: { title: "Radical Edward // Net Diver", origin: "Cowboy Bebop" },
+  EVA: { title: "Evangelion Unit-01", origin: "Neon Genesis Evangelion" },
+  REI: { title: "Rei Ayanami // First Child", origin: "Neon Genesis Evangelion" },
+  ASK: { title: "Asuka Langley // Unit-02", origin: "Neon Genesis Evangelion" },
+  ATR: { title: "Paul 'Muad'Dib' Atreides", origin: "Dune" },
+  CHA: { title: "Chani // Fremen Fedaykin", origin: "Dune" },
+  SHD: { title: "SHODAN // Citadel Station AI", origin: "System Shock" },
+  GLD: { title: "GLaDOS // Genetic Lifeform OS", origin: "Portal" },
+  CHL: { title: "Chell // Aperture Test Subject", origin: "Portal" },
+  FRE: { title: "Gordon Freeman // Black Mesa", origin: "Half-Life" },
+  ALX: { title: "Alyx Vance // Resistance Hacker", origin: "Half-Life 2" },
+  JCX: { title: "JC Denton // UNATCO Nano-Agent", origin: "Deus Ex" },
+  JNS: { title: "Adam Jensen // Sarif Security", origin: "Deus Ex: Human Revolution" },
+  SAM: { title: "Samus Aran // Galactic Hunter", origin: "Metroid" },
+  260: { title: "VCS 2600 // Heavy Sixer", origin: "Atari (1977)" },
+  FOX: { title: "Fox McCloud // Arwing Ace", origin: "Star Fox" },
+  FAL: { title: "Falco Lombardi // Wingman", origin: "Star Fox" },
+  CHF: { title: "Master Chief // Spartan-117", origin: "Halo" },
+  CRT: { title: "Cortana // UNSC Smart AI", origin: "Halo" },
+  SHP: { title: "Commander Shepard // N7", origin: "Mass Effect" },
+  GAR: { title: "Garrus Vakarian // Archangel", origin: "Mass Effect" },
+  LIA: { title: "Liara T'Soni // Shadow Broker", origin: "Mass Effect" },
+  KOR: { title: "Korben Dallas // Multipass", origin: "The Fifth Element" },
+  LOU: { title: "Leeloo // Supreme Being", origin: "The Fifth Element" },
+  ZRG: { title: "Jean-Baptiste Emanuel Zorg", origin: "The Fifth Element" },
+  PAR: { title: "Parzival // Wade Watts", origin: "Ready Player One" },
+  ART: { title: "Art3mis // Samantha Cook", origin: "Ready Player One" },
+  ach: { title: "Aech // Helen Harris", origin: "Ready Player One" },
+  SOL: { title: "Sol // Solar Sailor Program", origin: "TRON (1982)" },
+  HAN: { title: "Han Solo // Millennium Falcon", origin: "Star Wars" },
+  LEI: { title: "General Leia Organa", origin: "Star Wars" },
+  LUK: { title: "Luke Skywalker // Red Five", origin: "Star Wars" },
+  VDR: { title: "Darth Vader // Dark Lord", origin: "Star Wars" },
+  BOB: { title: "Boba Fett // Slave I", origin: "Star Wars" },
+  MND: { title: "Din Djarin // The Mandalorian", origin: "The Mandalorian" },
+  ahs: { title: "Ahsoka Tano // Fulcrum", origin: "Star Wars" },
+  AND: { title: "Cassian Andor // Rebel Spy", origin: "Andor" },
+  K2S: { title: "K-2SO // Reprogrammed Droid", origin: "Rogue One" },
+  SPK: { title: "Commander Spock // USS Enterprise", origin: "Star Trek" },
+  KRK: { title: "Capt. James T. Kirk", origin: "Star Trek" },
+  PIC: { title: "Capt. Jean-Luc Picard", origin: "Star Trek: TNG" },
+  DAT: { title: "Lt. Cmdr. Data // Positronic", origin: "Star Trek: TNG" },
+  SEV: { title: "Seven of Nine // Borg Adjunct", origin: "Star Trek: Voyager" },
+  DRW: { title: "The Doctor // TARDIS", origin: "Doctor Who" },
+  MAL: { title: "Capt. Malcolm Reynolds", origin: "Firefly / Serenity" },
+  RVR: { title: "River Tam // Miranda Subject", origin: "Firefly / Serenity" },
+  STR: { title: "Starbuck // Kara Thrace", origin: "Battlestar Galactica" },
+  ADM: { title: "Admiral William Adama", origin: "Battlestar Galactica" },
+  CYL: { title: "Cylon Centurion // Raider", origin: "Battlestar Galactica" },
+  HLD: { title: "James Holden // Rocinante", origin: "The Expanse" },
+  AMO: { title: "Amos Burton // Mechanic", origin: "The Expanse" },
+  AVS: { title: "Chrisjen Avasarala // UN", origin: "The Expanse" },
+  POE: { title: "Poe // Hendrix Hotel AI", origin: "Altered Carbon" },
+  KOV: { title: "Takeshi Kovacs // Last Envoy", origin: "Altered Carbon" },
+  MAE: { title: "Maeve Millay // Delos Host", origin: "Westworld" },
+  DOL: { title: "Dolores Abernathy // Wyatt", origin: "Westworld" },
+   Ava: { title: "Ava // Turing Test Android", origin: "Ex Machina" },
+  SAM: { title: "Samantha // OS1 Consciousness", origin: "Her (2013)" },
+  MAX: { title: "Max Rockatansky // Road Warrior", origin: "Mad Max" },
+  FUR: { title: "Imperator Furiosa // War Rig", origin: "Mad Max: Fury Road" },
+  DRD: { title: "Judge Joseph Dredd // Mega-City", origin: "Judge Dredd" },
+  SNK: { title: "Snake Plissken // Escape NY", origin: "Escape from New York" },
+  QAD: { title: "Douglas Quaid // Rekall Agent", origin: "Total Recall" },
+   END: { title: "Ender Wiggin // Dragon Army", origin: "Ender's Game" },
+   Cooper: { title: "Joseph Cooper // Lazarus", origin: "Interstellar" },
+  TAR: { title: "TARS // USMC Tactical Robot", origin: "Interstellar" },
+  WLE: { title: "WALL-E // Waste Allocation", origin: "WALL-E" },
+  EVE: { title: "EVE // Extraterrestrial Probe", origin: "WALL-E" },
+  B79: { title: "Unit 79 // Cybernetic Scout", origin: "Neon Grid Lore" },
+  NYX: { title: "Nyx // Blackwall Shadow", origin: "Neon Grid Lore" },
+  SYN: { title: "Synth-Zero // Chrome Runner", origin: "Neon Grid Lore" },
+  HEX: { title: "Hexadecimal // Virus Queen", origin: "ReBoot (1994)" },
+  BOB: { title: "Guardian Bob // Glitch Tool", origin: "ReBoot (1994)" },
+  ZAP: { title: "Zapp Brannigan // Nimbus", origin: "Futurama" },
+  FRY: { title: "Philip J. Fry // Delivery Boy", origin: "Futurama" },
+  BND: { title: "Bender Bending Rodriguez", origin: "Futurama" },
+  LAA: { title: "Turanga Leela // Planet Express", origin: "Futurama" },
+  RCK: { title: "Rick Sanchez // C-137", origin: "Rick and Morty" },
+  cat: { title: "Stray Cyber-Cat // B-12 Drone", origin: "Stray (2022)" },
+  KAI: { title: "Kai // Last Brunnen-G", origin: "Lexx" },
+  ZEN: { title: "Zen // Liberator Master AI", origin: "Blake's 7" }
+};
+
+// Normalize all keys in CALLSIGN_LORE_DB to 3-letter uppercase A-Z codes
+const NORMALIZED_LORE_DB = {};
+Object.entries(CALLSIGN_LORE_DB).forEach(([rawKey, val]) => {
+  const code = rawKey.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+  if (code.length === 3 && !NORMALIZED_LORE_DB[code]) {
+    NORMALIZED_LORE_DB[code] = val;
+  }
+});
+
+const CALLSIGN_PRESETS = Object.keys(NORMALIZED_LORE_DB);
 const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let activeCallsignSlot = 0;
 let selectedRunnerClass = "striker";
@@ -660,12 +779,45 @@ const RUNNER_CLASSES = {
     name: "STRIKER",
     color: "#00ffff",
     tagline: "Tesla Arcs & Twin Auto-Turrets",
+    paddleStyleName: "Twin-Coil Cyan Rail Deck",
+    buff: "+10% Ball Velocity & +8 Bonus PTS on Tesla/Turret Kills",
+    handicap: "-12% Narrower Precision Paddle",
     tiers: [
-      { level: 1, label: "Tesla Arc I", short: "Paddle bounces zap 1 brick", augments: { tesla: 1 } },
-      { level: 2, label: "Wing Turrets I", short: "Auto-fires twin plasma bolts", augments: { tesla: 1, turret: 1 } },
-      { level: 3, label: "Tesla Arc II", short: "Paddle bounces zap 2 bricks", augments: { tesla: 2, turret: 1 } },
-      { level: 4, label: "Wing Turrets II", short: "Faster twin auto-turrets", augments: { tesla: 2, turret: 2 } },
-      { level: 5, label: "Storm Core MAX", short: "Zaps 3 bricks + hyper turrets", augments: { tesla: 3, turret: 3 } }
+      {
+        level: 1,
+        label: "Tesla Arc I",
+        short: "Paddle bounces zap 1 brick",
+        detail: "Every paddle bounce fires 1 homing chain-lightning bolt into the nearest brick for +8 bonus base PTS!",
+        augments: { tesla: 1 }
+      },
+      {
+        level: 2,
+        label: "Wing Turrets I",
+        short: "Auto-fires twin needle bolts",
+        detail: "Bolts autonomous cyan needle-turrets to your paddle wings that auto-fire every 1.7s (+6 bonus PTS/hit)!",
+        augments: { tesla: 1, turret: 1 }
+      },
+      {
+        level: 3,
+        label: "Tesla Arc II",
+        short: "Paddle bounces zap 2 bricks",
+        detail: "Upgrades paddle bounce discharge to 2 simultaneous homing lightning bolts!",
+        augments: { tesla: 2, turret: 1 }
+      },
+      {
+        level: 4,
+        label: "Wing Turrets II",
+        short: "Faster 1.15s twin auto-turrets",
+        detail: "Overclocks autonomous wing turrets to fire every 1.15s!",
+        augments: { tesla: 2, turret: 2 }
+      },
+      {
+        level: 5,
+        label: "Storm Core MAX",
+        short: "Zaps 3 bricks + 0.72s hyper turrets",
+        detail: "MAX OVERLOAD: 3× Homing Tesla Bolts on every bounce + 0.72s Hyper-Speed Wing Turrets!",
+        augments: { tesla: 3, turret: 3 }
+      }
     ]
   },
   guardian: {
@@ -673,13 +825,46 @@ const RUNNER_CLASSES = {
     emoji: "🛡️",
     name: "GUARDIAN",
     color: "#39ff14",
-    tagline: "Wide Titan Deck & Floor Shield",
+    tagline: "Titan Bastion & Aegis Shield",
+    paddleStyleName: "Armored Emerald Bastion Deck",
+    buff: "Fortress Intact Bonus: ×1.35 All Brick PTS while Aegis Shield is Charged!",
+    handicap: "-10% Slower Ball Velocity",
     tiers: [
-      { level: 1, label: "Wide Deck I", short: "+22% wider & faster paddle", augments: { titan: 1 } },
-      { level: 2, label: "Aegis Shield I", short: "Floor forcefield saves missed ball", augments: { titan: 1, aegis: 1 } },
-      { level: 3, label: "Wide Deck II", short: "+44% wider & faster paddle", augments: { titan: 2, aegis: 1 } },
-      { level: 4, label: "Aegis Shield II", short: "Faster 13s floor shield recharge", augments: { titan: 2, aegis: 2 } },
-      { level: 5, label: "Fortress MAX", short: "+66% paddle + rapid 8s shield", augments: { titan: 3, aegis: 3 } }
+      {
+        level: 1,
+        label: "Wide Deck I",
+        short: "+22% wider & faster paddle",
+        detail: "Widens base paddle by +22%, boosts lateral thrusters by +14%, and grants ×1.20 Bastion Score Bonus!",
+        augments: { titan: 1 }
+      },
+      {
+        level: 2,
+        label: "Aegis Shield I",
+        short: "Floor shield + ×1.35 Intact PTS",
+        detail: "Deploys a bottom Floor Forcefield (18s recharge) that saves missed balls AND grants ×1.35 PTS while charged!",
+        augments: { titan: 1, aegis: 1 }
+      },
+      {
+        level: 3,
+        label: "Wide Deck II",
+        short: "+44% wider & faster paddle",
+        detail: "Expands armored bastion deck to +44% width and +28% lateral thruster speed!",
+        augments: { titan: 2, aegis: 1 }
+      },
+      {
+        level: 4,
+        label: "Aegis Shield II",
+        short: "Faster 12s shield + ×1.45 PTS",
+        detail: "Cuts Aegis Floor Forcefield recharge to 12s and boosts Fortress Intact Score Bonus to ×1.45 PTS!",
+        augments: { titan: 2, aegis: 2 }
+      },
+      {
+        level: 5,
+        label: "Fortress MAX",
+        short: "+66% paddle + 8s shield (×1.6 PTS)",
+        detail: "MAX BASTION: +66% colossal paddle, rapid 8s Aegis recharge, and ×1.60 PTS while Aegis is charged!",
+        augments: { titan: 3, aegis: 3 }
+      }
     ]
   },
   demolisher: {
@@ -688,26 +873,92 @@ const RUNNER_CLASSES = {
     name: "DEMOLISHER",
     color: "#ff7b00",
     tagline: "Piercing Ball & Plasma Nova",
+    paddleStyleName: "Hazard-Orange Siege Ram",
+    buff: "Siege Breaker: ×1.35 Bonus PTS on 2-Hit Armored & 3-Hit Gold Vault Bricks",
+    handicap: "-15% Shorter Timed Power-Up Durations",
     tiers: [
-      { level: 1, label: "Armor Pierce I", short: "2× hit damage & pierces 1 brick", augments: { pierce: 1 } },
-      { level: 2, label: "Plasma Nova I", short: "Shockwave ring every 5th brick", augments: { pierce: 1, nova: 1 } },
-      { level: 3, label: "Armor Pierce II", short: "Pierces 2 bricks on bounce", augments: { pierce: 2, nova: 1 } },
-      { level: 4, label: "Plasma Nova II", short: "Larger blast every 4th brick", augments: { pierce: 2, nova: 2 } },
-      { level: 5, label: "Supernova MAX", short: "Pierces 3 + Nova every 3rd", augments: { pierce: 3, nova: 3 } }
+      {
+        level: 1,
+        label: "Armor Pierce I",
+        short: "2× hit damage & pierces 1 brick",
+        detail: "Paddle & ceiling bounces supercharge the ball to deal 2× armor damage and plow straight through 1 brick!",
+        augments: { pierce: 1 }
+      },
+      {
+        level: 2,
+        label: "Plasma Nova I",
+        short: "Shockwave ring every 5th brick",
+        detail: "Every 5th brick you shatter detonates an orange Plasma Ring, blasting adjacent bricks for +10 bonus PTS!",
+        augments: { pierce: 1, nova: 1 }
+      },
+      {
+        level: 3,
+        label: "Armor Pierce II",
+        short: "Pierces 2 bricks on bounce",
+        detail: "Upgrades supercharged ball to plow straight through 2 consecutive bricks without deflecting!",
+        augments: { pierce: 2, nova: 1 }
+      },
+      {
+        level: 4,
+        label: "Plasma Nova II",
+        short: "Larger blast every 4th brick",
+        detail: "Detonates a wider Plasma Nova shockwave on every 4th brick broken!",
+        augments: { pierce: 2, nova: 2 }
+      },
+      {
+        level: 5,
+        label: "Supernova MAX",
+        short: "Pierces 3 + Nova every 3rd",
+        detail: "MAX CATACLYSM: Plows through 3 bricks per bounce + massive Supernova explosion every 3rd brick!",
+        augments: { pierce: 3, nova: 3 }
+      }
     ]
   },
   highroller: {
     id: "highroller",
-    emoji: "💎",
+    emoji: "🎲",
     name: "HIGH-ROLLER",
     color: "#ffd700",
-    tagline: "Power-Up Magnet & Score Jackpot",
+    tagline: "Cyber-Dice Rolls & Wild Card Gamble",
+    paddleStyleName: "Gold Casino Marquee Deck",
+    buff: "Every Paddle Bounce rolls 2D6 Cyber-Dice (up to ×3.5 PTS + 777 Jackpot Power-Ups!)",
+    handicap: "RNG Swings (0.85× on Snake Eyes) + +12% Faster High-Stakes Ball",
     tiers: [
-      { level: 1, label: "Bounty Magnet I", short: "Pulls power-ups +50 PTS on catch", augments: { magnet: 1 } },
-      { level: 2, label: "1.4× Score Core", short: "1.4× all brick & laser points", augments: { magnet: 1, greed: 1 } },
-      { level: 3, label: "Bounty Magnet II", short: "Stronger pull +100 PTS on catch", augments: { magnet: 2, greed: 1 } },
-      { level: 4, label: "1.85× Score Core", short: "1.85× all brick & laser points", augments: { magnet: 2, greed: 2 } },
-      { level: 5, label: "2.5× Jackpot MAX", short: "2.5× points +175 PTS catch!", augments: { magnet: 3, greed: 3 } }
+      {
+        level: 1,
+        label: "Cyber-Dice I",
+        short: "Bounce rolls 2D6 (0.85×–2.5× PTS)",
+        detail: "Every paddle bounce rolls 2D6 Cyber-Dice for 0.85× to 2.5× Brick PTS + Gravity Magnet pulls capsules (+60 PTS)!",
+        augments: { magnet: 1, greed: 1 }
+      },
+      {
+        level: 2,
+        label: "Wild Card Draw",
+        short: "Capsules draw Holo-Cards (+110 PTS)",
+        detail: "Catching any power-up draws a Holo-Card: awards +110 base PTS and a 25% chance to Double-Stack or spawn a bonus mod!",
+        augments: { magnet: 2, greed: 1 }
+      },
+      {
+        level: 3,
+        label: "Loaded Dice II",
+        short: "Rolls weighted up to ×3.0 PTS",
+        detail: "Weights your 2D6 Cyber-Dice toward Lucky 7s & High Stakes (up to ×3.0 PTS) + stronger capsule magnet!",
+        augments: { magnet: 2, greed: 2 }
+      },
+      {
+        level: 4,
+        label: "777 Slot Reels",
+        short: "18% Jackpot roll on paddle bounce",
+        detail: "18% chance on paddle bounce to hit 🎰 777 JACKPOT: instant +150×LVL bonus PTS + free random power-up burst!",
+        augments: { magnet: 3, greed: 2 }
+      },
+      {
+        level: 5,
+        label: "Whale Jackpot MAX",
+        short: "Up to ×3.8 PTS + 25% 777 Jackpots!",
+        detail: "MAX HIGH-ROLLER: Loaded Dice roll up to ×3.8 PTS, 25% 777 Jackpot rate, and +200 base PTS on every capsule catch!",
+        augments: { magnet: 3, greed: 3 }
+      }
     ]
   }
 };
@@ -718,12 +969,133 @@ function getSelectedClassDef() {
   return RUNNER_CLASSES[selectedRunnerClass] || RUNNER_CLASSES.striker;
 }
 
+function syncPaddleClassVisual() {
+  if (!paddle) return;
+  const cDef = getSelectedClassDef();
+  paddle.setAttribute("data-runner-class", cDef.id);
+}
+
 function setRunnerClass(classId) {
   if (!RUNNER_CLASSES[classId]) return;
   selectedRunnerClass = classId;
+  syncPaddleClassVisual();
   soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
   renderCallsignBuilder();
   updateHighScoreDisplay();
+}
+
+function getCallsignLore(code3) {
+  if (!code3 || code3.length !== 3) return null;
+  return NORMALIZED_LORE_DB[code3.toUpperCase()] || null;
+}
+
+// --- Floating Cyberpunk Hover Popover for Class Tiers, Classes & Callsigns ---
+let hoverPopoverEl = null;
+
+function ensureHoverPopover() {
+  if (hoverPopoverEl && document.body.contains(hoverPopoverEl)) return hoverPopoverEl;
+  hoverPopoverEl = document.createElement("div");
+  hoverPopoverEl.id = "cyber-hover-popover";
+  hoverPopoverEl.className = "cyber-hover-popover";
+  hoverPopoverEl.style.display = "none";
+  document.body.appendChild(hoverPopoverEl);
+  return hoverPopoverEl;
+}
+
+function showCyberPopover(htmlContent, anchorEl, accentColor = "#00ffff") {
+  const pop = ensureHoverPopover();
+  pop.style.setProperty("--pop-accent", accentColor);
+  pop.innerHTML = htmlContent;
+  pop.style.display = "block";
+
+  if (!anchorEl) return;
+  const rect = anchorEl.getBoundingClientRect();
+  const popRect = pop.getBoundingClientRect();
+  let left = rect.left + rect.width / 2 - popRect.width / 2;
+  let top = rect.top - popRect.height - 10;
+
+  if (top < 8) {
+    top = rect.bottom + 10;
+  }
+  left = Math.max(10, Math.min(window.innerWidth - popRect.width - 10, left));
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+}
+
+function hideCyberPopover() {
+  if (hoverPopoverEl) {
+    hoverPopoverEl.style.display = "none";
+  }
+}
+
+function bindHoverPopoverEvents(rootEl) {
+  if (!rootEl) return;
+  rootEl.querySelectorAll("[data-popover-tier]").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      const clsId = el.getAttribute("data-popover-class") || selectedRunnerClass;
+      const lvl = parseInt(el.getAttribute("data-popover-tier"), 10) || 1;
+      const cls = RUNNER_CLASSES[clsId] || getSelectedClassDef();
+      const tier = cls.tiers.find(t => t.level === lvl) || cls.tiers[0];
+      const isUnlocked = !gameOver && lvl <= rogueLevel;
+      const statusBadge = gameOver
+        ? `<span class="pop-status-pill">UNLOCKS AT LEVEL ${lvl}</span>`
+        : (isUnlocked
+            ? `<span class="pop-status-pill pop-unlocked">✓ ACTIVE IN ARENA</span>`
+            : `<span class="pop-status-pill">LOCKED • EARN XP TO UNLOCK</span>`);
+
+      const html = `
+        <div class="pop-head">
+          <span class="pop-title">${cls.emoji} ${cls.name} • L${tier.level} ${tier.label}</span>
+          ${statusBadge}
+        </div>
+        <div class="pop-body">${tier.detail || tier.short}</div>
+        <div class="pop-tradeoffs">
+          <div class="pop-buff">▲ CLASS BUFF: ${cls.buff}</div>
+          <div class="pop-nerf">▼ HANDICAP: ${cls.handicap}</div>
+        </div>
+      `;
+      showCyberPopover(html, el, cls.color);
+    });
+    el.addEventListener("mouseleave", hideCyberPopover);
+  });
+
+  rootEl.querySelectorAll("[data-popover-class-card]").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      const clsId = el.getAttribute("data-popover-class-card");
+      const cls = RUNNER_CLASSES[clsId];
+      if (!cls) return;
+      const html = `
+        <div class="pop-head">
+          <span class="pop-title">${cls.emoji} ${cls.name} CLASS</span>
+          <span class="pop-status-pill">PADDLE: ${cls.paddleStyleName}</span>
+        </div>
+        <div class="pop-body">${cls.tagline} — Hover over <strong>L1–L5</strong> below to inspect each level-up upgrade!</div>
+        <div class="pop-tradeoffs">
+          <div class="pop-buff">▲ BUFF: ${cls.buff}</div>
+          <div class="pop-nerf">▼ HANDICAP: ${cls.handicap}</div>
+        </div>
+      `;
+      showCyberPopover(html, el, cls.color);
+    });
+    el.addEventListener("mouseleave", hideCyberPopover);
+  });
+
+  rootEl.querySelectorAll("[data-popover-callsign]").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      const code = getLastInitials();
+      const lore = getCallsignLore(code);
+      if (!lore) return;
+      const html = `
+        <div class="pop-head">
+          <span class="pop-title">🕹️ CALLSIGN ARCHIVE // ${code}</span>
+          <span class="pop-status-pill pop-unlocked">${lore.origin}</span>
+        </div>
+        <div class="pop-body"><strong>${lore.title}</strong> — Click 🎲 to roll from ${CALLSIGN_PRESETS.length} iconic Sci-Fi &amp; Cyberpunk callsigns!</div>
+      `;
+      showCyberPopover(html, el, "#ff00ff");
+    });
+    el.addEventListener("mouseleave", hideCyberPopover);
+  });
 }
 
 function isStartScreenOpen() {
@@ -771,23 +1143,24 @@ function renderCallsignBuilder() {
   const chars = getCallsignChars();
   const complete = isCallsignComplete();
   const activeClass = getSelectedClassDef();
+  syncPaddleClassVisual();
 
   const slotsHTML = chars.map((ch, idx) => `
-    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}">
+    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}" data-popover-callsign="1">
       ${ch || `<span class="slot-placeholder">_</span>`}
     </div>
   `).join("");
 
   const keysHTML = [
     ...KEYPAD_LETTERS.map(letter => `<button type="button" class="keypad-key" data-key="${letter}">${letter}</button>`),
-    `<button type="button" class="keypad-key key-special" data-key="RANDOM" title="Random Cyber Callsign">🎲</button>`,
+    `<button type="button" class="keypad-key key-special" data-key="RANDOM" title="Roll Sci-Fi / Cyberpunk Callsign">🎲</button>`,
     `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace / Clear">⌫</button>`
   ].join("");
 
   const classesHTML = Object.values(RUNNER_CLASSES).map(cls => {
     const isSel = cls.id === activeClass.id;
     return `
-      <button type="button" class="class-select-btn ${isSel ? "active" : ""}" data-runner-class="${cls.id}" style="--cls-color: ${cls.color};">
+      <button type="button" class="class-select-btn ${isSel ? "active" : ""}" data-runner-class="${cls.id}" data-popover-class-card="${cls.id}" style="--cls-color: ${cls.color};">
         <span class="cls-btn-emoji">${cls.emoji}</span>
         <span class="cls-btn-name">${cls.name}</span>
       </button>
@@ -795,32 +1168,37 @@ function renderCallsignBuilder() {
   }).join("");
 
   const pathStepsHTML = activeClass.tiers.map(t => `
-    <div class="class-path-step" title="LVL ${t.level}: ${t.short}">
+    <div class="class-path-step" data-popover-class="${activeClass.id}" data-popover-tier="${t.level}">
       <span class="class-path-lvl">L${t.level}</span>
       <span class="class-path-name">${t.label}</span>
     </div>
   `).join("");
 
+  const codeStr = chars.join("");
+  const lore = complete ? getCallsignLore(codeStr) : null;
   const headingText = complete
-    ? `🕹️ CALLSIGN: ${chars.join("")} • ${activeClass.emoji} ${activeClass.name}`
+    ? (lore
+        ? `🕹️ ${codeStr}: ${lore.title} (${lore.origin})`
+        : `🕹️ CALLSIGN: ${codeStr} • ${activeClass.emoji} ${activeClass.name}`)
     : `🕹️ 1. ENTER CALLSIGN &amp; 2. PICK CLASS`;
 
   container.innerHTML = `
     <div class="callsign-top-section">
-      <div class="callsign-heading ${complete ? "callsign-ready" : ""}">${headingText}</div>
+      <div class="callsign-heading ${complete ? "callsign-ready" : ""}" data-popover-callsign="1">${headingText}</div>
       <div class="callsign-slots">${slotsHTML}</div>
       <div class="keypad-grid">${keysHTML}</div>
     </div>
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
       <div class="class-picker-grid">${classesHTML}</div>
       <div class="class-linear-preview">
-        <div class="class-preview-tagline">${activeClass.emoji} <strong>${activeClass.name}:</strong> ${activeClass.tagline}</div>
+        <div class="class-preview-tagline" data-popover-class-card="${activeClass.id}">${activeClass.emoji} <strong>${activeClass.name}:</strong> ${activeClass.tagline} <span class="hover-hint-tag">[HOVER L1–L5]</span></div>
         <div class="class-path-track">${pathStepsHTML}</div>
       </div>
     </div>
   `;
 
   syncStartPlayButtonState();
+  bindHoverPopoverEvents(container);
 
   container.querySelectorAll(".callsign-slot").forEach(slotEl => {
     slotEl.addEventListener("click", (ev) => {
@@ -851,6 +1229,7 @@ function renderCallsignBuilder() {
       const nextId = clsBtn.dataset.runnerClass;
       if (RUNNER_CLASSES[nextId]) {
         selectedRunnerClass = nextId;
+        syncPaddleClassVisual();
         soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
         renderCallsignBuilder();
         updateHighScoreDisplay();
@@ -948,9 +1327,9 @@ function getHighScore() {
   if (board.length > 0) return board[0].score;
   try {
     const raw = parseInt(localStorage.getItem("brickRunnerHighScore"), 10) || memoryHighScore || 0;
-    return raw >= 50000 ? 0 : raw;
+    return raw >= 950000 ? 0 : raw;
   } catch (err) {
-    return memoryHighScore >= 50000 ? 0 : (memoryHighScore || 0);
+    return memoryHighScore >= 950000 ? 0 : (memoryHighScore || 0);
   }
 }
 function saveHighScore(e) {
@@ -982,26 +1361,26 @@ function updateHighScoreDisplay() {
 
 /**
  * Returns a rank string based on the final score and win/loss.
- * Uses the expanded 8-loss + 6-win tier system.
+ * Calibrated for the 5-Level Board Replenishment & Multiplier curve!
  */
 function getRating(score, won) {
   if (!won) {
-    // ❌ Loss tiers (8)
-    if (score < 200)      return "System Glitch";
-    if (score < 400)      return "Code Ghost";
-    if (score < 700)      return "Memory Leak";
-    if (score < 1000)     return "Burned Out";
-    if (score < 1500)     return "Data Janitor";
-    if (score < 2000)     return "Pixel Drifter";
-    if (score < 2500)     return "Grid Runner";
+    // ❌ Loss tiers (8) — scaled across Levels 1 to 5
+    if (score < 1500)     return "System Glitch";
+    if (score < 4000)     return "Code Ghost";
+    if (score < 8500)     return "Memory Leak";
+    if (score < 16000)    return "Burned Out";
+    if (score < 28000)    return "Data Janitor";
+    if (score < 48000)    return "Pixel Drifter";
+    if (score < 80000)    return "Grid Runner";
                          return "Neon Operator";
   } else {
-    // ✅ Win tiers (6)
-    if (score < 3500)     return "Neon Legend";
-    if (score < 4500)     return "Circuit Surfer";
-    if (score < 6000)     return "Hologram Hacker";
-    if (score < 8000)     return "Beyond the Black Wall";
-    if (score < 10000)    return "Synth Overlord";
+    // ✅ Win tiers (6) — All 5 Levels Cleared!
+    if (score < 55000)    return "Neon Legend";
+    if (score < 95000)    return "Circuit Surfer";
+    if (score < 140000)   return "Hologram Hacker";
+    if (score < 190000)   return "Beyond the Black Wall";
+    if (score < 250000)   return "Synth Overlord";
                          return "You Are The Replaced";
   }
 }
@@ -1133,27 +1512,162 @@ function getSectorScoreMultiplier() {
 }
 
 function getBoardDifficultySpeedMultiplier() {
-  return 1 + (Math.max(1, currentSector) - 1) * 0.14;
+  let mult = 1 + (Math.max(1, currentSector) - 1) * 0.14;
+  // Class speed buffs & handicaps:
+  if (selectedRunnerClass === "striker") {
+    mult *= 1.10; // Striker Buff: +10% faster aggressive ball
+  } else if (selectedRunnerClass === "guardian") {
+    mult *= 0.90; // Guardian Handicap: -10% slower ball velocity
+  } else if (selectedRunnerClass === "highroller") {
+    mult *= 1.12; // High-Roller Handicap: +12% high-stakes speed
+  }
+  if (isNeonLegend) {
+    mult *= 1.08; // Neon Legend Overdrive: +8% overdrive speed
+  }
+  return mult;
+}
+
+function getSlowMoScoreMultiplier() {
+  const slowStacks = activePowerUps["slow-mo"]?.length || 0;
+  if (slowStacks <= 0) return 1;
+  return [1.5, 1.75, 2.0][Math.min(slowStacks, 3) - 1] || 2.0;
+}
+
+function getNeonLegendMultiplier() {
+  return isNeonLegend ? 1.5 : 1.0;
+}
+
+function getGuardianFortressMultiplier() {
+  if (selectedRunnerClass !== "guardian") return 1.0;
+  const aegisRank = getAugmentRank("aegis");
+  if (aegisRank > 0 && aegisReady) {
+    return [1.35, 1.45, 1.60][Math.min(aegisRank, 3) - 1] || 1.35;
+  }
+  return getAugmentRank("titan") > 0 ? 1.20 : 1.0;
+}
+
+function getGreedScoreMultiplier() {
+  if (selectedRunnerClass === "highroller") {
+    return highRollerDiceMultiplier || 1.35;
+  }
+  const r = getAugmentRank("greed");
+  if (r <= 0) return 1;
+  return [1.35, 1.75, 2.25][Math.min(r, 3) - 1] || 2.25;
+}
+
+function getTotalActiveScoreMultiplier() {
+  const expandoStacks = activePowerUps["wide-paddle"]?.length || 0;
+  const boardMult = getSectorScoreMultiplier();
+  const slowMult = getSlowMoScoreMultiplier();
+  const legendMult = getNeonLegendMultiplier();
+  const guardianMult = getGuardianFortressMultiplier();
+  const gamblerMult = selectedRunnerClass === "highroller" ? (highRollerDiceMultiplier || 1) : 1;
+  return boardMult * (expandoStacks + 1) * slowMult * legendMult * guardianMult * gamblerMult;
 }
 
 function updateMultiplierBadge() {
   const badge = document.getElementById("score-multiplier");
   if (!badge) return;
-  const expandoStacks = activePowerUps["wide-paddle"]?.length || 0;
-  const boardMult = getSectorScoreMultiplier();
-  const totalMult = boardMult * (expandoStacks + 1);
-  if (totalMult > 1 && !gameOver) {
-    badge.textContent = `×${totalMult}`;
+  const totalMult = getTotalActiveScoreMultiplier();
+  if (totalMult > 1.04 && !gameOver) {
+    const formatted = Number.isInteger(Math.round(totalMult * 10) / 10)
+      ? Math.round(totalMult)
+      : totalMult.toFixed(1);
+    badge.textContent = `${isNeonLegend ? "😎" : ""}×${formatted}`;
     badge.style.display = "inline-block";
   } else {
     badge.style.display = "none";
   }
 }
 
-function getGreedScoreMultiplier() {
-  const r = getAugmentRank("greed");
-  if (r <= 0) return 1;
-  return [1.4, 1.85, 2.5][Math.min(r, 3) - 1] || 2.5;
+function rollHighRollerCyberDice() {
+  if (selectedRunnerClass !== "highroller" || gameOver) return;
+  const greedRank = Math.max(1, getAugmentRank("greed"));
+  // Roll 2D6 with loaded floor at higher levels
+  const d1 = Math.min(6, Math.floor(Math.random() * 6) + 1 + (greedRank >= 2 && Math.random() < 0.35 ? 1 : 0));
+  const d2 = Math.min(6, Math.floor(Math.random() * 6) + 1 + (greedRank >= 3 && Math.random() < 0.45 ? 1 : 0));
+  const sum = d1 + d2;
+  highRollerLastRoll = sum;
+
+  // Check for 777 Slot Jackpot on high rolls or L4/L5 slot trigger
+  const jackpotChance = rogueLevel >= 5 ? 0.25 : (rogueLevel >= 4 ? 0.18 : 0.10);
+  if (sum === 12 || Math.random() < jackpotChance) {
+    highRollerDiceMultiplier = rogueLevel >= 5 ? 3.8 : (rogueLevel >= 3 ? 3.2 : 2.6);
+    const jackpotBonus = 150 * currentSector * Math.max(1, greedRank);
+    score += jackpotBonus;
+    if (isCatMode) score = score - (score % 10) + 9;
+    scoreDisplay.textContent = `Score: ${score}`;
+    showBrickScore(paddleX, GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - 18, jackpotBonus);
+    soundManager.play("powerUpSpawn", { pitch: 1.95, volume: 0.75 });
+
+    // Wild Card instant random power-up burst!
+    const wildPool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"];
+    const wildPick = wildPool[Math.floor(Math.random() * wildPool.length)];
+    activatePowerUp(wildPick);
+
+    showNotification({
+      title: `🎰 777 CYBER-JACKPOT! (+${jackpotBonus} PTS)`,
+      emoji: "🎰",
+      name: `JACKPOT ×${highRollerDiceMultiplier}!`,
+      description: `WILD CARD: FREE ${POWER_UP_TYPES[wildPick].name}!`,
+      color: "#ffd700",
+      mode: "burst"
+    }, { x: paddleX });
+  } else if (sum <= 4) {
+    // Snake eyes / low roll handicap!
+    highRollerDiceMultiplier = 0.85;
+    showNotification({
+      title: `🎲 DICE ROLL: ${d1}+${d2} = ${sum}`,
+      emoji: "🎲",
+      name: `LOW ROLL ×0.85`,
+      description: "SNAKE EYES HANDICAP VOLLEY!",
+      color: "#ff5577",
+      mode: "burst"
+    }, { x: paddleX });
+  } else if (sum >= 10) {
+    highRollerDiceMultiplier = rogueLevel >= 3 ? 2.8 : 2.2;
+    showNotification({
+      title: `🎲 DICE ROLL: ${d1}+${d2} = ${sum}`,
+      emoji: "🎲",
+      name: `HIGH STAKES ×${highRollerDiceMultiplier}!`,
+      description: "LOADED DICE PAYOUT ACTIVE!",
+      color: "#ffd700",
+      mode: "burst"
+    }, { x: paddleX });
+  } else {
+    // Lucky 7 / House Roll
+    highRollerDiceMultiplier = [1.4, 1.65, 1.95][Math.min(greedRank, 3) - 1] || 1.5;
+  }
+  syncRogueHUD();
+}
+
+function recordBrickBrokenStreak() {
+  unbrokenBrickStreak++;
+  if (!isNeonLegend && (unbrokenBrickStreak >= 10 || score >= 5000)) {
+    isNeonLegend = true;
+    if (!isCatMode) {
+      BALL_EMOJI = "😎";
+      ball.textContent = "😎";
+    }
+    ball.classList.add("neon-legend-active");
+    showNotification("neon-legend");
+    soundManager.play("winSong");
+    updateMultiplierBadge();
+  }
+}
+
+function resetBrickStreakOnMiss() {
+  unbrokenBrickStreak = 0;
+  catBounceCombo = 0;
+  if (isNeonLegend) {
+    isNeonLegend = false;
+    ball.classList.remove("neon-legend-active");
+    if (!isCatMode) {
+      BALL_EMOJI = "😊";
+      ball.textContent = "😊";
+    }
+    updateMultiplierBadge();
+  }
 }
 
 const BOARD_LEVEL_THEMES = {
@@ -1182,19 +1696,28 @@ function initRogueProgression() {
   rogueXPToNext = 12;
   activeAugments = {};
   isDraftModalOpen = false;
+  isLevelIntermissionOpen = false;
   pendingDraftReasons = [];
   currentDraftChoices = [];
   novaBrickCounter = 0;
   turretFireAccum = 0;
+  laserAutoFireAccum = 0;
   aegisReady = false;
   aegisCooldownLeft = 0;
   pierceChargesLeft = 0;
+  magSlingshotCharges = 0;
+  caughtByMagLock = false;
+  unbrokenBrickStreak = 0;
+  catBounceCombo = 0;
+  highRollerDiceMultiplier = 1.35;
+  highRollerLastRoll = null;
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
   const aegisBar = document.getElementById("aegis-barrier-bar");
   if (aegisBar) aegisBar.style.display = "none";
-  ball.classList.remove("ball-piercing");
+  ball.classList.remove("ball-piercing", "ball-slingshot", "neon-legend-active");
+  syncPaddleClassVisual();
   syncBoardLevelAtmosphere();
 }
 
@@ -1205,6 +1728,7 @@ function applyRunnerClassTier() {
   const prevAegis = getAugmentRank("aegis");
 
   activeAugments = { ...(tier ? tier.augments : {}) };
+  syncPaddleClassVisual();
   updatePaddleWidth();
 
   const newAegis = getAugmentRank("aegis");
@@ -1239,7 +1763,10 @@ function syncRogueHUD() {
 
   if (classBadge) {
     const boardMult = getSectorScoreMultiplier();
-    classBadge.textContent = `${cDef.emoji} LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
+    const extraTag = selectedRunnerClass === "highroller" && highRollerDiceMultiplier
+      ? ` • 🎲×${highRollerDiceMultiplier}`
+      : "";
+    classBadge.textContent = `${cDef.emoji} LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult}${extraTag})`;
   }
   syncBoardLevelAtmosphere();
   updateMultiplierBadge();
@@ -1258,8 +1785,9 @@ function syncRogueHUD() {
       const stepClass = isCurrent
         ? "hud-tier-pill tier-active"
         : (isUnlocked ? "hud-tier-pill tier-unlocked" : (isNext ? "hud-tier-pill tier-next" : "hud-tier-pill tier-locked"));
-      return `<span class="${stepClass}" title="LVL ${t.level}: ${t.short}"><strong>L${t.level}</strong> ${t.label}</span>`;
+      return `<span class="${stepClass}" data-popover-class="${cDef.id}" data-popover-tier="${t.level}"><strong>L${t.level}</strong> ${t.label}</span>`;
     }).join("");
+    bindHoverPopoverEvents(nextPerk);
   }
 
   // Update bottom Aegis Barrier Bar (Guardian Class)
@@ -1270,9 +1798,10 @@ function syncRogueHUD() {
       aegisBar.style.display = "none";
     } else {
       aegisBar.style.display = "flex";
+      const fortMult = getGuardianFortressMultiplier();
       if (aegisReady) {
         aegisBar.className = "aegis-barrier-bar aegis-charged";
-        aegisBar.innerHTML = `<span>🛡️ AEGIS FLOOR FORCEFIELD READY — NEXT MISSED BALL IS SAVED! 🛡️</span>`;
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult} FORTRESS SCORE BONUS ACTIVE!) 🛡️</span>`;
       } else {
         aegisBar.className = "aegis-barrier-bar aegis-recharging";
         aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
@@ -1331,7 +1860,7 @@ function awardRogueXP(amount) {
   syncRogueHUD();
 }
 
-function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 5) {
+function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 8) {
   if (!brick || brick.isBroken) return;
   brick.hitsTaken += damageHits;
 
@@ -1350,12 +1879,20 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 5) {
     let points = (isRoofBonusActive ? 15 : 10) + bonusFlatPts;
     if (expandoStacks > 0) points *= (expandoStacks + 1);
     points *= (rowBonusLevel + 1);
+    const siegeMult = selectedRunnerClass === "demolisher" ? 1.35 : 1.0;
     if (brick.isVaultBrick) {
-      points = Math.round(points * 3.0);
+      points = Math.round(points * 3.0 * siegeMult);
     } else if (brick.hitsRequired > 1) {
-      points = Math.round(points * 1.6);
+      points = Math.round(points * 1.6 * siegeMult);
     }
-    points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+    points = Math.round(
+      points *
+      getSectorScoreMultiplier() *
+      getGreedScoreMultiplier() *
+      getSlowMoScoreMultiplier() *
+      getNeonLegendMultiplier() *
+      getGuardianFortressMultiplier()
+    );
     if (isCatMode) points = points - (points % 10) + 9;
 
     score += points;
@@ -1370,6 +1907,7 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 5) {
     if (brick.powerUpType) {
       spawnPowerUp(brick.powerUpType, brick);
     }
+    recordBrickBrokenStreak();
     awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
   } else {
     soundManager.play("multihit", { pitch: 1.2, volume: 0.65 });
@@ -1415,7 +1953,7 @@ function triggerTeslaArcBolts() {
     gameArea.appendChild(boltEl);
     setTimeout(() => boltEl.remove(), 260);
 
-    damageOrBreakBrickByAugment(target, 1, 6);
+    damageOrBreakBrickByAugment(target, 1, 8);
   });
 }
 
@@ -1446,7 +1984,7 @@ function triggerPlasmaNova(originBrick) {
     const bx = b.x + b.width / 2;
     const by = b.y + b.height / 2;
     if (Math.hypot(bx - cx, by - cy) <= blastRadius) {
-      damageOrBreakBrickByAugment(b, 1, 8);
+      damageOrBreakBrickByAugment(b, 1, 10);
     }
   });
 }
@@ -1456,7 +1994,8 @@ function handleAegisFloorSave() {
   if (rank <= 0 || !aegisReady) return false;
 
   aegisReady = false;
-  aegisCooldownLeft = [18, 13, 8][Math.min(rank, 3) - 1] || 8;
+  aegisCooldownLeft = [18, 12, 8][Math.min(rank, 3) - 1] || 8;
+  resetBrickStreakOnMiss();
   ballY = GAME_HEIGHT - BALL_SIZE - 16;
   ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.15);
   soundManager.play("magActivate", { pitch: 1.25, volume: 0.9 });
@@ -1475,13 +2014,22 @@ function handleAegisFloorSave() {
 }
 
 function fireAutoTurretVolley() {
-  const boltWidth = 6;
-  const boltHeight = 20;
+  const boltWidth = 5;
+  const boltHeight = 18;
   const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
   const wingOffset = Math.max(16, paddleWidth * 0.34);
   [paddleX - wingOffset - boltWidth / 2, paddleX + wingOffset - boltWidth / 2].forEach(bx => {
     const clampedX = Math.max(4, Math.min(GAME_WIDTH - boltWidth - 4, bx));
-    const bolt = { x: clampedX, y: paddleTop - boltHeight, width: boltWidth, height: boltHeight };
+    const bolt = {
+      x: clampedX,
+      y: paddleTop - boltHeight,
+      width: boltWidth,
+      height: boltHeight,
+      damage: 1,
+      bonusPts: 6,
+      laserMult: 1.0,
+      source: "turret"
+    };
     const el = document.createElement("div");
     el.className = "laser-bolt turret-auto-bolt";
     el.style.left = `${bolt.x}px`;
@@ -1490,7 +2038,7 @@ function fireAutoTurretVolley() {
     bolt.element = el;
     lasers.push(bolt);
   });
-  soundManager.play("laserFire", { pitch: 1.45, volume: 0.38 });
+  soundManager.play("laserFire", { pitch: 1.55, volume: 0.34 });
 }
 
 function updateRogueProgressionFrame(dt) {
@@ -1512,16 +2060,39 @@ function updateRogueProgressionFrame(dt) {
     }
   }
 
-  // Auto-Pulse Turrets
+  // Auto-Pulse Striker Wing Turrets
   const turretRank = getAugmentRank("turret");
   if (turretRank > 0 && !ballIsStuck) {
-    const interval = [1.8, 1.2, 0.75][Math.min(turretRank, 3) - 1] || 0.75;
+    const interval = [1.7, 1.15, 0.72][Math.min(turretRank, 3) - 1] || 0.72;
     turretFireAccum += dt;
     if (turretFireAccum >= interval) {
       turretFireAccum = 0;
       fireAutoTurretVolley();
     }
   }
+
+  // Auto-Fire Laser Blast Power-Up Cannons (Tier 1: 0.38s, Tier 2: 0.24s, Tier 3: 0.17s)
+  const laserStacks = activePowerUps["laser-blast"]?.length || 0;
+  if (laserStacks > 0 && isLaserActive && !ballIsStuck) {
+    const laserInterval = [0.38, 0.24, 0.17][Math.min(laserStacks, 3) - 1] || 0.17;
+    laserAutoFireAccum += dt;
+    if (laserAutoFireAccum >= laserInterval) {
+      laserAutoFireAccum = 0;
+      spawnLaserVolley(laserStacks, true);
+    }
+  }
+}
+
+function resumeFromLevelIntermission() {
+  if (!isLevelIntermissionOpen || gameOver) return;
+  isLevelIntermissionOpen = false;
+  gameMessage.classList.remove("level-intermission-mode");
+  gameMessage.style.display = "none";
+  gameArea.classList.add("hide-cursor");
+  gameRunning = true;
+  lastTime = 0;
+  launchStuckBall();
+  requestAnimationFrame(gameLoop);
 }
 
 function advanceToNextSector() {
@@ -1566,43 +2137,61 @@ function advanceToNextSector() {
 
   soundManager.play("winSong");
   if (typeof spawnConfettiShards === "function") {
-    spawnConfettiShards(55);
+    spawnConfettiShards(110);
   }
 
   const newMult = getSectorScoreMultiplier();
-  const spdPct = Math.round((getBoardDifficultySpeedMultiplier() - 1) * 100);
+  const spdPct = Math.round(((1 + (currentSector - 1) * 0.14) - 1) * 100);
   const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[5];
 
   syncBoardLevelAtmosphere();
-
-  // 1) Slam the big Arena Floor Jumbotron announcing "LEVEL N!"
-  showNotification({
-    title: `${theme.name} // +${sectorBonus} CLEAR BONUS`,
-    emoji: theme.emoji,
-    name: `LEVEL ${currentSector}!`,
-    description: theme.sub,
-    color: theme.color,
-    mode: "jumbotron"
-  });
-
-  // 2) Also pop the crisp floating burst banner with the exact multiplier & speed stats
-  showNotification({
-    title: `BOARD REPLENISHED`,
-    emoji: "🚀",
-    name: `LEVEL ${currentSector}! (×${newMult})`,
-    description: `+${spdPct}% SPEED & TOUGHER BRICKS!`,
-    color: theme.color,
-    mode: "burst"
-  }, { x: GAME_WIDTH / 2 });
 
   // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
   awardRogueXP(8);
   syncRogueHUD();
 
+  // Pause and show the celebratory Between-Level Intermission Screen so the player can celebrate & click/press SPACE when ready!
   clearTimeout(autoLaunchTimeout);
-  autoLaunchTimeout = setTimeout(() => {
-    if (ballIsStuck && gameRunning && !gameOver) launchStuckBall();
-  }, 1350);
+  isLevelIntermissionOpen = true;
+  gameRunning = false;
+  gameArea.classList.remove("hide-cursor");
+
+  const cDef = getSelectedClassDef();
+  const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)];
+
+  gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
+  gameMessage.classList.add("level-intermission-mode");
+  gameMessage.style.setProperty("--intermission-color", theme.color);
+  gameMessage.innerHTML = `
+    <div class="level-intermission-card">
+      <div class="intermission-kicker">🎉 CONGRATULATIONS // BOARD ${clearedSectorNum} OF ${MAX_LEVELS} CLEARED! 🎉</div>
+      <div class="intermission-title">LEVEL ${clearedSectorNum} COMPLETE!</div>
+      <div class="intermission-bonus-pill">+${formatArcadeScore(sectorBonus)} PTS CLEAR BONUS &bull; +8 CLASS XP</div>
+      <div class="intermission-next-box" style="--next-color: ${theme.color};">
+        <div class="next-box-header">${theme.emoji} NEXT UP: LEVEL ${currentSector} // ${theme.name}</div>
+        <div class="next-box-stats">
+          <span>📈 <strong>×${newMult}</strong> BOARD MULTIPLIER</span>
+          <span>⚡ <strong>+${spdPct}%</strong> BALL SPEED</span>
+          <span>🛡️ MORE ARMOR &amp; GOLD VAULTS</span>
+        </div>
+      </div>
+      <div class="intermission-runner-status">
+        ${cDef.emoji} <strong>${cDef.name}</strong> &bull; Tier L${rogueLevel}: ${activeTier ? activeTier.label : ""} &bull; Score: <strong>${formatArcadeScore(score)}</strong>
+      </div>
+      <button type="button" id="intermission-continue-btn" class="end-action-btn end-play-btn intermission-cta-btn">
+        ▶ START LEVEL ${currentSector} [SPACE / CLICK]
+      </button>
+    </div>
+  `;
+  gameMessage.style.display = "block";
+
+  const continueBtn = document.getElementById("intermission-continue-btn");
+  if (continueBtn) {
+    continueBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      resumeFromLevelIntermission();
+    });
+  }
 }
 
 function initGame() {
@@ -1621,10 +2210,13 @@ function initGame() {
     canFire = true;
     isRoofBonusActive = false;
     isNeonLegend = false;
-    ball.classList.remove('bonus-active');
+    isLevelIntermissionOpen = false;
+    hideCyberPopover();
+    ball.classList.remove('bonus-active', 'ball-piercing', 'ball-slingshot', 'neon-legend-active');
     lasers.forEach(l => l.element.remove());
     lasers = [];
-    paddle.classList.remove('paddle-sticky', 'paddle-armed');
+    paddle.classList.remove('paddle-sticky', 'paddle-armed', 'laser-tier-1', 'laser-tier-2', 'laser-tier-3');
+    syncPaddleClassVisual();
     paddleSizeLevel = 0;
     activePowerUps = {};
     const multBadge = document.getElementById('score-multiplier');
@@ -1635,6 +2227,8 @@ function initGame() {
     notificationsContainer.innerHTML = "";
     statusIndicatorsContainer.innerHTML = "";
     paddleX = GAME_WIDTH / 2;
+    prevPaddleX = paddleX;
+    paddleVelocityX = 0;
     updatePaddleWidth();
     paddle.style.transform = 'scaleX(1)';
     paddle.style.bottom = `${PADDLE_BOTTOM_OFFSET}px`;
@@ -1658,7 +2252,7 @@ function initGame() {
     updateStartLeaderboard();
     updateHighScoreDisplay();
     stopVictoryCelebrationShow();
-    gameMessage.classList.remove('end-overlay-mode', 'victory-celebration');
+    gameMessage.classList.remove('end-overlay-mode', 'victory-celebration', 'level-intermission-mode');
     gameMessage.style.display = 'none';
     scoreDisplay.style.display = 'none';
      statusIndicatorsContainer.style.display = 'none';
@@ -2032,7 +2626,7 @@ function startGame() {
 }
 
 function togglePause() {
-  if (gameOver || ballIsStuck) return;
+  if (gameOver || ballIsStuck || isLevelIntermissionOpen) return;
   gameRunning = !gameRunning;
   if (gameRunning) {
     if (pauseStartTime !== null) {
@@ -2053,13 +2647,13 @@ function togglePause() {
     pauseStartTime = Date.now();
     cancelAnimationFrame(animationFrameId);
     if (pauseButton) pauseButton.textContent = "▶ RESUME [P]";
-    gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
+    gameMessage.classList.remove("end-overlay-mode", "victory-celebration", "level-intermission-mode");
     gameMessage.innerHTML = `<span class="name">PAUSED</span><p class="game-message-prompt">Press P / ESC or Click to Resume</p>`;
     gameMessage.style.display = "block";
     gameArea.classList.remove("hide-cursor");
   }
 }
-function resetAfterLifeLost(){ballIsStuck=!0,isRoofBonusActive=!1,ball.classList.remove("bonus-active"),activePowerUps={},statusIndicatorsContainer.innerHTML="",paddleSizeLevel=0,updatePaddleWidth(),paddle.classList.remove("paddle-sticky","paddle-armed"),isStickyPaddle=!1,isLaserActive=!1,ballX=paddleX-BALL_SIZE/2,ballY=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET-BALL_SIZE,ballSpeedX=0,ballSpeedY=0}
+function resetAfterLifeLost(){ballIsStuck=!0,isRoofBonusActive=!1,ball.classList.remove("bonus-active","ball-slingshot"),activePowerUps={},statusIndicatorsContainer.innerHTML="",paddleSizeLevel=0,updatePaddleWidth(),paddle.classList.remove("paddle-sticky","paddle-armed","laser-tier-1","laser-tier-2","laser-tier-3"),isStickyPaddle=!1,isLaserActive=!1,magSlingshotCharges=0,caughtByMagLock=!1,resetBrickStreakOnMiss(),ballX=paddleX-BALL_SIZE/2,ballY=GAME_HEIGHT-PADDLE_HEIGHT-PADDLE_BOTTOM_OFFSET-BALL_SIZE,ballSpeedX=0,ballSpeedY=0}
 
 function gameLoop(timestamp) {
   // 1) If the game is paused or over, don’t do anything
@@ -2070,9 +2664,14 @@ function gameLoop(timestamp) {
   const delta = (timestamp - lastTime) / 1000;
   lastTime = timestamp;
 
-  // 3) Update all the moving parts
+  // 3) Update all the moving parts & track horizontal paddle velocity for Mag-Lock flick aiming
   updateRogueProgressionFrame(delta);
   updatePaddlePosition(delta);
+  if (delta > 0.001) {
+    const instVelX = (paddleX - prevPaddleX) / delta;
+    paddleVelocityX = paddleVelocityX * 0.55 + instVelX * 0.45;
+    prevPaddleX = paddleX;
+  }
   updateBallPosition(delta);
   updatePowerUps(delta);
   updateLasers(delta);
@@ -2133,7 +2732,7 @@ function gameLoop(timestamp) {
     }
   }
 
-  // 9) Request the next frame if still running (draft modal may have paused gameRunning)
+  // 9) Request the next frame if still running (draft modal or intermission may have paused gameRunning)
   if (gameRunning) {
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -2159,10 +2758,6 @@ function updateBallPosition(e) {
   }
   const t = activePowerUps["slow-mo"]?.length || 0;
   let o = Math.pow(0.75, t) * getBoardDifficultySpeedMultiplier();
-  const greedRank = getAugmentRank("greed");
-  if (greedRank > 0) {
-    o *= (1 + greedRank * 0.10);
-  }
   if (draftResumeGraceTimer > 0) {
     // Smoothly ramp ball speed from 45% to 100% right after closing the Augment Draft modal
     const graceRatio = 1 - (draftResumeGraceTimer / 0.75) * 0.55;
@@ -2192,10 +2787,11 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - slight difficulty tightening per board clear)
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - Striker precision handicap - slight difficulty tightening per board clear)
   const titanBonus = getAugmentRank("titan") * 0.22;
+  const classWidthMod = selectedRunnerClass === "striker" ? -0.12 : 0;
   const boardPressure = Math.max(0, (currentSector - 1) * 0.04);
-  const scaleFactor = Math.max(0.75, 1 + paddleSizeLevel * 0.35 + titanBonus - boardPressure);
+  const scaleFactor = Math.max(0.72, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod - boardPressure);
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -2327,13 +2923,28 @@ function updatePowerUps(dt) {
         activatePowerUp(pu.type);
         const magnetRank = getAugmentRank("magnet");
         if (magnetRank > 0) {
-          const baseMagBonus = [50, 100, 175][Math.min(magnetRank, 3) - 1] || 175;
+          const baseMagBonus = [60, 110, 200][Math.min(magnetRank, 3) - 1] || 200;
           let magPts = Math.round(baseMagBonus * getSectorScoreMultiplier() * getGreedScoreMultiplier());
           if (isCatMode) magPts = magPts - (magPts % 10) + 9;
           score += magPts;
           if (isCatMode) score = score - (score % 10) + 9;
           scoreDisplay.textContent = `Score: ${score}`;
           showBrickScore(paddleX, padRect.top - 10, magPts);
+
+          // High-Roller L2+ Wild Card Holo-Draw: 25% chance to double-stack or trigger a bonus mod!
+          if (selectedRunnerClass === "highroller" && rogueLevel >= 2 && Math.random() < 0.25) {
+            if (def.type === "stacking" && (activePowerUps[pu.type]?.length || 0) < MAX_PADDLE_LEVEL) {
+              activatePowerUp(pu.type);
+            }
+            showNotification({
+              title: "🃏 HOLO-CARD WILD DRAW!",
+              emoji: "🃏",
+              name: "DOUBLE STACK!",
+              description: `LUCKY DRAW DOUBLED ${def.name}!`,
+              color: "#ff00ff",
+              mode: "burst"
+            }, { x: paddleX });
+          }
         }
         awardRogueXP(2);
         pu.element.remove();
@@ -2355,81 +2966,100 @@ function updatePowerUps(dt) {
   }
 }
 
-
+function syncLaserPaddleVisuals() {
+  const stacks = activePowerUps["laser-blast"]?.length || 0;
+  paddle.classList.remove("laser-tier-1", "laser-tier-2", "laser-tier-3");
+  if (stacks > 0) {
+    isLaserActive = true;
+    paddle.classList.add("paddle-armed", `laser-tier-${Math.min(stacks, 3)}`);
+  } else if (!(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
+    isLaserActive = false;
+    paddle.classList.remove("paddle-armed");
+  }
+}
 
 function activatePowerUp(type) {
   const def = POWER_UP_TYPES[type];
   if (!def) return;
 
-  // — Instant power-ups (only 'one-up') —
+  // — Instant power-ups (only 'one-up' / Bricked Up!) —
   if (def.type === 'instant') {
-    // spawn new bricks
     if (type === 'one-up') {
       spawnDisruptiveBricks(5);
+      // Scoring effect for Bricked Up: Instant +150 * Level Grid Injection Bonus!
+      let injectPts = Math.round(150 * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+      if (isCatMode) injectPts = injectPts - (injectPts % 10) + 9;
+      score += injectPts;
+      if (isCatMode) score = score - (score % 10) + 9;
+      scoreDisplay.textContent = `Score: ${score}`;
+      showBrickScore(paddleX, GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - 14, injectPts);
     }
-    // 🔑 use the string key, not the object
     showNotification(type, { x: paddleX });
     return;
   }
 
-  // — Stacking / Refreshing power-ups —
+  // — Stacking / Refreshing power-ups (Demolisher Handicap: -15% shorter duration) —
   if (!activePowerUps[type]) {
     activePowerUps[type] = [];
   }
   const now = Date.now();
+  const durationMult = selectedRunnerClass === "demolisher" ? 0.85 : 1.0;
+  const effDuration = Math.round(def.duration * durationMult);
+
   if (def.type === 'refreshing') {
     // single timer, always slot 0
-    activePowerUps[type][0] = { endTime: now + def.duration };
+    activePowerUps[type][0] = { endTime: now + effDuration };
   } else {
-    // stacking: chain onto the last timer end
-    const lastEnd = activePowerUps[type].slice(-1)[0]?.endTime || now;
-    activePowerUps[type].push({ endTime: lastEnd + def.duration });
+    // stacking: chain onto the last timer end (max 3 stacks)
+    if (activePowerUps[type].length < MAX_PADDLE_LEVEL) {
+      const lastEnd = activePowerUps[type].slice(-1)[0]?.endTime || now;
+      activePowerUps[type].push({ endTime: lastEnd + effDuration });
+    } else {
+      activePowerUps[type][activePowerUps[type].length - 1].endTime += effDuration * 0.5;
+    }
   }
 
   // — Apply the effect immediately —
   switch (type) {
     case 'wide-paddle': {
-      // grow the paddle
       paddleSizeLevel = Math.min(activePowerUps[type].length, MAX_PADDLE_LEVEL);
       updatePaddleWidth();
       soundManager.play('grow');
-
-      // 🔑 fire the tiered Expando notification
-      //    wide-paddle-1, -2, or -3
       const stackLevel = paddleSizeLevel; // 1..3
       showNotification(`wide-paddle-${stackLevel}`, { x: paddleX });
       break;
     }
 
-    case 'slow-mo':
+    case 'slow-mo': {
       soundManager.play('bounce', { pitch: 0.8, volume: 0.7 });
-      // 🔑 show Slow-Mo banner
-      // Stack count for slow-mo
       const lvl = activePowerUps['slow-mo']?.length || 0;
-      // Clamp between 1 and 3
       const level = Math.min(Math.max(lvl, 1), 3);
       showNotification(`slow-mo-${level}`, { x: paddleX });
       break;
+    }
 
     case 'sticky-paddle':
       isStickyPaddle = true;
       paddle.classList.add('paddle-sticky');
       soundManager.play('magActivate');
-      // 🔑 show Mag-Lock banner
       showNotification(type, { x: paddleX });
       break;
 
-    case 'laser-blast':
-      isLaserActive = true;
-      paddle.classList.add('paddle-armed');
-      soundManager.play('laserFire', { pitch: 1.2 });
-      // 🔑 show Laser Blast banner
-      showNotification(type, { x: paddleX });
+    case 'laser-blast': {
+      const laserTier = Math.min(Math.max(activePowerUps['laser-blast']?.length || 1, 1), 3);
+      syncLaserPaddleVisuals();
+      soundManager.play('laserFire', { pitch: 1.05 + laserTier * 0.18 });
+      showNotification(`laser-blast-${laserTier}`, { x: paddleX });
+      if (!ballIsStuck) {
+        spawnLaserVolley(laserTier, true);
+      }
       break;
+    }
   }
 
   // Update the little timer bar below the UI
   createOrUpdateStatusIndicator(type);
+  updateMultiplierBadge();
 }
 
 
@@ -2470,8 +3100,7 @@ function updateStatusIndicators() {
           if (ballIsStuck) launchStuckBall();
         },
         "laser-blast": () => {
-          isLaserActive = false;
-          paddle.classList.remove("paddle-armed");
+          syncLaserPaddleVisuals();
         }
       };
       if (cleanup[type]) cleanup[type]();
@@ -2501,7 +3130,8 @@ function updateStatusIndicators() {
       const now      = Date.now();
       const first    = timers[0];
       const def      = POWER_UP_TYPES[type];
-      const duration = def.duration;
+      const durationMult = selectedRunnerClass === "demolisher" ? 0.85 : 1.0;
+      const duration = Math.round(def.duration * durationMult);
       const elapsed  = now - (first.endTime - duration);
       const pct      = Math.max(0, (duration - elapsed) / duration * 100);
       const bar      = indicator.querySelector(".timer-bar");
@@ -2509,7 +3139,7 @@ function updateStatusIndicators() {
     }
   }
 
-  // --- Update the score multiplier badge (Board Clear Multiplier × Expando Multiplier) ---
+  // --- Update the score multiplier badge ---
   updateMultiplierBadge();
 }
 
@@ -2540,7 +3170,8 @@ function updateLasers(dt) {
     const l = lasers[i];
 
     // 1) Move the laser bolt upward
-    l.y -= LASER_SPEED * dt;
+    const boltSpd = l.speed || LASER_SPEED;
+    l.y -= boltSpd * dt;
     l.element.style.top = `${l.y}px`;
 
     // 2) Remove if off‐screen
@@ -2550,8 +3181,7 @@ function updateLasers(dt) {
       continue;
     }
 
-    // 3) **Collision check against every brick**
-    //    This is where you need the `if (isColliding(laserRect, brickRect))` block.
+    // 3) Collision check against every brick
     const laserRect = {
       left:   l.x,
       right:  l.x + l.width,
@@ -2571,67 +3201,81 @@ function updateLasers(dt) {
       };
 
       if (isColliding(laserRect, brickRect)) {
-        // 1) Play destroy sound
-        const soundName = destroySounds[destroySoundIndex];
-        soundManager.play(soundName);
-        destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
+        const hitDmg = l.damage || 1;
+        b.hitsTaken = (b.hitsTaken || 0) + hitDmg;
 
-        // 2) Compute points with active multipliers
-        const basePoints = isRoofBonusActive ? 15 : 10;
-        const laserBonus = 3;
-        const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
-        let points = basePoints + laserBonus;
-        if (expandoStacks > 0) {
-          points *= (expandoStacks + 1);
-        }
-        points *= (rowBonusLevel + 1);
-        if (b.isVaultBrick) {
-          points = Math.round(points * 2.5);
-        }
-        points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
-        if (isCatMode) {
-          points = points - (points % 10) + 9;
+        if (b.hitsTaken >= (b.hitsRequired || 1)) {
+          // 1) Play destroy sound
+          const soundName = destroySounds[destroySoundIndex];
+          soundManager.play(soundName);
+          destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
+
+          // 2) Compute points with active multipliers & Laser Tier scoring bonus
+          const basePoints = isRoofBonusActive ? 15 : 10;
+          const laserBonus = typeof l.bonusPts === "number" ? l.bonusPts : 4;
+          const laserTierMult = typeof l.laserMult === "number" ? l.laserMult : 1.25;
+          const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
+          let points = (basePoints + laserBonus) * laserTierMult;
+          if (expandoStacks > 0) {
+            points *= (expandoStacks + 1);
+          }
+          points *= (rowBonusLevel + 1);
+          const siegeMult = selectedRunnerClass === "demolisher" ? 1.35 : 1.0;
+          if (b.isVaultBrick) {
+            points = Math.round(points * 3.0 * siegeMult);
+          } else if (b.hitsRequired > 1) {
+            points = Math.round(points * 1.6 * siegeMult);
+          }
+          points = Math.round(
+            points *
+            getSectorScoreMultiplier() *
+            getGreedScoreMultiplier() *
+            getSlowMoScoreMultiplier() *
+            getNeonLegendMultiplier() *
+            getGuardianFortressMultiplier()
+          );
+          if (isCatMode) {
+            points = points - (points % 10) + 9;
+          }
+
+          // 3) Add to total
+          score += points;
+          if (isCatMode) {
+            score = score - (score % 10) + 9;
+          }
+          scoreDisplay.textContent = `Score: ${score}`;
+
+          // 4) Show the floating +N
+          showBrickScore(b.x + b.width / 2, b.y, points);
+
+          // 5) Break the brick, evaluate row clear, spawn any power-up
+          b.isBroken = true;
+          b.element.classList.add('broken');
+          if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+            triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
+          }
+          if (typeof isHackModeActive === "function" && isHackModeActive("poop") && typeof spawnBrickPoops === "function") {
+            spawnBrickPoops(b.x + b.width / 2, b.y + b.height / 2, 2);
+          }
+          if (typeof b.row === "number" && !b.isExtraSpawn) {
+            evaluateRowClear(b.row);
+          }
+          if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+          recordBrickBrokenStreak();
+          awardRogueXP(b.isVaultBrick ? 3 : (b.hitsRequired > 1 ? 2 : 1));
+        } else {
+          // Armored / Vault brick took partial laser damage!
+          soundManager.play("multihit", { pitch: 1.3, volume: 0.55 });
+          b.element.classList.add("damaged");
+          b.element.classList.remove("shake");
+          void b.element.offsetWidth;
+          b.element.classList.add("shake");
         }
 
-        // 3) Add to total and round the total as well
-        score += points;
-        if (isCatMode) {
-          score = score - (score % 10) + 9;
-        }
-        scoreDisplay.textContent = `Score: ${score}`;
-
-        // 4) Show the floating +N
-        const popupX = b.x + b.width / 2;
-        const popupY = b.y;
-        showBrickScore(popupX, popupY, points);
-
-        // 5) Break the brick, evaluate row clear, spawn any power-up, remove the bolt
-        b.isBroken = true;
-        b.element.classList.add('broken');
-        if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
-          triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
-        }
-        if (typeof isHackModeActive === "function" && isHackModeActive("poop") && typeof spawnBrickPoops === "function") {
-          spawnBrickPoops(b.x + b.width / 2, b.y + b.height / 2, 2);
-        }
-        if (typeof b.row === "number" && !b.isExtraSpawn) {
-          evaluateRowClear(b.row);
-        }
-        if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
-        awardRogueXP(b.isVaultBrick ? 3 : 1);
-        if (score > 500 && !isNeonLegend) {
-          isNeonLegend = true;
-          showNotification("neon-legend");
-          soundManager.play("winSong");
-        }
         l.element.remove();
-        lasers.splice(i,1);
-
+        lasers.splice(i, 1);
         break;
       }
-
-
-
     }
   }
 }
@@ -2659,7 +3303,8 @@ function checkCollisions() {
     ballSpeedX *= -1;
     if (isCatMode) {
       // Cat wall-jumps upward in an arc when touching a side wall!
-      ballSpeedY = -(INITIAL_BALL_SPEED * 1.36);
+      const wallJumpMult = Math.min(2.05, 1.32 + catBounceCombo * 0.10);
+      ballSpeedY = -(INITIAL_BALL_SPEED * wallJumpMult);
     }
     soundManager.play("bounce");
     justBounced = true;
@@ -2691,73 +3336,77 @@ function checkCollisions() {
     }
   }
 
- // — Use the DOM to get pixel-perfect paddle bounds —  
-// — Paddle Collision (pixel-perfect with CSS scale) —
-const paddleBox = paddle.getBoundingClientRect();
-const areaBox   = gameArea.getBoundingClientRect();
+  // — Paddle Collision (pixel-perfect with CSS scale) —
+  const paddleBox = paddle.getBoundingClientRect();
+  const areaBox   = gameArea.getBoundingClientRect();
 
-// convert to game-space
-const padRect = {
-  left:   paddleBox.left   - areaBox.left,
-  right:  paddleBox.right  - areaBox.left,
-  top:    paddleBox.top    - areaBox.top,
-  bottom: paddleBox.bottom - areaBox.top
-};
+  const padRect = {
+    left:   paddleBox.left   - areaBox.left,
+    right:  paddleBox.right  - areaBox.left,
+    top:    paddleBox.top    - areaBox.top,
+    bottom: paddleBox.bottom - areaBox.top
+  };
 
-// only proceed if the ball is coming down
-if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
-  soundManager.play("bounce");
-  if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
-    triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
-  }
-  if (typeof isHackModeActive === "function" && isHackModeActive("god") && typeof triggerDivinePaddleSmite === "function") {
-    triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, padRect.top);
-  }
-  if (getAugmentRank("tesla") > 0) {
-    triggerTeslaArcBolts();
-  }
-  if (getAugmentRank("pierce") > 0) {
-    pierceChargesLeft = getAugmentRank("pierce");
-    ball.classList.add("ball-piercing");
-    syncRogueHUD();
-  }
+  // only proceed if the ball is coming down
+  if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
+    soundManager.play("bounce");
+    if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+      triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
+    }
+    if (typeof isHackModeActive === "function" && isHackModeActive("god") && typeof triggerDivinePaddleSmite === "function") {
+      triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, padRect.top);
+    }
+    if (getAugmentRank("tesla") > 0) {
+      triggerTeslaArcBolts();
+    }
+    if (getAugmentRank("pierce") > 0) {
+      pierceChargesLeft = getAugmentRank("pierce");
+      ball.classList.add("ball-piercing");
+      syncRogueHUD();
+    }
+    if (selectedRunnerClass === "highroller") {
+      rollHighRollerCyberDice();
+    }
 
-  // clear any roof bonus
-  if (isRoofBonusActive) {
-    isRoofBonusActive = false;
-    ball.classList.remove("bonus-active");
-  }
+    // clear any roof bonus
+    if (isRoofBonusActive) {
+      isRoofBonusActive = false;
+      ball.classList.remove("bonus-active");
+    }
 
-  if (isStickyPaddle && !(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
-    // stick the ball
-    ballIsStuck = true;
-    ballSpeedX  = 0;
-    ballSpeedY  = 0;
-  } else {
-    // bounce off the paddle
-    // 1) reposition the ball just above the paddle
-    ballY = padRect.top - BALL_SIZE;
-    // 2) invert Y velocity (high parabolic pounce in Cat Mode!)
-    if (isCatMode) {
-      ballSpeedY = -(INITIAL_BALL_SPEED * 1.55);
+    if (isStickyPaddle && !(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
+      // stick the ball to the Mag-Lock deck
+      ballIsStuck = true;
+      caughtByMagLock = true;
+      ballSpeedX  = 0;
+      ballSpeedY  = 0;
     } else {
-      ballSpeedY *= -1;
+      // bounce off the paddle
+      ballY = padRect.top - BALL_SIZE;
+      if (isCatMode) {
+        // Cat Mode escalating leap: starts with smaller leaps on a new cat life and jumps higher each paddle hit!
+        catBounceCombo++;
+        const leapMult = Math.min(2.16, 1.08 + catBounceCombo * 0.14);
+        ballSpeedY = -(INITIAL_BALL_SPEED * leapMult);
+      } else {
+        ballSpeedY *= -1;
+      }
+
+      // compute X-velocity based on hit position + subtle mouse-flick English
+      const padWidth     = padRect.right - padRect.left;
+      const halfPaddle   = padWidth / 2;
+      const paddleCenter = padRect.left + halfPaddle;
+      const impactPos    = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
+      ballSpeedX         = impactPos * INITIAL_BALL_SPEED * 1.5 + paddleVelocityX * 0.18;
+      ballSpeedX         = Math.max(-520, Math.min(520, ballSpeedX));
+      if (isCatMode && Math.abs(ballSpeedX) < 135) {
+        ballSpeedX = (impactPos >= 0 ? 1 : -1) * 175;
+      }
     }
 
-    // 3) compute X-velocity based on hit position
-    const padWidth    = padRect.right - padRect.left;
-    const halfPaddle  = padWidth / 2;
-    const paddleCenter= padRect.left + halfPaddle;
-    const impactPos   = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
-    ballSpeedX        = impactPos * INITIAL_BALL_SPEED * 1.5;
-    if (isCatMode && Math.abs(ballSpeedX) < 135) {
-      ballSpeedX = (impactPos >= 0 ? 1 : -1) * 175;
-    }
+    // finally, clear bank-shot flag
+    justBounced = false;
   }
-
-  // finally, clear your bank-shot flag
-  justBounced = false;
-}
 
   // --- Brick Collisions ---
   for (let i = 0; i < bricks.length; i++) {
@@ -2779,39 +3428,25 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       if (justBounced) {
         points += 2;
       }
-      
-      // — NEW: Bricked Up! spawn bonus (+6 once) —
+
+      // Bricked Up! restored brick bonus (+8 base PTS)
       if (brick.isExtraSpawn) {
-        points += 6;
+        points += 8;
         brick.isExtraSpawn = false;
       }
-      function checkRowClear(row) {
-        if (clearedRows.has(row)) return;
-        // find non‐extra bricks in this row
-        const rowBricks = bricks.filter(b => b.row === row && !b.isExtraSpawn);
-        if (rowBricks.every(b => b.isBroken)) {
-          // mark it
-          clearedRows.add(row);
-          rowBonusCount = clearedRows.size;
-          awardRowClearBonus(row);
+
+      // Mag-Lock Slingshot Overcharge bonus (+8 base PTS & ×1.5 multiplier on next 3 bricks after launch!)
+      let usedSlingshot = false;
+      if (magSlingshotCharges > 0) {
+        usedSlingshot = true;
+        points = Math.round((points + 8) * 1.5);
+        magSlingshotCharges--;
+        if (magSlingshotCharges <= 0) {
+          ball.classList.remove("ball-slingshot");
         }
       }
 
-      function awardRowClearBonus(row) {
-        // 1) Flash the row visually
-        flashRow(row);
-        // 2) Show HUD badge
-        showNotification({
-          emoji:       "⚡️",
-          title:       "Edge Runner",
-          name:        `Row ×${rowBonusCount}`,
-          description: `Score ×${rowBonusCount+1} now active!`
-        });
-        createOrUpdateRowBonusIndicator();
-      }
-
-      // 4. Expando multiplier (🪴 Multiply your score!)
-      //    1 stack → 2×, 2 stacks → 3×, 3 stacks → 4×
+      // Expando multiplier (🪴 1 stack → 2×, 2 stacks → 3×, 3 stacks → 4×)
       const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
       if (expandoStacks > 0) {
         points *= (expandoStacks + 1);
@@ -2830,7 +3465,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
 
       // only when the brick actually dies…
       if (brick.hitsTaken >= brick.hitsRequired) {
-        const usedRoofBonus = isRoofBonusActive;
         // Consume roof bonus only when a brick is actually broken
         if (isRoofBonusActive) {
           isRoofBonusActive = false;
@@ -2856,14 +3490,22 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           spawnBrickPoops(brick.x + brick.width / 2, brick.y + brick.height / 2, 2);
         }
 
-        // 3) Apply row-clear, Armored/Vault brick, Sector, and High-Roller Greed multipliers before adding to score
+        // 3) Apply row-clear, Armored/Vault brick (+ Demolisher Siege Bonus), Sector, Greed/Dice, Slow-Mo, Neon Legend & Guardian Fortress multipliers!
         points *= (rowBonusLevel + 1);
+        const siegeMult = selectedRunnerClass === "demolisher" ? 1.35 : 1.0;
         if (brick.isVaultBrick) {
-          points = Math.round(points * 3.0);
+          points = Math.round(points * 3.0 * siegeMult);
         } else if (brick.hitsRequired > 1) {
-          points = Math.round(points * 1.6);
+          points = Math.round(points * 1.6 * siegeMult);
         }
-        points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+        points = Math.round(
+          points *
+          getSectorScoreMultiplier() *
+          getGreedScoreMultiplier() *
+          getSlowMoScoreMultiplier() *
+          getNeonLegendMultiplier() *
+          getGuardianFortressMultiplier()
+        );
 
         let rawPoints = points;
 
@@ -2871,9 +3513,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         if (isCatMode) {
           points = rawPoints - (rawPoints % 10) + 9;
         }
-
-        // Grab the score before adding
-        let preScore = score;
 
         // Add & then round total → …9
         score += points;
@@ -2898,8 +3537,9 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           spawnPowerUp(brick.powerUpType, brick);
         }
 
-        // 7b) Trigger Plasma Nova shockwave if owned, then award Rogue XP
+        // 7b) Trigger Plasma Nova shockwave if owned, record streak, then award Rogue XP
         triggerPlasmaNova(brick);
+        recordBrickBrokenStreak();
         awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
 
       } else {
@@ -2918,13 +3558,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       // 8) Finally, update the score display
       scoreDisplay.textContent = `Score: ${score}`;
 
-      // Neon Legend check
-      if (score > 500 && !isNeonLegend) {
-        isNeonLegend = true;
-        showNotification("neon-legend");
-        soundManager.play("winSong");
-      }
-
       // Brick shake & ball impact animation
       brick.element.classList.remove("shake");
       void brick.element.offsetWidth;
@@ -2937,15 +3570,11 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
       clearTimeout(emojiSwapTimeout);
       
       if (isCatMode) {
-        // never change it off the cat face
         BALL_EMOJI = '🐱'; 
         ball.textContent = BALL_EMOJI;
-
       } else if (isNeonLegend) {
         ball.textContent = "😎";
-
       } else {
-        // your normal chaotic swap
         const idx = Math.floor(Math.random() * CHAOTIC_EMOJIS.length);
         ball.textContent = CHAOTIC_EMOJIS[idx];
         emojiSwapTimeout = setTimeout(() => {
@@ -3045,6 +3674,7 @@ function startVictoryCelebrationShow() {
 function endGame(won) {
   gameOver = true;
   gameRunning = false;
+  isLevelIntermissionOpen = false;
   pendingEndGameWon = !!won;
   awaitingInitials = false;
   cancelAnimationFrame(animationFrameId);
@@ -3100,6 +3730,7 @@ function endGame(won) {
 
   const highlightId = savedEntry ? savedEntry.id : lastSavedEntryId;
 
+  gameMessage.classList.remove("level-intermission-mode");
   gameMessage.classList.add("end-overlay-mode");
   gameMessage.classList.toggle("victory-celebration", !!won);
   gameMessage.innerHTML = `
@@ -3140,45 +3771,152 @@ function endGame(won) {
     });
   }
 }
+
 function launchStuckBall() {
   if (ballIsStuck) {
     clearTimeout(autoLaunchTimeout);
     soundManager.stop("winSong");
     ballIsStuck = false;
-    ballSpeedY = isCatMode ? -(INITIAL_BALL_SPEED * 1.54) : -INITIAL_BALL_SPEED;
-    const e = paddleWidth / 2;
-    let t = (ballX + BALL_SIZE / 2 - paddleX) / e * INITIAL_BALL_SPEED * 1.5;
-    if (isCatMode && Math.abs(t) < 135) {
-      t = (Math.random() > 0.5 ? 1 : -1) * 180;
+
+    // In Cat Mode, start a new cat life with a smaller hop (1.08×) and escalate with each paddle hit!
+    if (isCatMode) {
+      const catStartMult = Math.min(2.16, 1.08 + catBounceCombo * 0.14);
+      ballSpeedY = -(INITIAL_BALL_SPEED * catStartMult);
+    } else {
+      ballSpeedY = -INITIAL_BALL_SPEED;
     }
-    ballSpeedX = t;
+
+    const halfPad = paddleWidth / 2;
+    let launchX = (ballX + BALL_SIZE / 2 - paddleX) / halfPad * INITIAL_BALL_SPEED * 1.4;
+
+    // MAG-LOCK Flick-Velocity Aiming & Slingshot Overcharge!
+    if (caughtByMagLock || isStickyPaddle) {
+      caughtByMagLock = false;
+      magSlingshotCharges = 3;
+      ball.classList.add("ball-slingshot");
+      // Translate horizontal mouse/paddle movement velocity into the ball's release angle!
+      launchX += paddleVelocityX * 0.58;
+      launchX = Math.max(-540, Math.min(540, launchX));
+      if (Math.abs(paddleVelocityX) > 140) {
+        const dirText = paddleVelocityX > 0 ? "RIGHT FLICK ➔" : "⬅ LEFT FLICK";
+        showNotification({
+          title: `🧲 MAG-SLINGSHOT (${dirText})`,
+          emoji: "🧲",
+          name: "SLINGSHOT ×1.5!",
+          description: "NEXT 3 BRICKS WORTH ×1.5 + 8 BASE PTS!",
+          color: "#ff00ff",
+          mode: "burst"
+        }, { x: paddleX });
+      }
+    }
+
+    if (isCatMode && Math.abs(launchX) < 135) {
+      launchX = (Math.random() > 0.5 ? 1 : -1) * 180;
+    } else if (Math.abs(launchX) < 65) {
+      launchX = (Math.random() > 0.5 ? 1 : -1) * 95;
+    }
+    ballSpeedX = launchX;
     soundManager.play("magLaunch");
   }
 }
+
+function spawnLaserVolley(tier = 1, isAuto = false) {
+  const clampedTier = Math.min(Math.max(tier, 1), 3);
+  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  const wingOuter = Math.max(18, paddleWidth * 0.38);
+  const wingInner = Math.max(8, paddleWidth * 0.18);
+
+  if (clampedTier === 1) {
+    // Tier 1: Twin Crimson Pulse Lasers (+4 base PTS, ×1.25 mult)
+    const w = 6, h = 22;
+    [paddleX - wingOuter - w / 2, paddleX + wingOuter - w / 2].forEach(bx => {
+      const cx = Math.max(4, Math.min(GAME_WIDTH - w - 4, bx));
+      const el = document.createElement("div");
+      el.className = "laser-bolt laser-bolt-t1";
+      el.style.left = `${cx}px`;
+      el.style.top = `${paddleTop - h}px`;
+      gameArea.appendChild(el);
+      lasers.push({
+        element: el,
+        x: cx,
+        y: paddleTop - h,
+        width: w,
+        height: h,
+        damage: 1,
+        bonusPts: 4,
+        laserMult: 1.25,
+        speed: LASER_SPEED
+      });
+    });
+    soundManager.play("laserFire", { pitch: 1.0, volume: isAuto ? 0.42 : 0.75 });
+  } else if (clampedTier === 2) {
+    // Tier 2: Quad Rapid Cyan/Magenta Gatling Lasers (+7 base PTS, ×1.5 mult)
+    const w = 6, h = 25;
+    const mounts = [
+      { x: paddleX - wingOuter - w / 2, yOff: 0 },
+      { x: paddleX - wingInner - w / 2, yOff: 8 },
+      { x: paddleX + wingInner - w / 2, yOff: 8 },
+      { x: paddleX + wingOuter - w / 2, yOff: 0 }
+    ];
+    mounts.forEach((m, idx) => {
+      const cx = Math.max(4, Math.min(GAME_WIDTH - w - 4, m.x));
+      const cy = paddleTop - h - m.yOff;
+      const el = document.createElement("div");
+      el.className = `laser-bolt laser-bolt-t2 ${idx % 2 === 0 ? "gatling-cyan" : "gatling-magenta"}`;
+      el.style.left = `${cx}px`;
+      el.style.top = `${cy}px`;
+      gameArea.appendChild(el);
+      lasers.push({
+        element: el,
+        x: cx,
+        y: cy,
+        width: w,
+        height: h,
+        damage: 1,
+        bonusPts: 7,
+        laserMult: 1.5,
+        speed: LASER_SPEED * 1.18
+      });
+    });
+    soundManager.play("laserFire", { pitch: 1.28, volume: isAuto ? 0.45 : 0.8 });
+  } else {
+    // Tier 3: Hyper-Beam Golden/Violet Plasma Lances (3 wide lances, 2× Armor Damage, +12 base PTS, ×2.0 mult!)
+    const mounts = [
+      { x: paddleX - wingOuter - 5, w: 9, h: 30, yOff: 0 },
+      { x: paddleX - 5,             w: 10, h: 34, yOff: 10 },
+      { x: paddleX + wingOuter - 5, w: 9, h: 30, yOff: 0 }
+    ];
+    mounts.forEach(m => {
+      const cx = Math.max(4, Math.min(GAME_WIDTH - m.w - 4, m.x));
+      const cy = paddleTop - m.h - m.yOff;
+      const el = document.createElement("div");
+      el.className = "laser-bolt laser-bolt-t3";
+      el.style.left = `${cx}px`;
+      el.style.top = `${cy}px`;
+      gameArea.appendChild(el);
+      lasers.push({
+        element: el,
+        x: cx,
+        y: cy,
+        width: m.w,
+        height: m.h,
+        damage: 2,
+        bonusPts: 12,
+        laserMult: 2.0,
+        speed: LASER_SPEED * 1.32
+      });
+    });
+    soundManager.play("laserFire", { pitch: 0.86, volume: isAuto ? 0.52 : 0.88 });
+  }
+}
+
 function fireLaser() {
   if (!canFire || !isLaserActive) return;
   canFire = false;
-  soundManager.play("laserFire");
-  const boltWidth = 6;
-  const boltHeight = 22;
-  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
-  const wingOffset = Math.max(18, paddleWidth * 0.38);
-  const xPositions = [
-    paddleX - wingOffset - boltWidth / 2,
-    paddleX + wingOffset - boltWidth / 2
-  ];
-  xPositions.forEach(bx => {
-    const clampedX = Math.max(4, Math.min(GAME_WIDTH - boltWidth - 4, bx));
-    const bolt = { x: clampedX, y: paddleTop - boltHeight, width: boltWidth, height: boltHeight };
-    const el = document.createElement("div");
-    el.className = "laser-bolt";
-    el.style.left = `${bolt.x}px`;
-    el.style.top = `${bolt.y}px`;
-    gameArea.appendChild(el);
-    bolt.element = el;
-    lasers.push(bolt);
-  });
-  setTimeout(() => { canFire = true; }, FIRE_COOLDOWN);
+  const laserTier = Math.min(Math.max(activePowerUps["laser-blast"]?.length || 1, 1), 3);
+  spawnLaserVolley(laserTier, false);
+  const cooldown = [260, 190, 140][laserTier - 1] || 220;
+  setTimeout(() => { canFire = true; }, cooldown);
 }
 
 function spawnDisruptiveBricks() {
@@ -3273,6 +4011,15 @@ document.addEventListener("keydown", e => {
 
   const t = e.key.toLowerCase();
 
+  // Between-Level Intermission Screen: SPACE or ENTER continues to the next level!
+  if (isLevelIntermissionOpen && !gameOver) {
+    if (" " === t || "enter" === t) {
+      e.preventDefault();
+      resumeFromLevelIntermission();
+      return;
+    }
+  }
+
   // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad, or 1-4 to pick Class
   if (isStartScreenOpen()) {
     if (" " === t || "enter" === t) {
@@ -3327,6 +4074,8 @@ document.addEventListener("keydown", e => {
     e.preventDefault();
     if (gameOver) {
       assetsReady && startGame();
+    } else if (isLevelIntermissionOpen) {
+      resumeFromLevelIntermission();
     } else if (!gameRunning) {
       togglePause();
     } else {
@@ -3336,11 +4085,27 @@ document.addEventListener("keydown", e => {
   } else if ("f" === t) {
     isLaserActive && gameRunning && fireLaser();
   } else if ("p" === t || "escape" === t) {
-    !gameOver && togglePause();
+    !gameOver && !isLevelIntermissionOpen && togglePause();
   }
 });
 document.addEventListener("keyup",e=>{const t=e.key.toLowerCase();"arrowleft"===t||"a"===t?leftPressed=!1:"arrowright"===t||"d"===t&&(rightPressed=!1)});
-document.addEventListener("mousemove",e=>{if(gameRunning){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
+document.addEventListener("mousemove",e=>{if(gameRunning||isLevelIntermissionOpen){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
+
+// Allow clicking on the playfield during gameplay to launch a Mag-Locked/stuck ball (with mouse flick velocity!) or fire lasers, or resume from intermission
+gameArea.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  if (isLevelIntermissionOpen && !gameOver) {
+    resumeFromLevelIntermission();
+    return;
+  }
+  if (gameRunning && !gameOver) {
+    if (ballIsStuck) {
+      launchStuckBall();
+    } else if (isLaserActive) {
+      fireLaser();
+    }
+  }
+});
 
 setupGame();
 syncRemoteLeaderboard();
@@ -3608,6 +4373,7 @@ function handleCatNineLivesSave() {
     return false;
   }
   catLives--;
+  resetBrickStreakOnMiss();
   playCuteCatSound("destroy1", { volume: 1.0 });
   setTimeout(() => playCuteCatSound("bounce", { volume: 1.0 }), 110);
 
@@ -4547,54 +5313,54 @@ function buildArcadeGuideHTML() {
       <div>
         <span class="advert-kicker">★ NEON-CORP COIN-OP DIVISION // OPERATOR'S MANUAL ★</span>
         <h2 class="advert-title">SMASH THE GRID. STACK THE JUICE.</h2>
-        <p class="advert-subtitle">4 Runner Classes (L1–L5 Linear Paths) • ${MAX_LEVELS} Escalating Boards (×1–×${MAX_LEVELS} Multiplier) • 5 Power-Up Mods.</p>
+        <p class="advert-subtitle">4 Runner Classes (Distinct Paddles + Buff &amp; Handicap) • ${MAX_LEVELS} Escalating Levels (×1–×${MAX_LEVELS} Multiplier) • 5 Scoring Power-Ups.</p>
       </div>
       <button type="button" id="advert-close-btn" class="advert-close-btn">✕ CLOSE [ESC]</button>
     </div>
 
-    <div class="advert-section-title">🕹️ 4 RUNNER CLASSES &amp; 5-TIER LINEAR PROGRESSION</div>
+    <div class="advert-section-title">🕹️ 4 RUNNER CLASSES (DISTINCT PADDLES, BUFFS &amp; HANDICAPS)</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #00ffff;">
         <div class="advert-card-head">
           <span class="advert-card-name">⚡ STRIKER</span>
-          <span class="advert-card-tag">TESLA ARC &amp; AUTO-TURRETS</span>
+          <span class="advert-card-tag">TWIN-COIL CYAN RAIL DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1:</strong> 1× Homing Tesla Bolt on paddle bounce ➔ <strong>L2:</strong> Twin Wing Auto-Turrets (1.8s) ➔ <strong>L3:</strong> 2× Tesla Bolts + Faster Turrets (1.2s) ➔ <strong>L4:</strong> 3× Tesla Bolts + Rapid Turrets (0.75s) ➔ <strong>L5:</strong> Max Storm + Gravity Tractor I.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> 1×–3× Homing Tesla Bolts (+8 PTS) + Twin Wing Auto-Turrets (1.8s ➔ 0.75s, +6 PTS) + L5 Tractor.<br><strong>▲ BUFF:</strong> +10% Ball Velocity &amp; +8/+6 Bonus PTS on Arc/Turret hits.<br><strong>▼ HANDICAP:</strong> -12% Narrower Precision Paddle.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ff88;">
         <div class="advert-card-head">
           <span class="advert-card-name">🛡️ GUARDIAN</span>
-          <span class="advert-card-tag">WIDE TITAN DECK &amp; AEGIS SHIELD</span>
+          <span class="advert-card-tag">ARMORED EMERALD BASTION DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1:</strong> +22% Paddle Width &amp; +14% Speed ➔ <strong>L2:</strong> Aegis Floor Forcefield (22s recharge) ➔ <strong>L3:</strong> +44% Width &amp; 15s Aegis ➔ <strong>L4:</strong> +66% Width &amp; 9s Aegis ➔ <strong>L5:</strong> Fortress Deck MAX + Gravity Tractor II.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> +22% to +66% Paddle Width + Aegis Floor Forcefield (22s ➔ 9s recharge) + L5 Fortress MAX.<br><strong>▲ BUFF:</strong> <strong>×1.35 PTS Fortress Intact Bonus (×1.60 at L5)</strong> while Aegis Shield is charged!<br><strong>▼ HANDICAP:</strong> -10% Heavy Ball Velocity.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff6600;">
         <div class="advert-card-head">
           <span class="advert-card-name">💥 DEMOLISHER</span>
-          <span class="advert-card-tag">PIERCING BALL &amp; PLASMA NOVA</span>
+          <span class="advert-card-tag">HAZARD-ORANGE SIEGE RAM</span>
         </div>
-        <p class="advert-card-body"><strong>L1:</strong> Ball plows through 1 brick (2× hit dmg) ➔ <strong>L2:</strong> Plasma Nova Ring every 4th brick ➔ <strong>L3:</strong> Pierce 2 bricks + Nova every 3rd brick ➔ <strong>L4:</strong> Pierce 3 bricks + Supernova every 2nd brick ➔ <strong>L5:</strong> Cataclysm MAX + Tesla I.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> Ball plows through 1–3 bricks (2× armor dmg) + Plasma Nova Ring every 4th/3rd/2nd brick (+15 PTS/splash).<br><strong>▲ BUFF:</strong> <strong>×1.35 Siege Breaker PTS</strong> on Armored &amp; Gold Vault bricks.<br><strong>▼ HANDICAP:</strong> -15% Shorter Timed Power-Up Durations.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffd700;">
         <div class="advert-card-head">
-          <span class="advert-card-name">💎 HIGH-ROLLER</span>
-          <span class="advert-card-tag">SCORE MULTIPLIER &amp; MAGNET</span>
+          <span class="advert-card-name">🎲 HIGH-ROLLER</span>
+          <span class="advert-card-tag">GOLD CASINO MARQUEE DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1:</strong> 1.4× All Points (+10% Ball Speed) ➔ <strong>L2:</strong> Gravity Tractor Magnet (+50 PTS catch) ➔ <strong>L3:</strong> 1.85× Points + Magnet II (+100 PTS) ➔ <strong>L4:</strong> 2.5× Points + Magnet III (+175 PTS) ➔ <strong>L5:</strong> Jackpot Overlord + Pierce I.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> Every paddle bounce rolls <strong>2D6 Cyber-Dice (0.85× to 3.8× PTS)</strong> + <strong>🎰 777 Slot Jackpot</strong> (instant bonus PTS + free power-up!) + <strong>🃏 Holo-Card Tractor</strong> (25% chance to double-stack capsules!).<br><strong>▼ HANDICAP:</strong> Snake Eyes rolls 0.85× &amp; +12% Faster Ball.</p>
       </div>
     </div>
 
-    <div class="advert-section-title">🚀 ${MAX_LEVELS}-BOARD REPLENISHMENT, SCALING MULTIPLIER &amp; DIFFICULTY</div>
+    <div class="advert-section-title">🚀 ${MAX_LEVELS}-LEVEL REPLENISHMENT, INTERMISSIONS &amp; DIFFICULTY</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #90ff5a;">
         <div class="advert-card-head">
-          <span class="advert-card-name">📈 REPLENISHING BOARDS (1–${MAX_LEVELS})</span>
+          <span class="advert-card-name">📈 REPLENISHING LEVELS (1–${MAX_LEVELS})</span>
           <span class="advert-card-tag">×1 ➔ ×2 ➔ ×3 ➔ ×4 ➔ ×${MAX_LEVELS}</span>
         </div>
-        <p class="advert-card-body">Every time you clear all 50 bricks, the board <strong>replenishes</strong> and your global <strong>Board Score Multiplier</strong> increases (<strong>×1 to ×${MAX_LEVELS}</strong>, stacking with Expando)! Clear all <strong>${MAX_LEVELS} boards</strong> for Mission Complete!</p>
+        <p class="advert-card-body">Clearing all 50 bricks opens the <strong>Level Clear Celebration Screen</strong>, awards a massive Clear Bonus, shifts the cyber-grid atmosphere, and raises your global <strong>Level Score Multiplier (×1 to ×${MAX_LEVELS})</strong>!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff3366;">
@@ -4602,34 +5368,34 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🔥 ESCALATING DIFFICULTY</span>
           <span class="advert-card-tag">SPEED • ARMOR • GOLD VAULTS</span>
         </div>
-        <p class="advert-card-body">Each replenished board escalates the challenge: <strong>+14% Ball Speed</strong>, <strong>-4% tighter base paddle</strong>, more <strong>2-Hit Armored Bricks (×1.6 PTS)</strong>, and <strong>3-Hit Gold Vault Bricks (×3.0 PTS &amp; +3 XP)</strong>!</p>
+        <p class="advert-card-body">Each replenished level escalates the challenge: <strong>+14% Ball Speed</strong>, <strong>-4% tighter base paddle</strong>, more <strong>2-Hit Armored Bricks (×1.6 PTS)</strong>, and <strong>3-Hit Gold Vault Bricks (×3.0 PTS &amp; +3 XP)</strong>!</p>
       </div>
     </div>
 
-    <div class="advert-section-title">⚡ EXPERIMENTAL POWER-UP MODS (35% DROP RATE)</div>
+    <div class="advert-section-title">⚡ 5 POWER-UP MODS (GAMEPLAY + SCORING EFFECTS!)</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #90ff5a;">
         <div class="advert-card-head">
           <span class="advert-card-name">🪴 EXPANDO</span>
           <span class="advert-card-tag">15s • STACKS UP TO 3×</span>
         </div>
-        <p class="advert-card-body">Stretches your paddle by <strong>+35% per stack</strong> (Lime ➔ Gold ➔ Orange) AND multiplies your active Board Multiplier by <strong>×2, ×3, and ×4</strong>! Catching a 4th at Max Power bounces it back into the arena!</p>
+        <p class="advert-card-body"><strong>Gameplay:</strong> +35% paddle width per stack (Lime ➔ Gold ➔ Orange).<br><strong>Scoring:</strong> Multiplies your active Score Multiplier by <strong>×2, ×3, and ×4</strong>!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff5555;">
         <div class="advert-card-head">
-          <span class="advert-card-name">🎯 LASER BLAST</span>
-          <span class="advert-card-tag">5s • TWIN CANNONS</span>
+          <span class="advert-card-name">🎯 LASER BLAST (3 TIERS)</span>
+          <span class="advert-card-tag">6.5s • AUTO + MANUAL FIRE</span>
         </div>
-        <p class="advert-card-body">Bolts twin plasma cannons to your paddle's outer wings! Mash <strong>SPACE</strong> (or <strong>F</strong> / Click) to fire twin bolts every 0.3s. Every laser hit awards <strong>+3 PTS × active multipliers</strong>!</p>
+        <p class="advert-card-body"><strong>Tier 1 (🎯×1):</strong> Auto Twin Pulse (0.38s, +4 PTS, ×1.25).<br><strong>Tier 2 (⚡×2):</strong> Quad Rapid Gatling (0.24s, +7 PTS, ×1.5).<br><strong>Tier 3 (👑×3):</strong> Hyper-Beam Plasma Lance (0.17s, <strong>2× Armor DMG</strong>, +12 PTS, ×2.0)!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff00ff;">
         <div class="advert-card-head">
           <span class="advert-card-name">🧲 MAG-LOCK</span>
-          <span class="advert-card-tag">4s • CATCH &amp; AIM</span>
+          <span class="advert-card-tag">4s • FLICK-VELOCITY AIM</span>
         </div>
-        <p class="advert-card-body">Electromagnets lock the ball to your deck on impact! Reposition, aim near the paddle's outer edges for a razor-sharp <strong>1.5× vector angle</strong>, and press <strong>SPACE</strong> to launch!</p>
+        <p class="advert-card-body"><strong>Gameplay:</strong> Catches the ball—<strong>move your mouse while releasing</strong> to curve your launch angle with paddle flick velocity!<br><strong>Scoring:</strong> Grants <strong>×1.5 Slingshot Overcharge (+8 base PTS)</strong> on your next 3 bricks!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ffff;">
@@ -4637,15 +5403,15 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🐌 SLOW-MO</span>
           <span class="advert-card-tag">5s • STACKS UP TO 3×</span>
         </div>
-        <p class="advert-card-body">Engages bullet-time! Cuts ball speed to <strong>75% / 56% / 42%</strong>, leaves phantom onion-skin trails, and drops all arcade audio into a deep slow-motion bass warp.</p>
+        <p class="advert-card-body"><strong>Gameplay:</strong> Cuts ball speed to <strong>75% / 56% / 42%</strong> with bullet-time trails.<br><strong>Scoring:</strong> Awards a <strong>×1.5 / ×1.75 / ×2.0 Precision Score Multiplier</strong> on all bricks broken during Slow-Mo!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffa500;">
         <div class="advert-card-head">
           <span class="advert-card-name">🧱 BRICKED UP!</span>
-          <span class="advert-card-tag">INSTANT • 20%–50% REFILL</span>
+          <span class="advert-card-tag">INSTANT • GRID REFILL</span>
         </div>
-        <p class="advert-card-body">Restores <strong>20% to 50% of currently broken bricks</strong> directly into their aligned grid slots—and each restored brick carries a <strong>+6 base point bonus</strong> before multipliers!</p>
+        <p class="advert-card-body"><strong>Gameplay:</strong> Restores <strong>20%–50% of broken bricks</strong> into aligned grid slots.<br><strong>Scoring:</strong> Awards an <strong>instant +150 × Level Bonus on catch</strong>, plus <strong>+8 base PTS</strong> on every restored brick!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffd700;">
@@ -4657,14 +5423,14 @@ function buildArcadeGuideHTML() {
       </div>
     </div>
 
-    <div class="advert-section-title">🔥 STUNT MULTIPLIERS &amp; ARENA MILESTONES (THEY STACK TOGETHER!)</div>
+    <div class="advert-section-title">🔥 STUNT MULTIPLIERS &amp; NEON LEGEND OVERDRIVE</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #ffd700;">
         <div class="advert-card-head">
           <span class="advert-card-name">👑 ROOF BONUS</span>
           <span class="advert-card-tag">15 BASE PTS (×1.5)</span>
         </div>
-        <p class="advert-card-body">Skim the ball off the top ceiling! Your ball ignites with a giant golden aura and boosts base brick value from <strong>10 ➔ 15 PTS</strong> until your next brick break.</p>
+        <p class="advert-card-body">Skim the ball off the top ceiling! Your ball ignites with a golden aura and boosts base brick value from <strong>10 ➔ 15 PTS</strong> until your next brick break.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ff00;">
@@ -4672,7 +5438,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">📐 WALL BANK-SHOT</span>
           <span class="advert-card-tag">+2 BASE PTS</span>
         </div>
-        <p class="advert-card-body">Ricochet off the left or right perimeter wall immediately before smashing a brick to add <strong>+2 base points</strong> (which then get multiplied by Board, Expando &amp; Edge Runner)!</p>
+        <p class="advert-card-body">Ricochet off the left or right perimeter wall immediately before smashing a brick to add <strong>+2 base points</strong> before all multipliers!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ffff;">
@@ -4680,42 +5446,42 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">⚡ EDGE RUNNER</span>
           <span class="advert-card-tag">×2 / ×3 / ×4 ROW BONUS</span>
         </div>
-        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to award <strong>+4 Class XP</strong>, slam the arena jumbotron, and <strong>multiply all brick points by ×2, ×3, or ×4</strong> for the current board!</p>
+        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to award <strong>+4 Class XP</strong>, slam the arena jumbotron, and <strong>multiply all brick points by ×2, ×3, or ×4</strong> for the current level!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff00ff;">
         <div class="advert-card-head">
-          <span class="advert-card-name">😎 NEON LEGEND</span>
-          <span class="advert-card-tag">UNLOCKS AT 500 PTS</span>
+          <span class="advert-card-name">😎 NEON LEGEND OVERDRIVE</span>
+          <span class="advert-card-tag">10-BRICK STREAK • ×1.5 PTS</span>
         </div>
-        <p class="advert-card-body">Pass <strong>500 points</strong> to trigger the Neon Legend anthem and permanently upgrade your ball to the unflappable <strong>😎 Cyber-Shades</strong> persona!</p>
+        <p class="advert-card-body">Smash <strong>10 bricks in an unbroken streak</strong> (or pass 5,000 PTS) to ignite <strong>😎 Neon Legend Overdrive</strong>: grants a live <strong>×1.5 Score Multiplier + +8% Overdrive Speed</strong> until the ball drops!</p>
       </div>
     </div>
 
-    <div class="advert-section-title">🏆 THE 14 CYBER-RUNNER RANKS</div>
+    <div class="advert-section-title">🏆 THE 14 CYBER-RUNNER RANKS (RECALIBRATED 5-LEVEL CURVE)</div>
     <div class="advert-ranks-box">
       <div class="advert-rank-col">
         <h4>💀 SYSTEM FAILURE (BALL LOST)</h4>
         <ul class="advert-rank-list">
-          <li><span>System Glitch</span><span class="advert-rank-score">0–199</span></li>
-          <li><span>Code Ghost</span><span class="advert-rank-score">200–399</span></li>
-          <li><span>Memory Leak</span><span class="advert-rank-score">400–699</span></li>
-          <li><span>Burned Out</span><span class="advert-rank-score">700–999</span></li>
-          <li><span>Data Janitor</span><span class="advert-rank-score">1,000–1,499</span></li>
-          <li><span>Pixel Drifter</span><span class="advert-rank-score">1,500–1,999</span></li>
-          <li><span>Grid Runner</span><span class="advert-rank-score">2,000–2,499</span></li>
-          <li><span>Neon Operator</span><span class="advert-rank-score">2,500+</span></li>
+          <li><span>System Glitch</span><span class="advert-rank-score">&lt; 1,500</span></li>
+          <li><span>Code Ghost</span><span class="advert-rank-score">1,500–3,999</span></li>
+          <li><span>Memory Leak</span><span class="advert-rank-score">4,000–7,999</span></li>
+          <li><span>Burned Out</span><span class="advert-rank-score">8,000–14,999</span></li>
+          <li><span>Data Janitor</span><span class="advert-rank-score">15,000–27,999</span></li>
+          <li><span>Pixel Drifter</span><span class="advert-rank-score">28,000–49,999</span></li>
+          <li><span>Grid Runner</span><span class="advert-rank-score">50,000–79,999</span></li>
+          <li><span>Neon Operator</span><span class="advert-rank-score">80,000+</span></li>
         </ul>
       </div>
       <div class="advert-rank-col win-col">
-        <h4>👑 MISSION COMPLETE (ALL ${MAX_LEVELS} BOARDS CLEARED)</h4>
+        <h4>👑 MISSION COMPLETE (ALL ${MAX_LEVELS} LEVELS CLEARED)</h4>
         <ul class="advert-rank-list">
-          <li><span>Neon Legend</span><span class="advert-rank-score">&lt; 3,500</span></li>
-          <li><span>Circuit Surfer</span><span class="advert-rank-score">3,500–4,499</span></li>
-          <li><span>Hologram Hacker</span><span class="advert-rank-score">4,500–5,999</span></li>
-          <li><span>Beyond the Black Wall</span><span class="advert-rank-score">6,000–7,999</span></li>
-          <li><span>Synth Overlord</span><span class="advert-rank-score">8,000–9,999</span></li>
-          <li><span>You Are The Replaced</span><span class="advert-rank-score">10,000+</span></li>
+          <li><span>Neon Legend</span><span class="advert-rank-score">&lt; 55,000</span></li>
+          <li><span>Circuit Surfer</span><span class="advert-rank-score">55,000–89,999</span></li>
+          <li><span>Hologram Hacker</span><span class="advert-rank-score">90,000–129,999</span></li>
+          <li><span>Beyond the Black Wall</span><span class="advert-rank-score">130,000–179,999</span></li>
+          <li><span>Synth Overlord</span><span class="advert-rank-score">180,000–249,999</span></li>
+          <li><span>You Are The Replaced</span><span class="advert-rank-score">250,000+</span></li>
         </ul>
       </div>
     </div>
