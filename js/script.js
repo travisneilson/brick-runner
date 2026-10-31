@@ -4456,9 +4456,63 @@ function buildArcadeGuideHTML() {
       <div>
         <span class="advert-kicker">★ NEON-CORP COIN-OP DIVISION // OPERATOR'S MANUAL ★</span>
         <h2 class="advert-title">SMASH THE GRID. STACK THE JUICE.</h2>
-        <p class="advert-subtitle">50 High-Voltage Cyber-Bricks. 5 Experimental Mods. Infinite Multiplier Mayhem.</p>
+        <p class="advert-subtitle">4 Runner Classes (L1–L5 Linear Paths) • ${MAX_LEVELS} Escalating Boards (×1–×${MAX_LEVELS} Multiplier) • 5 Power-Up Mods.</p>
       </div>
       <button type="button" id="advert-close-btn" class="advert-close-btn">✕ CLOSE [ESC]</button>
+    </div>
+
+    <div class="advert-section-title">🕹️ 4 RUNNER CLASSES &amp; 5-TIER LINEAR PROGRESSION</div>
+    <div class="advert-grid">
+      <div class="advert-card" style="--card-accent: #00ffff;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">⚡ STRIKER</span>
+          <span class="advert-card-tag">TESLA ARC &amp; AUTO-TURRETS</span>
+        </div>
+        <p class="advert-card-body"><strong>L1:</strong> 1× Homing Tesla Bolt on paddle bounce ➔ <strong>L2:</strong> Twin Wing Auto-Turrets (1.8s) ➔ <strong>L3:</strong> 2× Tesla Bolts + Faster Turrets (1.2s) ➔ <strong>L4:</strong> 3× Tesla Bolts + Rapid Turrets (0.75s) ➔ <strong>L5:</strong> Max Storm + Gravity Tractor I.</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #00ff88;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🛡️ GUARDIAN</span>
+          <span class="advert-card-tag">WIDE TITAN DECK &amp; AEGIS SHIELD</span>
+        </div>
+        <p class="advert-card-body"><strong>L1:</strong> +22% Paddle Width &amp; +14% Speed ➔ <strong>L2:</strong> Aegis Floor Forcefield (22s recharge) ➔ <strong>L3:</strong> +44% Width &amp; 15s Aegis ➔ <strong>L4:</strong> +66% Width &amp; 9s Aegis ➔ <strong>L5:</strong> Fortress Deck MAX + Gravity Tractor II.</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ff6600;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">💥 DEMOLISHER</span>
+          <span class="advert-card-tag">PIERCING BALL &amp; PLASMA NOVA</span>
+        </div>
+        <p class="advert-card-body"><strong>L1:</strong> Ball plows through 1 brick (2× hit dmg) ➔ <strong>L2:</strong> Plasma Nova Ring every 4th brick ➔ <strong>L3:</strong> Pierce 2 bricks + Nova every 3rd brick ➔ <strong>L4:</strong> Pierce 3 bricks + Supernova every 2nd brick ➔ <strong>L5:</strong> Cataclysm MAX + Tesla I.</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ffd700;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">💎 HIGH-ROLLER</span>
+          <span class="advert-card-tag">SCORE MULTIPLIER &amp; MAGNET</span>
+        </div>
+        <p class="advert-card-body"><strong>L1:</strong> 1.4× All Points (+10% Ball Speed) ➔ <strong>L2:</strong> Gravity Tractor Magnet (+50 PTS catch) ➔ <strong>L3:</strong> 1.85× Points + Magnet II (+100 PTS) ➔ <strong>L4:</strong> 2.5× Points + Magnet III (+175 PTS) ➔ <strong>L5:</strong> Jackpot Overlord + Pierce I.</p>
+      </div>
+    </div>
+
+    <div class="advert-section-title">🚀 ${MAX_LEVELS}-BOARD REPLENISHMENT, SCALING MULTIPLIER &amp; DIFFICULTY</div>
+    <div class="advert-grid">
+      <div class="advert-card" style="--card-accent: #90ff5a;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">📈 REPLENISHING BOARDS (1–${MAX_LEVELS})</span>
+          <span class="advert-card-tag">×1 ➔ ×2 ➔ ×3 ➔ ×4 ➔ ×${MAX_LEVELS}</span>
+        </div>
+        <p class="advert-card-body">Every time you clear all 50 bricks, the board <strong>replenishes</strong> and your global <strong>Board Score Multiplier</strong> increases (<strong>×1 to ×${MAX_LEVELS}</strong>, stacking with Expando)! Clear all <strong>${MAX_LEVELS} boards</strong> for Mission Complete!</p>
+      </div>
+
+      <div class="advert-card" style="--card-accent: #ff3366;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🔥 ESCALATING DIFFICULTY</span>
+          <span class="advert-card-tag">SPEED • ARMOR • GOLD VAULTS</span>
+        </div>
+        <p class="advert-card-body">Each replenished board escalates the challenge: <strong>+14% Ball Speed</strong>, <strong>-4% tighter base paddle</strong>, more <strong>2-Hit Armored Bricks (×1.6 PTS)</strong>, and <strong>3-Hit Gold Vault Bricks (×3.0 PTS &amp; +3 XP)</strong>!</p>
+      </div>
     </div>
 
     <div class="advert-section-title">⚡ EXPERIMENTAL POWER-UP MODS (35% DROP RATE)</div>
@@ -4468,7 +4522,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🪴 EXPANDO</span>
           <span class="advert-card-tag">15s • STACKS UP TO 3×</span>
         </div>
-        <p class="advert-card-body">Stretches your paddle by <strong>+35% per stack</strong> (Lime ➔ Gold ➔ Orange) AND overclocks your global Score Multiplier to <strong>×2, ×3, and ×4</strong>! Catching a 4th at Max Power bounces it back into the arena!</p>
+        <p class="advert-card-body">Stretches your paddle by <strong>+35% per stack</strong> (Lime ➔ Gold ➔ Orange) AND multiplies your active Board Multiplier by <strong>×2, ×3, and ×4</strong>! Catching a 4th at Max Power bounces it back into the arena!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff5555;">
@@ -4482,7 +4536,7 @@ function buildArcadeGuideHTML() {
       <div class="advert-card" style="--card-accent: #ff00ff;">
         <div class="advert-card-head">
           <span class="advert-card-name">🧲 MAG-LOCK</span>
-          <span class="advert-card-tag">4s • CATCH & AIM</span>
+          <span class="advert-card-tag">4s • CATCH &amp; AIM</span>
         </div>
         <p class="advert-card-body">Electromagnets lock the ball to your deck on impact! Reposition, aim near the paddle's outer edges for a razor-sharp <strong>1.5× vector angle</strong>, and press <strong>SPACE</strong> to launch!</p>
       </div>
@@ -4498,21 +4552,21 @@ function buildArcadeGuideHTML() {
       <div class="advert-card" style="--card-accent: #ffa500;">
         <div class="advert-card-head">
           <span class="advert-card-name">🧱 BRICKED UP!</span>
-          <span class="advert-card-tag">INSTANT • +5 BRICKS (+6 PTS)</span>
+          <span class="advert-card-tag">INSTANT • 20%–50% REFILL</span>
         </div>
-        <p class="advert-card-body">Drops <strong>5 fresh neon bricks</strong> into empty grid slots—and each re-spawned brick carries a <strong>+6 base point bonus</strong> before multipliers!</p>
+        <p class="advert-card-body">Restores <strong>20% to 50% of currently broken bricks</strong> directly into their aligned grid slots—and each restored brick carries a <strong>+6 base point bonus</strong> before multipliers!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffd700;">
         <div class="advert-card-head">
-          <span class="advert-card-name">🛡️ ARMORED BRICKS</span>
-          <span class="advert-card-tag">×1.6 PAYOUT • 2 HITS</span>
+          <span class="advert-card-name">🛡️ ARMORED &amp; GOLD VAULTS</span>
+          <span class="advert-card-tag">×1.6 (2-HIT) • ×3.0 (3-HIT)</span>
         </div>
-        <p class="advert-card-body">Standard bricks pay <strong>10 base PTS</strong>. Bricks with a <strong>black notched corner</strong> take 2 hits to shatter and multiply the final brick payout by <strong>×1.6</strong>!</p>
+        <p class="advert-card-body">Standard bricks pay <strong>10 base PTS (+1 XP)</strong>. Notched <strong>Armored Bricks</strong> take 2 hits for <strong>×1.6 PTS (+2 XP)</strong>, and <strong>Gold Vault Bricks</strong> take 3 hits for <strong>×3.0 PTS (+3 XP)</strong>!</p>
       </div>
     </div>
 
-    <div class="advert-section-title">🔥 STUNT MULTIPLIERS & ARENA MILESTONES (THEY STACK TOGETHER!)</div>
+    <div class="advert-section-title">🔥 STUNT MULTIPLIERS &amp; ARENA MILESTONES (THEY STACK TOGETHER!)</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #ffd700;">
         <div class="advert-card-head">
@@ -4527,7 +4581,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">📐 WALL BANK-SHOT</span>
           <span class="advert-card-tag">+2 BASE PTS</span>
         </div>
-        <p class="advert-card-body">Ricochet off the left or right perimeter wall immediately before smashing a brick to add <strong>+2 base points</strong> (which then get multiplied by Expando &amp; Edge Runner)!</p>
+        <p class="advert-card-body">Ricochet off the left or right perimeter wall immediately before smashing a brick to add <strong>+2 base points</strong> (which then get multiplied by Board, Expando &amp; Edge Runner)!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ffff;">
@@ -4535,7 +4589,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">⚡ EDGE RUNNER</span>
           <span class="advert-card-tag">×2 / ×3 / ×4 ROW BONUS</span>
         </div>
-        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to slam the arena jumbotron and <strong>permanently multiply all brick points by ×2, ×3, or ×4</strong> for the rest of the run!</p>
+        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to award <strong>+4 Class XP</strong>, slam the arena jumbotron, and <strong>multiply all brick points by ×2, ×3, or ×4</strong> for the current board!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff00ff;">
@@ -4563,7 +4617,7 @@ function buildArcadeGuideHTML() {
         </ul>
       </div>
       <div class="advert-rank-col win-col">
-        <h4>👑 MISSION COMPLETE (BOARD CLEARED)</h4>
+        <h4>👑 MISSION COMPLETE (ALL ${MAX_LEVELS} BOARDS CLEARED)</h4>
         <ul class="advert-rank-list">
           <li><span>Neon Legend</span><span class="advert-rank-score">&lt; 3,500</span></li>
           <li><span>Circuit Surfer</span><span class="advert-rank-score">3,500–4,499</span></li>
@@ -4576,12 +4630,13 @@ function buildArcadeGuideHTML() {
     </div>
 
     <div class="advert-secret-strip">
-      <span>🕵️ <strong>CLASSIFIED DECK HACKS:</strong> Press <code>[~]</code> to open the Cyber-Deck Terminal &amp; breach:</span>
+      <span>🕵️ <strong>CLASSIFIED DECK HACKS:</strong> Press <code>[~]</code> to open the Cyber-Deck Terminal &amp; breach (saves to Hacked Top 5):</span>
       <div>
         <code>catMode()</code>
         <code>poopStorm()</code>
         <code>confettiBlast()</code>
         <code>godMode()</code>
+        <code>maxOverdrive()</code>
       </div>
     </div>
     </div>
