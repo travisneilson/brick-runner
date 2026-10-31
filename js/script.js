@@ -3100,62 +3100,36 @@ function fireLaser() {
   setTimeout(() => { canFire = true; }, FIRE_COOLDOWN);
 }
 
-function spawnDisruptiveBricks(count) {
-  // 1) gather empty grid slots as before
-  const occupied = new Set();
-  bricks.forEach(b => {
-    if (!b.isBroken && !b.element.classList.contains('extra')) {
-      const gridLeft = (GAME_WIDTH - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP) / 2;
-      const col = Math.round((b.x - gridLeft) / (BRICK_WIDTH + BRICK_GAP));
-      const row = Math.round((b.y - 50 * GAME_SCALE) / (BRICK_HEIGHT + BRICK_GAP));
-      occupied.add(`${row},${col}`);
-    }
-  });
+function spawnDisruptiveBricks() {
+  // 1) Find all currently broken bricks in the active grid
+  const missingBricks = bricks.filter(b => b.isBroken);
+  if (missingBricks.length === 0) return;
 
-  // 2) collect all empty slots, shuffle, etc…
-  const candidates = [];
-  for (let row = 0; row < BRICK_ROWS; row++) {
-    for (let col = 0; col < BRICK_COLS; col++) {
-      if (occupied.has(`${row},${col}`)) continue;
-      const y = 50 * GAME_SCALE + row * (BRICK_HEIGHT + BRICK_GAP);
-      if (y + BRICK_HEIGHT > GAME_HEIGHT - 100) continue;
-      candidates.push({ row, col });
-    }
-  }
-  for (let i = candidates.length - 1; i > 0; i--) {
+  // 2) Respawn between 20% and 50% of the missing bricks
+  const restoreFraction = 0.20 + Math.random() * 0.30;
+  const spawnCount = Math.max(
+    1,
+    Math.min(missingBricks.length, Math.round(missingBricks.length * restoreFraction))
+  );
+
+  // 3) Shuffle missing bricks and restore them in-place so they are 100% aligned to the grid
+  const pool = [...missingBricks];
+  for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  // 3) spawn them into gameArea
-  const gridLeft = (GAME_WIDTH - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP) / 2;
-  const spawnCount = Math.min(count, candidates.length);
   for (let i = 0; i < spawnCount; i++) {
-    const { row, col } = candidates[i];
-    const x = gridLeft + col * (BRICK_WIDTH + BRICK_GAP);
-    const y = 50 * GAME_SCALE + row * (BRICK_HEIGHT + BRICK_GAP);
-
-    const el = document.createElement('div');
-    el.classList.add('brick','extra',`brick-row-${row}`);
-    el.style.position = 'absolute';
-    el.style.left     = `${x}px`;
-    el.style.top      = `${y}px`;
-    gameArea.appendChild(el);
-
-    bricks.push({
-      element:      el,
-      x, 
-      y,
-      width:        BRICK_WIDTH,
-      height:       BRICK_HEIGHT,
-      isBroken:     false,
-      hitsRequired: 1,
-      hitsTaken:    0,
-      powerUpType:  null,
-
-      // ← Tag it as an extra-spawned brick
-      isExtraSpawn: true
-    });
+    const b = pool[i];
+    b.isBroken = false;
+    b.hitsTaken = 0;
+    b.hitsRequired = 1;
+    b.isVaultBrick = false;
+    b.powerUpType = null;
+    b.isExtraSpawn = true;
+    b.element.innerHTML = "";
+    b.element.classList.remove("broken", "damaged", "multihit", "brick-vault");
+    b.element.classList.add("extra");
   }
 }
 
