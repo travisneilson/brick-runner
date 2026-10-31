@@ -227,19 +227,68 @@ let bricks = [];
 let lastTime = 0,
     frameCounter = 0;
 
-// --- Helper Functions & Arcade Leaderboard ---
+// --- Helper Functions & Dual Arcade Leaderboard (Legit vs. Hacked) ---
 const LEADERBOARD_STORAGE_KEY = "brickRunnerLeaderboard";
+const HACKED_LEADERBOARD_STORAGE_KEY = "brickRunnerHackedLeaderboard";
 const LAST_INITIALS_KEY = "brickRunnerLastInitials";
 const MAX_LEADERBOARD_ENTRIES = 5;
 // Optional: Paste a Google Apps Script Web App URL or REST endpoint here to sync scores globally across all players
 const LEADERBOARD_API_URL = "";
 
+const activeHackModes = new Set();
+let primaryHackModeId = null;
+let runUsedCheats = false;
+const runHackModesUsed = new Set();
+let activeLeaderboardTab = "legit"; // "legit" | "hacked"
+
+const HACK_BADGE_EMOJI = {
+  cat: "🐱",
+  poop: "💩",
+  party: "🎉",
+  god: "🎮",
+  juice: "⚡",
+  dev: "🛠️"
+};
+
 let memoryHighScore = 0;
 let memoryLeaderboard = null;
+let memoryHackedLeaderboard = null;
 let memoryLastInitials = "TRV";
 let awaitingInitials = false;
 let pendingEndGameWon = false;
 let lastSavedEntryId = null;
+
+function isAnyHackCurrentlyArmed() {
+  return activeHackModes.size > 0 || isCatMode || catModeArmed;
+}
+
+function getArmedHackEmojis() {
+  const icons = [];
+  if (isCatMode || catModeArmed || activeHackModes.has("cat")) icons.push("🐱");
+  activeHackModes.forEach(id => {
+    if (id !== "cat" && HACK_BADGE_EMOJI[id]) icons.push(HACK_BADGE_EMOJI[id]);
+  });
+  return icons;
+}
+
+function getRunHackEmojis() {
+  const icons = [];
+  runHackModesUsed.forEach(id => {
+    const em = HACK_BADGE_EMOJI[id] || id;
+    if (!icons.includes(em)) icons.push(em);
+  });
+  if (icons.length === 0 && isAnyHackCurrentlyArmed()) {
+    return getArmedHackEmojis();
+  }
+  return icons.length > 0 ? icons : ["💻"];
+}
+
+function markRunAsHacked(hackId = "dev") {
+  runUsedCheats = true;
+  if (hackId) runHackModesUsed.add(hackId);
+  updateHighScoreDisplay();
+  updateStartLeaderboard();
+}
 
 function getLastInitials() {
   try {
@@ -258,33 +307,99 @@ function saveLastInitials(initials) {
   }
 }
 
-function getLeaderboard() {
+function sanitizeAndMigrateLeaderboards() {
+  try {
+    const rawLegit = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    const rawHacked = localStorage.getItem(HACKED_LEADERBOARD_STORAGE_KEY);
+    let legitList = rawLegit ? JSON.parse(rawLegit) : [];
+    let hackedList = rawHacked ? JSON.parse(rawHacked) : [];
+    if (!Array.isArray(legitList)) legitList = [];
+    if (!Array.isArray(hackedList)) hackedList = [];
+
+    const cleanLegit = [];
+    let migrated = false;
+
+    legitList.forEach(item => {
+      if (!item || item.id === "legacy-seed") return;
+      const isSuspectHacked =
+        item.hacked === true ||
+        (Array.isArray(item.hacks) && item.hacks.length > 0) ||
+        item.score >= 50000;
+
+      if (isSuspectHacked) {
+        migrated = true;
+        const inferredHacks = Array.isArray(item.hacks) && item.hacks.length > 0
+          ? item.hacks
+          : (item.score >= 999999 ? ["🎮"] : ["💻"]);
+        hackedList.push({
+          ...item,
+          hacked: true,
+          hacks: inferredHacks
+        });
+      } else {
+        cleanLegit.push(item);
+      }
+    });
+
+    if (migrated) {
+      cleanLegit.sort((a, b) => b.score - a.score);
+      hackedList.sort((a, b) => b.score - a.score);
+      const trimmedLegit = cleanLegit.slice(0, MAX_LEADERBOARD_ENTRIES);
+      const trimmedHacked = hackedList.slice(0, MAX_LEADERBOARD_ENTRIES);
+      memoryLeaderboard = trimmedLegit;
+      memoryHackedLeaderboard = trimmedHacked;
+      localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(trimmedLegit));
+      localStorage.setItem(HACKED_LEADERBOARD_STORAGE_KEY, JSON.stringify(trimmedHacked));
+      localStorage.setItem("brickRunnerHighScore", trimmedLegit.length > 0 ? trimmedLegit[0].score : 0);
+    }
+
+    const storedHigh = parseInt(localStorage.getItem("brickRunnerHighScore"), 10) || 0;
+    if (storedHigh >= 50000) {
+      const topLegit = cleanLegit.length > 0 ? cleanLegit[0].score : 0;
+      localStorage.setItem("brickRunnerHighScore", topLegit);
+      memoryHighScore = topLegit;
+    }
+  } catch (err) {
+    // Ignore storage errors in sandboxed iframes
+  }
+}
+
+function getLeaderboard(mode = "legit") {
+  const isHacked = mode === "hacked";
+  const storageKey = isHacked ? HACKED_LEADERBOARD_STORAGE_KEY : LEADERBOARD_STORAGE_KEY;
+  const fallbackMem = isHacked ? memoryHackedLeaderboard : memoryLeaderboard;
+
   let list = null;
   try {
-    const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) list = JSON.parse(raw);
   } catch (err) {
-    list = memoryLeaderboard;
+    list = fallbackMem;
   }
   if (!Array.isArray(list)) {
-    list = Array.isArray(memoryLeaderboard) ? [...memoryLeaderboard] : [];
+    list = Array.isArray(fallbackMem) ? [...fallbackMem] : [];
   }
-  // Filter out any old phantom legacy-seed entries
   list = list.filter(item => item && item.id !== "legacy-seed");
   list.sort((a, b) => b.score - a.score);
   return list.slice(0, MAX_LEADERBOARD_ENTRIES);
 }
 
-function saveLeaderboard(entries) {
+function saveLeaderboard(entries, mode = "legit") {
+  const isHacked = mode === "hacked";
+  const storageKey = isHacked ? HACKED_LEADERBOARD_STORAGE_KEY : LEADERBOARD_STORAGE_KEY;
   const sorted = [...entries].sort((a, b) => b.score - a.score).slice(0, MAX_LEADERBOARD_ENTRIES);
-  memoryLeaderboard = sorted;
-  if (sorted.length > 0 && sorted[0].score > memoryHighScore) {
-    memoryHighScore = sorted[0].score;
+
+  if (isHacked) {
+    memoryHackedLeaderboard = sorted;
+  } else {
+    memoryLeaderboard = sorted;
+    memoryHighScore = sorted.length > 0 ? sorted[0].score : 0;
   }
+
   try {
-    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(sorted));
-    if (sorted.length > 0) {
-      localStorage.setItem("brickRunnerHighScore", sorted[0].score);
+    localStorage.setItem(storageKey, JSON.stringify(sorted));
+    if (!isHacked) {
+      localStorage.setItem("brickRunnerHighScore", sorted.length > 0 ? sorted[0].score : 0);
     }
   } catch (err) {
     // Ignore storage errors in sandboxed iframes
@@ -294,62 +409,224 @@ function saveLeaderboard(entries) {
   return sorted;
 }
 
-function qualifiesForLeaderboard(newScore) {
+function qualifiesForLeaderboard(newScore, mode = "legit") {
   if (newScore <= 0) return false;
-  const board = getLeaderboard();
+  const board = getLeaderboard(mode);
   return board.length < MAX_LEADERBOARD_ENTRIES || newScore > board[board.length - 1].score;
 }
 
-function addLeaderboardEntry(rawInitials, newScore, won) {
+function addLeaderboardEntry(rawInitials, newScore, won, mode = "legit", hacksUsed = []) {
   const cleanInitials = (rawInitials || "AAA").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3).padEnd(3, "A");
   saveLastInitials(cleanInitials);
+  const isHacked = mode === "hacked";
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     initials: cleanInitials,
     score: newScore,
     rating: getRating(newScore, won),
     won: !!won,
+    hacked: isHacked,
+    hacks: isHacked ? (hacksUsed.length > 0 ? hacksUsed : ["💻"]) : [],
     date: new Date().toISOString().slice(0, 10)
   };
-  const board = getLeaderboard();
+  const board = getLeaderboard(mode);
   board.push(entry);
-  saveLeaderboard(board);
+  saveLeaderboard(board, mode);
   lastSavedEntryId = entry.id;
-  postRemoteScore(entry);
+  if (!isHacked) {
+    postRemoteScore(entry);
+  }
   return entry;
 }
 
-function renderLeaderboardHTML(highlightId = null) {
-  const board = getLeaderboard();
-  if (board.length === 0) {
-    return `
-      <div class="leaderboard-heading">🏆 TOP 5 CYBER-RUNNERS</div>
-      <div class="leaderboard-empty">NO RECORDS YET — BE THE FIRST!</div>
-    `;
+function moveEntryToHackedLeaderboard(entryId) {
+  const legitBoard = getLeaderboard("legit");
+  const target = legitBoard.find(item => item.id === entryId);
+  if (!target) return;
+
+  const remainingLegit = legitBoard.filter(item => item.id !== entryId);
+  const hackedBoard = getLeaderboard("hacked");
+  const inferredHacks = (target.score % 10 === 9) ? ["🐱"] : ["💻"];
+  hackedBoard.push({
+    ...target,
+    hacked: true,
+    hacks: Array.isArray(target.hacks) && target.hacks.length > 0 ? target.hacks : inferredHacks
+  });
+
+  saveLeaderboard(remainingLegit, "legit");
+  saveLeaderboard(hackedBoard, "hacked");
+  activeLeaderboardTab = "hacked";
+  lastSavedEntryId = target.id;
+  updateStartLeaderboard();
+  const endLb = document.getElementById("end-leaderboard");
+  if (endLb) {
+    endLb.innerHTML = renderLeaderboardHTML(lastSavedEntryId, activeLeaderboardTab);
+    bindLeaderboardEvents(endLb, lastSavedEntryId);
   }
-  const rows = board.map((item, idx) => {
-    const classes = ["leaderboard-row"];
-    if (idx === 0) classes.push("rank-1");
-    if (highlightId && item.id === highlightId) classes.push("current-run");
-    return `
-      <div class="${classes.join(" ")}">
-        <span class="lb-pos">#${idx + 1}</span>
-        <span class="lb-initials">${item.initials}</span>
-        <span class="lb-score">${item.score}</span>
-        <span class="lb-tier">${item.rating || getRating(item.score, item.won)}</span>
+}
+
+function formatArcadeScore(num) {
+  return Number(num || 0).toLocaleString("en-US");
+}
+
+function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) {
+  const isHackedTab = mode === "hacked";
+  const board = getLeaderboard(mode);
+  const legitCount = getLeaderboard("legit").length;
+  const hackedCount = getLeaderboard("hacked").length;
+  const armedHacks = getArmedHackEmojis();
+  const hacksArmedNow = armedHacks.length > 0;
+
+  let statusStripHTML = "";
+  if (!isHackedTab) {
+    if (hacksArmedNow) {
+      statusStripHTML = `
+        <div class="leaderboard-mode-strip warn-strip">
+          <span>⚠️ HACKS ON (${armedHacks.join("")}) • NEXT RUN GOES TO HACKED</span>
+          <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">GO LEGIT</button>
+        </div>
+      `;
+    } else {
+      statusStripHTML = `
+        <div class="leaderboard-mode-strip legit-strip">
+          <span>🛡️ 100% CHEAT-FREE • PURE SKILL RECORDS</span>
+          <span class="lb-verified-pill">✓ VERIFIED</span>
+        </div>
+      `;
+    }
+  } else {
+    statusStripHTML = `
+      <div class="leaderboard-mode-strip hacked-strip">
+        <span>💻 HACK CONSOLE &amp; CHEAT MODE RECORDS</span>
+        <span class="lb-hacked-pill">${hacksArmedNow ? `ARMED: ${armedHacks.join("")}` : "HACK BOARD"}</span>
       </div>
     `;
-  }).join("");
+  }
+
+  const slots = [];
+  for (let idx = 0; idx < MAX_LEADERBOARD_ENTRIES; idx++) {
+    const item = board[idx];
+    if (item) {
+      const classes = ["leaderboard-row"];
+      if (idx === 0) classes.push("rank-1");
+      else if (idx === 1) classes.push("rank-2");
+      else if (idx === 2) classes.push("rank-3");
+      if (isHackedTab) classes.push("hacked-row");
+      if (highlightId && item.id === highlightId) classes.push("current-run");
+
+      const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
+      const hackIcons = isHackedTab
+        ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
+        : "";
+      const moveBtn = !isHackedTab
+        ? `<button type="button" class="lb-flag-cheat-btn" data-move-to-hacked="${item.id}" title="Used cheats on this run? Move to Hacked Leaderboard">➔💻</button>`
+        : "";
+
+      slots.push(`
+        <div class="${classes.join(" ")}">
+          <span class="lb-pos">${posBadge}</span>
+          <span class="lb-initials-wrap">
+            <span class="lb-initials">${item.initials}</span>
+            ${hackIcons}
+          </span>
+          <span class="lb-score">${formatArcadeScore(item.score)}</span>
+          <span class="lb-tier-wrap">
+            <span class="lb-tier">${item.rating || getRating(item.score, item.won)}</span>
+            ${moveBtn}
+          </span>
+        </div>
+      `);
+    } else {
+      slots.push(`
+        <div class="leaderboard-row empty-slot">
+          <span class="lb-pos">#${idx + 1}</span>
+          <span class="lb-initials-wrap"><span class="lb-initials">---</span></span>
+          <span class="lb-score">---</span>
+          <span class="lb-tier-wrap"><span class="lb-tier">${isHackedTab ? "OPEN HACK SLOT" : "OPEN LEGIT SLOT"}</span></span>
+        </div>
+      `);
+    }
+  }
+
   return `
-    <div class="leaderboard-heading">🏆 TOP 5 CYBER-RUNNERS</div>
-    <div class="leaderboard-list">${rows}</div>
+    <div class="leaderboard-tabs" role="tablist">
+      <button type="button" class="lb-tab ${!isHackedTab ? "active-legit" : ""}" data-lb-tab="legit">
+        🏆 LEGIT TOP 5 <span class="lb-tab-count">${legitCount}</span>
+      </button>
+      <button type="button" class="lb-tab ${isHackedTab ? "active-hacked" : ""}" data-lb-tab="hacked">
+        💻 HACKED TOP 5 <span class="lb-tab-count">${hackedCount}</span>
+      </button>
+    </div>
+    ${statusStripHTML}
+    <div class="leaderboard-list">${slots.join("")}</div>
   `;
+}
+
+function bindLeaderboardEvents(containerEl, highlightId = lastSavedEntryId) {
+  if (!containerEl) return;
+
+  containerEl.querySelectorAll("[data-lb-tab]").forEach(tabBtn => {
+    tabBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const nextTab = tabBtn.dataset.lbTab === "hacked" ? "hacked" : "legit";
+      if (activeLeaderboardTab !== nextTab) {
+        activeLeaderboardTab = nextTab;
+        soundManager.play("bounce", { pitch: nextTab === "legit" ? 1.45 : 1.15, volume: 0.35 });
+      }
+      updateStartLeaderboard();
+      const endLb = document.getElementById("end-leaderboard");
+      if (endLb) {
+        endLb.innerHTML = renderLeaderboardHTML(highlightId, activeLeaderboardTab);
+        bindLeaderboardEvents(endLb, highlightId);
+      }
+    });
+  });
+
+  containerEl.querySelectorAll("[data-clear-hacks]").forEach(clearBtn => {
+    clearBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (typeof deactivateAllHackModes === "function") {
+        deactivateAllHackModes();
+      }
+      soundManager.play("powerUpSpawn", { pitch: 1.6, volume: 0.45 });
+      updateStartLeaderboard();
+      const endLb = document.getElementById("end-leaderboard");
+      if (endLb) {
+        endLb.innerHTML = renderLeaderboardHTML(highlightId, activeLeaderboardTab);
+        bindLeaderboardEvents(endLb, highlightId);
+      }
+    });
+  });
+
+  containerEl.querySelectorAll("[data-move-to-hacked]").forEach(flagBtn => {
+    flagBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const entryId = flagBtn.dataset.moveToHacked;
+      if (flagBtn.dataset.confirming === "1") {
+        soundManager.play("multihit", { pitch: 1.1, volume: 0.45 });
+        moveEntryToHackedLeaderboard(entryId);
+      } else {
+        flagBtn.dataset.confirming = "1";
+        flagBtn.textContent = "HACKED?";
+        flagBtn.classList.add("confirming");
+        soundManager.play("bounce", { pitch: 1.2, volume: 0.3 });
+        setTimeout(() => {
+          if (flagBtn.isConnected) {
+            delete flagBtn.dataset.confirming;
+            flagBtn.textContent = "➔💻";
+            flagBtn.classList.remove("confirming");
+          }
+        }, 3000);
+      }
+    });
+  });
 }
 
 function updateStartLeaderboard() {
   const el = document.getElementById("start-leaderboard");
   if (!el) return;
-  el.innerHTML = renderLeaderboardHTML(lastSavedEntryId);
+  el.innerHTML = renderLeaderboardHTML(lastSavedEntryId, activeLeaderboardTab);
+  bindLeaderboardEvents(el, lastSavedEntryId);
 }
 
 // --- Pre-Game Arcade Callsign Keypad ---
@@ -481,15 +758,17 @@ async function postRemoteScore(entry) {
 }
 
 function getHighScore() {
-  const board = getLeaderboard();
+  const board = getLeaderboard("legit");
   if (board.length > 0) return board[0].score;
   try {
-    return parseInt(localStorage.getItem("brickRunnerHighScore")) || memoryHighScore || 0;
+    const raw = parseInt(localStorage.getItem("brickRunnerHighScore"), 10) || memoryHighScore || 0;
+    return raw >= 50000 ? 0 : raw;
   } catch (err) {
-    return memoryHighScore || 0;
+    return memoryHighScore >= 50000 ? 0 : (memoryHighScore || 0);
   }
 }
 function saveHighScore(e) {
+  if (runUsedCheats || isAnyHackCurrentlyArmed()) return;
   const t = getHighScore();
   if (e > t) {
     memoryHighScore = e;
@@ -502,13 +781,16 @@ function saveHighScore(e) {
   updateHighScoreDisplay();
 }
 function updateHighScoreDisplay() {
-  const board = getLeaderboard();
+  const board = getLeaderboard("legit");
   const runner = getLastInitials();
+  const modeTag = (runUsedCheats || isAnyHackCurrentlyArmed())
+    ? ` • 💻 HACKED (${getArmedHackEmojis().join("") || getRunHackEmojis().join("")})`
+    : "";
   if (board.length > 0) {
-    highScoreDisplay.textContent = `High Score: ${board[0].score} (${board[0].initials}) • Runner: ${runner}`;
+    highScoreDisplay.textContent = `🏆 Legit High: ${formatArcadeScore(board[0].score)} (${board[0].initials}) • Runner: ${runner}${modeTag}`;
   } else {
     const e = getHighScore();
-    highScoreDisplay.textContent = `High Score: ${e} • Runner: ${runner}`;
+    highScoreDisplay.textContent = `🏆 Legit High: ${formatArcadeScore(e)} • Runner: ${runner}${modeTag}`;
   }
 }
 
@@ -837,6 +1119,7 @@ function stopArenaAttractMode() {
 }
 
 function setupGame() {
+    sanitizeAndMigrateLeaderboards();
     updateHighScoreDisplay();
     initGame();
     startScreen.style.display = 'none';
@@ -896,6 +1179,19 @@ function startGame() {
         lives = 1;
         gameOver = false;
         rowBonusLevel = 0;
+
+        // Track whether this run started with any Hack/Cheat mode armed
+        runUsedCheats = false;
+        runHackModesUsed.clear();
+        if (isCatMode || catModeArmed) {
+            runUsedCheats = true;
+            runHackModesUsed.add("cat");
+        }
+        activeHackModes.forEach(modeId => {
+            runUsedCheats = true;
+            runHackModesUsed.add(modeId);
+        });
+        updateHighScoreDisplay();
         
         startScreen.style.display = 'none';
         const headerLeft = document.querySelector('.header-left');
@@ -1874,31 +2170,76 @@ function endGame(won) {
     soundManager.play("loseSong");
   }
 
-  const prevHigh = getHighScore();
-  const isNewHigh = score > prevHigh && score > 0;
+  const isHackedRun = runUsedCheats || isAnyHackCurrentlyArmed();
+  const boardMode = isHackedRun ? "hacked" : "legit";
+  activeLeaderboardTab = boardMode;
+
+  const prevLegitHigh = getHighScore();
+  const isNewLegitHigh = !isHackedRun && score > prevLegitHigh && score > 0;
 
   const runnerCallsign = getLastInitials();
-  const qualifies = score > 0 && qualifiesForLeaderboard(score);
-  const savedEntry = qualifies ? addLeaderboardEntry(runnerCallsign, score, won) : null;
-  if (isNewHigh) saveHighScore(score);
+  const hacksUsed = isHackedRun ? getRunHackEmojis() : [];
+  const qualifies = score > 0 && qualifiesForLeaderboard(score, boardMode);
+  const savedEntry = qualifies ? addLeaderboardEntry(runnerCallsign, score, won, boardMode, hacksUsed) : null;
+  if (isNewLegitHigh) saveHighScore(score);
+
   const rating = getRating(score, won);
   const titleText = won ? "Mission Complete!" : "System Failure!";
 
-  const savedBannerHTML = savedEntry
-    ? `<div class="record-saved-banner">${isNewHigh ? `★ NEW #1 RECORD SAVED FOR ${savedEntry.initials}!` : `★ TOP 5 RECORD SAVED FOR ${savedEntry.initials}!`}</div>`
-    : "";
+  let savedBannerHTML = "";
+  if (isHackedRun) {
+    const hackBadgeStr = hacksUsed.join("");
+    savedBannerHTML = savedEntry
+      ? `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} SAVED TO HACKED TOP 5 &bull; 🏆 LEGIT BOARD PROTECTED!</div>`
+      : `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} HACKED RUN &bull; 🏆 LEGIT LEADERBOARD PROTECTED!</div>`;
+  } else if (savedEntry) {
+    savedBannerHTML = `<div class="record-saved-banner">${
+      isNewLegitHigh
+        ? `👑 NEW #1 LEGIT HIGH SCORE FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
+        : `🏆 LEGIT TOP 5 RECORD SAVED FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
+    }</div>`;
+  } else {
+    const legitBoard = getLeaderboard("legit");
+    const minNeeded = legitBoard.length >= MAX_LEADERBOARD_ENTRIES ? (legitBoard[legitBoard.length - 1].score + 1 - score) : 1;
+    savedBannerHTML = `<div class="record-saved-banner legit-try-banner">🛡️ 100% LEGIT RUN &bull; ${formatArcadeScore(Math.max(1, minNeeded))} MORE PTS FOR TOP 5!</div>`;
+  }
+
+  const highlightId = savedEntry ? savedEntry.id : lastSavedEntryId;
 
   gameMessage.innerHTML = `
     <span class="title">${titleText}</span>
     <span class="name rating">${rating}</span>
-    <span class="description">Runner: ${runnerCallsign} &bull; Final Score: ${score}</span>
+    <span class="description">Runner: ${runnerCallsign} &bull; Final Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ LEGIT)</span>`}</span>
     ${savedBannerHTML}
     <div id="end-leaderboard" class="leaderboard-panel">
-      ${renderLeaderboardHTML(savedEntry ? savedEntry.id : lastSavedEntryId)}
+      ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
+    </div>
+    <div class="end-game-actions">
+      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">▶ PLAY AGAIN [SPACE]</button>
+      <button type="button" id="end-switch-runner-btn" class="end-action-btn end-switch-btn">🕹️ SWITCH RUNNER [C]</button>
     </div>
   `;
   gameMessage.style.display = "block";
   gameArea.classList.remove("hide-cursor");
+
+  const endLb = document.getElementById("end-leaderboard");
+  if (endLb) {
+    bindLeaderboardEvents(endLb, highlightId);
+  }
+  const playAgainBtn = document.getElementById("end-play-again-btn");
+  if (playAgainBtn) {
+    playAgainBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (gameOver && assetsReady) startGame();
+    });
+  }
+  const switchRunnerBtn = document.getElementById("end-switch-runner-btn");
+  if (switchRunnerBtn) {
+    switchRunnerBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      initGame();
+    });
+  }
 }
 function launchStuckBall() {
   if (ballIsStuck) {
@@ -2127,6 +2468,9 @@ window.devSetScore = function(newScore) {
     return;
   }
 
+  // Flag run as hacked whenever score is manually overridden
+  markRunAsHacked("dev");
+
   // 1) Override the internal score
   score = newScore;
 
@@ -2141,12 +2485,10 @@ window.devSetScore = function(newScore) {
     updateHighScoreDisplay();
   }
 
-  console.log(`🛠️  Dev: score force‐set to ${score}`);
+  console.log(`🛠️  Dev: score force‐set to ${score} (Hacked Leaderboard Mode)`);
 };
 
 // ─── HACK MODES: FRAME, LIGHTING, HUD & GAMEPLAY ENGINE ───
-const activeHackModes = new Set();
-let primaryHackModeId = null;
 let poopDrops = [];
 let poopLoopRunning = false;
 let poopRainInterval = null;
@@ -2885,6 +3227,7 @@ function syncHackModeVisuals() {
 function activateHackMode(id, notify = true) {
   activeHackModes.add(id);
   primaryHackModeId = id;
+  markRunAsHacked(id);
   syncHackModeVisuals();
   if (notify) {
     showNotification(`hack-${id}`);
@@ -2919,10 +3262,31 @@ function deactivateHackMode(id) {
   if (primaryHackModeId === id) {
     primaryHackModeId = activeHackModes.size > 0 ? Array.from(activeHackModes).slice(-1)[0] : null;
   }
+  // If we are on the pre-game/post-game screen and all hacks are now off, clear runUsedCheats for the next run
+  if (gameOver && !isAnyHackCurrentlyArmed()) {
+    runUsedCheats = false;
+    runHackModesUsed.clear();
+  }
   syncHackModeVisuals();
+  updateHighScoreDisplay();
+  updateStartLeaderboard();
   if (consoleModalEl && consoleModalEl.style.display === "flex") {
     renderCyberConsole();
   }
+}
+
+function deactivateAllHackModes() {
+  Array.from(activeHackModes).forEach(id => deactivateHackMode(id));
+  catModeArmed = false;
+  isCatMode = false;
+  if (gameOver) {
+    runUsedCheats = false;
+    runHackModesUsed.clear();
+    activeLeaderboardTab = "legit";
+  }
+  syncHackModeVisuals();
+  updateHighScoreDisplay();
+  updateStartLeaderboard();
 }
 
 function applyArmedHackModesOnStart() {

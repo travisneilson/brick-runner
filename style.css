@@ -591,15 +591,15 @@ body::before {
     color: var(--clr-neon-blue);
     font-size: 1.05em;
     text-align: center;
-    background-color: rgba(16, 18, 26, 0.96);
-    padding: 22px 32px;
+    background-color: rgba(16, 18, 26, 0.97);
+    padding: 18px 26px;
     border-radius: 10px;
     z-index: 20;
     border: 2px solid var(--clr-neon-blue);
     box-shadow: 0 0 18px var(--clr-neon-blue), 0 0 36px rgba(0, 255, 255, 0.35);
     display: none;
-    width: 480px;
-    max-width: 90%;
+    width: 550px;
+    max-width: 92%;
     box-sizing: border-box;
 }
 .game-message-prompt {
@@ -785,15 +785,84 @@ body::before {
 #game-message .high-score { opacity: 0.85; font-size: 0.75em; }
 .record-saved-banner {
     display: inline-block;
-    margin-top: 10px;
+    margin-top: 8px;
     padding: 6px 12px;
     font-family: 'Press Start 2P', cursive;
-    font-size: 0.62rem;
+    font-size: 0.56rem;
     color: var(--clr-gold-glow);
-    background: rgba(255, 215, 0, 0.1);
-    border: 1px solid rgba(255, 215, 0, 0.55);
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.65);
     border-radius: 999px;
     text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+    letter-spacing: 0.4px;
+}
+
+.record-saved-banner.hacked-banner {
+    color: #ff66ff;
+    background: rgba(255, 0, 255, 0.12);
+    border-color: rgba(255, 0, 255, 0.6);
+    text-shadow: 0 0 8px rgba(255, 0, 255, 0.65);
+}
+
+.record-saved-banner.legit-try-banner {
+    color: var(--clr-neon-blue);
+    background: rgba(0, 255, 255, 0.08);
+    border-color: rgba(0, 255, 255, 0.45);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.45);
+}
+
+.end-run-legit-tag {
+    color: var(--clr-neon-green);
+    font-size: 0.72em;
+    margin-left: 4px;
+}
+
+.end-run-hack-tag {
+    color: var(--clr-neon-pink);
+    font-size: 0.72em;
+    margin-left: 4px;
+}
+
+.end-game-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.end-action-btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.58rem;
+    padding: 9px 14px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.14s ease;
+}
+
+.end-play-btn {
+    background: var(--clr-neon-green);
+    color: #061008;
+    border: 1.5px solid #b8ffcf;
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.55);
+}
+
+.end-play-btn:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 0 18px var(--clr-neon-green);
+}
+
+.end-switch-btn {
+    background: rgba(0, 255, 255, 0.1);
+    color: var(--clr-neon-blue);
+    border: 1.5px solid rgba(0, 255, 255, 0.55);
+}
+
+.end-switch-btn:hover {
+    background: var(--clr-neon-blue);
+    color: #061014;
+    box-shadow: 0 0 14px var(--clr-neon-blue);
 }
 
 /* --- Power-Ups and Status UI --- */
@@ -1074,56 +1143,200 @@ body::before {
 }
 
 #game-message .leaderboard-panel {
-  margin: 14px auto 0;
+  margin: 10px auto 0;
   width: 100%;
   box-sizing: border-box;
+  padding: 11px 13px;
 }
 
-.leaderboard-heading {
+.leaderboard-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.lb-tab {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.68rem;
-  color: var(--clr-neon-blue);
-  letter-spacing: 1.2px;
-  margin-bottom: 10px;
-  text-align: center;
-  text-shadow: 0 0 6px var(--clr-neon-blue);
+  font-size: 0.52rem;
+  padding: 7px 6px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  color: rgba(233, 246, 255, 0.65);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+
+.lb-tab:hover {
+  color: #ffffff;
+  border-color: rgba(0, 255, 255, 0.45);
+  background: rgba(0, 255, 255, 0.08);
+}
+
+.lb-tab.active-legit {
+  background: linear-gradient(180deg, rgba(0, 255, 255, 0.2), rgba(0, 180, 255, 0.08));
+  border-color: var(--clr-neon-blue);
+  color: #ffffff;
+  text-shadow: 0 0 8px var(--clr-neon-blue);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.28), inset 0 0 8px rgba(0, 255, 255, 0.15);
+}
+
+.lb-tab.active-hacked {
+  background: linear-gradient(180deg, rgba(255, 0, 255, 0.22), rgba(180, 0, 255, 0.09));
+  border-color: var(--clr-neon-pink);
+  color: #ffffff;
+  text-shadow: 0 0 8px var(--clr-neon-pink);
+  box-shadow: 0 0 12px rgba(255, 0, 255, 0.3), inset 0 0 8px rgba(255, 0, 255, 0.16);
+}
+
+.lb-tab-count {
+  font-size: 0.46rem;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--clr-gold-glow);
+}
+
+.leaderboard-mode-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.43rem;
+  letter-spacing: 0.4px;
+  margin-bottom: 7px;
+  white-space: nowrap;
+}
+
+.leaderboard-mode-strip.legit-strip {
+  background: rgba(0, 255, 128, 0.08);
+  border: 1px solid rgba(0, 255, 128, 0.35);
+  color: #9effc8;
+}
+
+.leaderboard-mode-strip.warn-strip {
+  background: rgba(255, 187, 0, 0.14);
+  border: 1px solid rgba(255, 187, 0, 0.65);
+  color: #ffe680;
+}
+
+.leaderboard-mode-strip.hacked-strip {
+  background: rgba(255, 0, 255, 0.1);
+  border: 1px solid rgba(255, 0, 255, 0.4);
+  color: #ffb3ff;
+}
+
+.lb-verified-pill {
+  color: #05140b;
+  background: var(--clr-neon-green);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.4rem;
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+}
+
+.lb-hacked-pill {
+  color: #18041c;
+  background: #ff66ff;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.4rem;
+  box-shadow: 0 0 6px rgba(255, 0, 255, 0.5);
+}
+
+.lb-disable-hacks-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.42rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--clr-neon-green);
+  background: var(--clr-neon-green);
+  color: #051208;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+  transition: transform 0.1s ease;
+}
+
+.lb-disable-hacks-btn:hover {
+  transform: scale(1.06);
 }
 
 .leaderboard-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 34px 58px 74px 1fr;
+  grid-template-columns: 36px 82px 72px 1fr;
   align-items: center;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.62rem;
-  padding: 6px 8px;
+  font-size: 0.58rem;
+  padding: 5px 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--clr-text-main);
   text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .leaderboard-row.rank-1 {
   color: var(--clr-gold-glow);
   text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
-  background: rgba(255, 215, 0, 0.08);
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.leaderboard-row.rank-2 {
+  background: rgba(0, 255, 255, 0.06);
+  border-color: rgba(0, 255, 255, 0.2);
+}
+
+.leaderboard-row.rank-3 {
+  background: rgba(255, 165, 0, 0.06);
+  border-color: rgba(255, 165, 0, 0.2);
+}
+
+.leaderboard-row.hacked-row.rank-1 {
+  background: rgba(255, 0, 255, 0.12);
+  border-color: rgba(255, 0, 255, 0.42);
 }
 
 .leaderboard-row.current-run {
   border: 1px solid var(--clr-neon-pink);
-  background: rgba(255, 0, 255, 0.14);
+  background: rgba(255, 0, 255, 0.16);
   box-shadow: 0 0 10px rgba(255, 0, 255, 0.35);
 }
 
+.leaderboard-row.empty-slot {
+  opacity: 0.38;
+  background: rgba(255, 255, 255, 0.015);
+  border-style: dashed;
+}
+
 .leaderboard-row .lb-pos {
-  opacity: 0.75;
+  opacity: 0.85;
+  font-size: 0.54rem;
+}
+
+.lb-initials-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 .leaderboard-row .lb-initials {
@@ -1135,15 +1348,31 @@ body::before {
   color: var(--clr-gold-glow);
 }
 
+.lb-hack-badges {
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 0 4px rgba(255, 0, 255, 0.6));
+}
+
 .leaderboard-row .lb-score {
   text-align: right;
-  padding-right: 10px;
+  padding-right: 8px;
   font-weight: bold;
+  font-size: 0.56rem;
+}
+
+.lb-tier-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
 }
 
 .leaderboard-row .lb-tier {
   font-family: 'Roboto', sans-serif;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--clr-neon-pink);
   text-align: right;
@@ -1152,13 +1381,30 @@ body::before {
   text-overflow: ellipsis;
 }
 
-.leaderboard-empty {
+.lb-flag-cheat-btn {
+  opacity: 0;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.6rem;
-  color: var(--clr-text-main);
-  opacity: 0.55;
-  padding: 16px 0;
-  text-align: center;
+  font-size: 0.38rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 0, 255, 0.45);
+  background: rgba(255, 0, 255, 0.12);
+  color: #ff99ff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.leaderboard-row:hover .lb-flag-cheat-btn,
+.lb-flag-cheat-btn.confirming {
+  opacity: 1;
+}
+
+.lb-flag-cheat-btn.confirming {
+  background: var(--clr-neon-pink);
+  color: #0b0410;
+  border-color: #ffffff;
+  box-shadow: 0 0 8px var(--clr-neon-pink);
 }
 
 /* --- Retro Arcade Advert Glossary / Field Manual Modal --- */
