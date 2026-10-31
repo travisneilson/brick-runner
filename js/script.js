@@ -1059,7 +1059,8 @@ function syncRogueHUD() {
     sectorBadge.textContent = sMult > 1 ? `SECTOR ${currentSector} (×${sMult.toFixed(1)})` : `SECTOR ${currentSector}`;
   }
   if (levelBadge) {
-    levelBadge.textContent = `LVL ${rogueLevel}`;
+    const bankedCount = pendingDraftReasons.length;
+    levelBadge.textContent = bankedCount > 0 ? `LVL ${rogueLevel} (⚡+${bankedCount})` : `LVL ${rogueLevel}`;
   }
   if (xpFill) {
     const pct = Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
@@ -1115,25 +1116,37 @@ function syncRogueHUD() {
 function awardRogueXP(amount) {
   if (gameOver || attractArenaActive || amount <= 0) return;
   rogueXP += amount;
+  let leveledUpThisHit = false;
   while (rogueXP >= rogueXPToNext) {
     rogueXP -= rogueXPToNext;
     rogueLevel++;
     rogueXPToNext = Math.round(rogueXPToNext * 1.35 + 4);
-    queueAugmentDraft({
-      title: `LEVEL ${rogueLevel} // CYBER-DECK UPGRADE`,
-      subtitle: "CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])"
+    leveledUpThisHit = true;
+    // Bank the upgrade for the Between-Round Intermission — NEVER interrupt active gameplay!
+    pendingDraftReasons.push({
+      title: `BETWEEN-ROUND UPGRADE // LEVEL ${rogueLevel} REWARD`,
+      subtitle: "CHOOSE 1 OF 3 CYBER-AUGMENTS FOR THE NEXT ROUND (CLICK OR PRESS [1] [2] [3])"
     });
+  }
+  if (leveledUpThisHit) {
+    soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.8 });
+    showNotification({
+      title: `RUNNER LEVEL ${rogueLevel}!`,
+      emoji: "⚡",
+      name: `+1 UPGRADE BANKED`,
+      description: `${pendingDraftReasons.length} UPGRADE${pendingDraftReasons.length > 1 ? "S" : ""} READY AFTER THIS ROUND!`,
+      color: "#39ff14",
+      mode: "burst"
+    }, { x: paddleX });
   }
   syncRogueHUD();
 }
 
-function queueAugmentDraft(reasonObj) {
-  if (gameOver || attractArenaActive) return;
-  if (isDraftModalOpen) {
-    pendingDraftReasons.push(reasonObj);
-    return;
-  }
-  openAugmentDraftModal(reasonObj);
+function openBetweenRoundUpgrades() {
+  if (gameOver || attractArenaActive || pendingDraftReasons.length === 0) return;
+  if (isDraftModalOpen) return;
+  const nextReason = pendingDraftReasons.shift();
+  openAugmentDraftModal(nextReason);
 }
 
 function openAugmentDraftModal(reasonObj) {
@@ -1172,7 +1185,7 @@ function openAugmentDraftModal(reasonObj) {
     modal.innerHTML = `
       <div class="draft-window">
         <div class="draft-header">
-          <span id="draft-reason-pill" class="draft-reason-pill">LEVEL UP // CYBER-DECK UPGRADE</span>
+          <span id="draft-reason-pill" class="draft-reason-pill">ROUND INTERMISSION // CYBER-DECK UPGRADE</span>
           <h2 id="draft-title" class="draft-title">SELECT A CYBER-AUGMENT</h2>
           <p id="draft-subtext" class="draft-subtext">CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])</p>
         </div>
@@ -1192,11 +1205,20 @@ function openAugmentDraftModal(reasonObj) {
     pauseStartTime = Date.now();
     cancelAnimationFrame(animationFrameId);
   }
+  clearTimeout(autoLaunchTimeout);
   gameArea.classList.remove("hide-cursor");
   soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.85 });
 
-  if (reasonPill && reasonObj?.title) reasonPill.textContent = reasonObj.title;
-  if (subtext && reasonObj?.subtitle) subtext.textContent = reasonObj.subtitle;
+  const remainingAfterThis = pendingDraftReasons.length;
+  const pickCounterSuffix = remainingAfterThis > 0
+    ? ` • +${remainingAfterThis} MORE UPGRADE${remainingAfterThis > 1 ? "S" : ""} QUEUED`
+    : "";
+  if (reasonPill && reasonObj?.title) {
+    reasonPill.textContent = `${reasonObj.title}${pickCounterSuffix}`;
+  }
+  if (subtext && reasonObj?.subtitle) {
+    subtext.textContent = reasonObj.subtitle;
+  }
 
   grid.innerHTML = currentDraftChoices.map((aug, idx) => {
     const curRank = getAugmentRank(aug.id);
@@ -1536,12 +1558,14 @@ function advanceToNextSector() {
     mode: "burst"
   }, { x: GAME_WIDTH / 2 });
 
-  syncRogueHUD();
-
-  queueAugmentDraft({
-    title: `SECTOR ${clearedSectorNum} CLEARED // +${sectorBonus} PTS`,
-    subtitle: `WARPING TO SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE) — DRAFT A BONUS AUGMENT!`
+  // Always grant 1 Sector-Clear Upgrade Pick + spend any banked Level-Up Picks between rounds!
+  pendingDraftReasons.unshift({
+    title: `ROUND ${clearedSectorNum} CLEARED // +${sectorBonus} PTS`,
+    subtitle: `ENTERING SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE) — PICK YOUR CYBER-AUGMENT!`
   });
+
+  syncRogueHUD();
+  openBetweenRoundUpgrades();
 }
 
 function initGame() {
@@ -1624,8 +1648,13 @@ function createBricks() {
   bricksContainer.innerHTML = '';
   bricks = [];
 
-  const totalRows = currentSector >= 3 ? 6 : BRICK_ROWS;
-  const armorChance = Math.min(0.6, 0.25 + (currentSector - 1) * 0.14);
+  // Escalating wave size by Round/Sector:
+  // Sector 1: 3 rows (fast Round 1 so players reach Between-Round Upgrades quickly!)
+  // Sector 2: 4 rows
+  // Sector 3: 5 rows
+  // Sector 4+: 6 rows
+  const totalRows = attractArenaActive ? BRICK_ROWS : Math.min(6, 2 + currentSector);
+  const armorChance = Math.min(0.6, 0.22 + (currentSector - 1) * 0.12);
   const vaultChance = currentSector >= 2 ? Math.min(0.28, 0.12 + (currentSector - 2) * 0.08) : 0;
 
   for (let row = 0; row < totalRows; row++) {
