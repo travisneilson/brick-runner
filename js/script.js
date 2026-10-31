@@ -426,6 +426,9 @@ function addLeaderboardEntry(rawInitials, newScore, won, mode = "legit", hacksUs
     score: newScore,
     rating: getRating(newScore, won),
     won: !!won,
+    sector: typeof currentSector === "number" ? currentSector : 1,
+    level: typeof rogueLevel === "number" ? rogueLevel : 1,
+    augments: typeof getActiveAugmentIcons === "function" ? getActiveAugmentIcons() : [],
     hacked: isHacked,
     hacks: isHacked ? (hacksUsed.length > 0 ? hacksUsed : ["💻"]) : [],
     date: new Date().toISOString().slice(0, 10)
@@ -516,9 +519,12 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       if (highlightId && item.id === highlightId) classes.push("current-run");
 
       const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
+      const sectorLvlTag = (item.sector || item.level)
+        ? `<span class="lb-sector-pill" title="Reached Sector ${item.sector || 1} • Level ${item.level || 1}">S${item.sector || 1}•L${item.level || 1}</span>`
+        : "";
       const hackIcons = isHackedTab
         ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
-        : "";
+        : sectorLvlTag;
       const moveBtn = !isHackedTab
         ? `<button type="button" class="lb-flag-cheat-btn" data-move-to-hacked="${item.id}" title="Used cheats on this run? Move to Hacked Leaderboard">➔💻</button>`
         : "";
@@ -883,7 +889,648 @@ function getRating(score, won) {
 }
 
 // --- Game Core Functions ---
+let currentSector = 1;
+let sectorsCleared = 0;
+let rogueLevel = 1;
+let rogueXP = 0;
+let rogueXPToNext = 8;
+let activeAugments = {};
+let isDraftModalOpen = false;
+let pendingDraftReasons = [];
+let currentDraftChoices = [];
+let novaBrickCounter = 0;
+let turretFireAccum = 0;
+let aegisReady = false;
+let aegisCooldownLeft = 0;
+let pierceChargesLeft = 0;
+let draftResumeGraceTimer = 0;
+
+const ROGUE_AUGMENTS = [
+  {
+    id: "tesla",
+    emoji: "⚡",
+    name: "TESLA ARC",
+    rarity: "EPIC",
+    color: "#00ffff",
+    maxRank: 3,
+    getDesc: (nextRank) => `Paddle bounces fire <strong>${nextRank} homing chain-lightning bolt${nextRank > 1 ? "s" : ""}</strong> straight into the nearest intact bricks!`
+  },
+  {
+    id: "nova",
+    emoji: "🔥",
+    name: "PLASMA NOVA",
+    rarity: "EPIC",
+    color: "#ff6600",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const everyN = Math.max(2, 5 - nextRank);
+      const targets = nextRank + 1;
+      return `Every <strong>${everyN}th brick</strong> you break detonates a fiery Plasma Ring, blasting up to <strong>${targets} adjacent bricks</strong>!`;
+    }
+  },
+  {
+    id: "aegis",
+    emoji: "🛡️",
+    name: "AEGIS BARRIER",
+    rarity: "LEGENDARY",
+    color: "#00ff88",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const cd = [22, 15, 9][nextRank - 1] || 9;
+      return `Deploys a bottom <strong>Floor Forcefield</strong> that saves missed balls and recharges every <strong>${cd}s</strong>!`;
+    }
+  },
+  {
+    id: "turret",
+    emoji: "🎯",
+    name: "AUTO-TURRET",
+    rarity: "RARE",
+    color: "#ff3366",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const rate = ["1.8s", "1.2s", "0.75s"][nextRank - 1] || "0.75s";
+      return `Mounts permanent autonomous twin wing-cannons that auto-fire plasma bolts every <strong>${rate}</strong>!`;
+    }
+  },
+  {
+    id: "magnet",
+    emoji: "🧲",
+    name: "GRAVITY TRACTOR",
+    rarity: "RARE",
+    color: "#ff00ff",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const bonus = [50, 100, 175][nextRank - 1] || 175;
+      return `Magnetically pulls falling power-ups toward your paddle and awards <strong>+${bonus} PTS</strong> on every catch!`;
+    }
+  },
+  {
+    id: "titan",
+    emoji: "🦖",
+    name: "TITAN DECK",
+    rarity: "COMMON",
+    color: "#90ff5a",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const pct = nextRank * 22;
+      return `Permanently widens base paddle size by <strong>+${pct}%</strong> and boosts lateral thruster speed by <strong>+${nextRank * 14}%</strong>!`;
+    }
+  },
+  {
+    id: "greed",
+    emoji: "💎",
+    name: "HIGH-ROLLER CORE",
+    rarity: "LEGENDARY",
+    color: "#ffd700",
+    maxRank: 3,
+    getDesc: (nextRank) => {
+      const mult = ["1.4×", "1.85×", "2.5×"][nextRank - 1] || "2.5×";
+      return `Multiplies ALL brick &amp; laser points by <strong>${mult}</strong>, while accelerating ball velocity by <strong>+${nextRank * 10}%</strong>!`;
+    }
+  },
+  {
+    id: "pierce",
+    emoji: "💥",
+    name: "PIERCING OVERCHARGE",
+    rarity: "EPIC",
+    color: "#c864ff",
+    maxRank: 3,
+    getDesc: (nextRank) => `Paddle &amp; ceiling bounces charge the ball to <strong>plow through ${nextRank} brick${nextRank > 1 ? "s" : ""}</strong> without bouncing for <strong>2× hit damage</strong>!`
+  }
+];
+
+function getAugmentRank(id) {
+  return activeAugments[id] || 0;
+}
+
+function getActiveAugmentIcons() {
+  return Object.keys(activeAugments).map(id => {
+    const def = ROGUE_AUGMENTS.find(a => a.id === id);
+    return def ? `${def.emoji}${activeAugments[id] > 1 ? activeAugments[id] : ""}` : "";
+  }).filter(Boolean);
+}
+
+function getSectorScoreMultiplier() {
+  return 1 + (Math.max(1, currentSector) - 1) * 0.5;
+}
+
+function getGreedScoreMultiplier() {
+  const r = getAugmentRank("greed");
+  if (r <= 0) return 1;
+  return [1.4, 1.85, 2.5][Math.min(r, 3) - 1] || 2.5;
+}
+
+function initRogueProgression() {
+  currentSector = 1;
+  sectorsCleared = 0;
+  rogueLevel = 1;
+  rogueXP = 0;
+  rogueXPToNext = 8;
+  activeAugments = {};
+  isDraftModalOpen = false;
+  pendingDraftReasons = [];
+  currentDraftChoices = [];
+  novaBrickCounter = 0;
+  turretFireAccum = 0;
+  aegisReady = false;
+  aegisCooldownLeft = 0;
+  pierceChargesLeft = 0;
+  draftResumeGraceTimer = 0;
+  const draftModal = document.getElementById("augment-draft-modal");
+  if (draftModal) draftModal.style.display = "none";
+  const rogueHud = document.getElementById("rogue-hud");
+  if (rogueHud) rogueHud.style.display = "none";
+  const aegisBar = document.getElementById("aegis-barrier-bar");
+  if (aegisBar) aegisBar.style.display = "none";
+  ball.classList.remove("ball-piercing");
+}
+
+function syncRogueHUD() {
+  const rogueHud = document.getElementById("rogue-hud");
+  if (!rogueHud) return;
+  const sectorBadge = document.getElementById("rogue-sector-badge");
+  const levelBadge = document.getElementById("rogue-level-badge");
+  const xpFill = document.getElementById("rogue-xp-fill");
+  const xpText = document.getElementById("rogue-xp-text");
+  const dock = document.getElementById("augment-dock");
+
+  if (sectorBadge) {
+    const sMult = getSectorScoreMultiplier();
+    sectorBadge.textContent = sMult > 1 ? `SECTOR ${currentSector} (×${sMult.toFixed(1)})` : `SECTOR ${currentSector}`;
+  }
+  if (levelBadge) {
+    levelBadge.textContent = `LVL ${rogueLevel}`;
+  }
+  if (xpFill) {
+    const pct = Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
+    xpFill.style.width = `${pct}%`;
+  }
+  if (xpText) {
+    xpText.textContent = `${rogueXP}/${rogueXPToNext} XP`;
+  }
+  if (dock) {
+    const ids = Object.keys(activeAugments);
+    if (ids.length === 0) {
+      dock.innerHTML = `<span class="augment-dock-hint">SMASH BRICKS TO LEVEL UP &amp; DRAFT AUGMENTS!</span>`;
+    } else {
+      dock.innerHTML = ids.map(id => {
+        const def = ROGUE_AUGMENTS.find(a => a.id === id);
+        const rank = activeAugments[id];
+        if (!def) return "";
+        let extraStatus = "";
+        if (id === "aegis") {
+          extraStatus = aegisReady ? " • READY" : ` • ${Math.ceil(aegisCooldownLeft)}s`;
+        } else if (id === "pierce" && pierceChargesLeft > 0) {
+          extraStatus = ` • ×${pierceChargesLeft}`;
+        }
+        return `
+          <span class="augment-chip" style="--aug-color: ${def.color};" title="${def.name} (LVL ${rank})">
+            <span>${def.emoji}</span>
+            <span class="aug-chip-name">${def.name}</span>
+            <span class="aug-chip-rank">L${rank}${extraStatus}</span>
+          </span>
+        `;
+      }).join("");
+    }
+  }
+
+  // Update bottom Aegis Barrier Bar
+  const aegisBar = document.getElementById("aegis-barrier-bar");
+  if (aegisBar) {
+    const aegisRank = getAugmentRank("aegis");
+    if (aegisRank <= 0 || gameOver) {
+      aegisBar.style.display = "none";
+    } else {
+      aegisBar.style.display = "flex";
+      if (aegisReady) {
+        aegisBar.className = "aegis-barrier-bar aegis-charged";
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FLOOR FORCEFIELD READY — NEXT MISSED BALL IS SAVED! 🛡️</span>`;
+      } else {
+        aegisBar.className = "aegis-barrier-bar aegis-recharging";
+        aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
+      }
+    }
+  }
+}
+
+function awardRogueXP(amount) {
+  if (gameOver || attractArenaActive || amount <= 0) return;
+  rogueXP += amount;
+  while (rogueXP >= rogueXPToNext) {
+    rogueXP -= rogueXPToNext;
+    rogueLevel++;
+    rogueXPToNext = Math.round(rogueXPToNext * 1.35 + 4);
+    queueAugmentDraft({
+      title: `LEVEL ${rogueLevel} // CYBER-DECK UPGRADE`,
+      subtitle: "CHOOSE 1 OF 3 AUGMENTS (CLICK CARD OR PRESS [1] [2] [3])"
+    });
+  }
+  syncRogueHUD();
+}
+
+function queueAugmentDraft(reasonObj) {
+  if (gameOver || attractArenaActive) return;
+  if (isDraftModalOpen) {
+    pendingDraftReasons.push(reasonObj);
+    return;
+  }
+  openAugmentDraftModal(reasonObj);
+}
+
+function openAugmentDraftModal(reasonObj) {
+  const upgradable = ROGUE_AUGMENTS.filter(a => getAugmentRank(a.id) < a.maxRank);
+  if (upgradable.length === 0) {
+    // All 8 augments are maxed at Rank 3 — award an instant Overclock Score Bonus!
+    const bonus = 300 * currentSector;
+    score += bonus;
+    if (isCatMode) score = score - (score % 10) + 9;
+    scoreDisplay.textContent = `Score: ${score}`;
+    showNotification({
+      title: "ALL AUGMENTS MAXED",
+      emoji: "👑",
+      name: `+${bonus} PTS`,
+      description: "OVERCLOCK BONUS AWARDED!",
+      color: "#ffd700",
+      mode: "burst"
+    }, { x: paddleX });
+    syncRogueHUD();
+    return;
+  }
+
+  // Shuffle upgradable pool and pick up to 3 choices
+  const pool = [...upgradable];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  currentDraftChoices = pool.slice(0, 3);
+
+  isDraftModalOpen = true;
+  if (gameRunning) {
+    gameRunning = false;
+    pauseStartTime = Date.now();
+    cancelAnimationFrame(animationFrameId);
+  }
+  gameArea.classList.remove("hide-cursor");
+  soundManager.play("powerUpSpawn", { pitch: 1.55, volume: 0.85 });
+
+  const modal = document.getElementById("augment-draft-modal");
+  const reasonPill = document.getElementById("draft-reason-pill");
+  const subtext = document.getElementById("draft-subtext");
+  const grid = document.getElementById("draft-cards-grid");
+  if (!modal || !grid) return;
+
+  if (reasonPill && reasonObj?.title) reasonPill.textContent = reasonObj.title;
+  if (subtext && reasonObj?.subtitle) subtext.textContent = reasonObj.subtitle;
+
+  grid.innerHTML = currentDraftChoices.map((aug, idx) => {
+    const curRank = getAugmentRank(aug.id);
+    const nextRank = curRank + 1;
+    const rankLabel = curRank === 0
+      ? `<span class="draft-rank-badge draft-rank-new">NEW // LVL 1</span>`
+      : `<span class="draft-rank-badge draft-rank-up">UPGRADE // LVL ${curRank} ➔ ${nextRank}</span>`;
+    return `
+      <button type="button" class="draft-card" data-draft-idx="${idx}" style="--card-color: ${aug.color};">
+        <div class="draft-card-top">
+          <span class="draft-key-hint">[${idx + 1}]</span>
+          <span class="draft-rarity-pill">${aug.rarity}</span>
+        </div>
+        <div class="draft-card-emoji">${aug.emoji}</div>
+        <div class="draft-card-name">${aug.name}</div>
+        ${rankLabel}
+        <p class="draft-card-desc">${aug.getDesc(nextRank)}</p>
+        <span class="draft-card-cta">⚡ INSTALL AUGMENT</span>
+      </button>
+    `;
+  }).join("");
+
+  grid.querySelectorAll(".draft-card").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-draft-idx"), 10);
+      selectAugmentChoice(idx);
+    });
+  });
+
+  modal.style.display = "flex";
+}
+
+function selectAugmentChoice(idx) {
+  if (!isDraftModalOpen) return;
+  const chosen = currentDraftChoices[idx];
+  if (!chosen) return;
+
+  const newRank = Math.min(chosen.maxRank, getAugmentRank(chosen.id) + 1);
+  activeAugments[chosen.id] = newRank;
+  soundManager.play("grow", { pitch: 1.35, volume: 0.85 });
+
+  // Apply immediate augment state updates
+  if (chosen.id === "titan") {
+    updatePaddleWidth();
+  } else if (chosen.id === "aegis") {
+    aegisReady = true;
+    aegisCooldownLeft = 0;
+  } else if (chosen.id === "pierce") {
+    pierceChargesLeft = newRank;
+    ball.classList.add("ball-piercing");
+  }
+
+  showNotification({
+    title: "AUGMENT INSTALLED",
+    emoji: chosen.emoji,
+    name: `${chosen.name} L${newRank}`,
+    description: "CYBER-DECK UPGRADED!",
+    color: chosen.color,
+    mode: "burst"
+  }, { x: paddleX });
+
+  syncRogueHUD();
+
+  if (pendingDraftReasons.length > 0) {
+    const nextReason = pendingDraftReasons.shift();
+    openAugmentDraftModal(nextReason);
+    return;
+  }
+
+  const modal = document.getElementById("augment-draft-modal");
+  if (modal) modal.style.display = "none";
+  isDraftModalOpen = false;
+  currentDraftChoices = [];
+
+  if (!gameOver) {
+    if (pauseStartTime !== null) {
+      const pausedDuration = Date.now() - pauseStartTime;
+      for (const type in activePowerUps) {
+        activePowerUps[type].forEach(timer => {
+          timer.endTime += pausedDuration;
+        });
+      }
+      pauseStartTime = null;
+    }
+    draftResumeGraceTimer = 0.75;
+    gameArea.classList.add("hide-cursor");
+    gameRunning = true;
+    lastTime = 0;
+    if (ballIsStuck) {
+      clearTimeout(autoLaunchTimeout);
+      autoLaunchTimeout = setTimeout(() => {
+        if (ballIsStuck && gameRunning && !isDraftModalOpen) launchStuckBall();
+      }, 950);
+    }
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 5) {
+  if (!brick || brick.isBroken) return;
+  brick.hitsTaken += damageHits;
+
+  if (brick.hitsTaken >= brick.hitsRequired) {
+    const soundName = destroySounds[destroySoundIndex];
+    soundManager.play(soundName);
+    destroySoundIndex = (destroySoundIndex + 1) % destroySounds.length;
+
+    brick.isBroken = true;
+    brick.element.classList.add("broken");
+    if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
+      triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "brick");
+    }
+
+    const expandoStacks = (activePowerUps["wide-paddle"] || []).length;
+    let points = (isRoofBonusActive ? 15 : 10) + bonusFlatPts;
+    if (expandoStacks > 0) points *= (expandoStacks + 1);
+    points *= (rowBonusLevel + 1);
+    if (brick.isVaultBrick) {
+      points = Math.round(points * 3.0);
+    } else if (brick.hitsRequired > 1) {
+      points = Math.round(points * 1.6);
+    }
+    points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+    if (isCatMode) points = points - (points % 10) + 9;
+
+    score += points;
+    if (isCatMode) score = score - (score % 10) + 9;
+    scoreDisplay.textContent = `Score: ${score}`;
+
+    showBrickScore(brick.x + brick.width / 2, brick.y, points);
+
+    if (typeof brick.row === "number" && !brick.isExtraSpawn) {
+      evaluateRowClear(brick.row);
+    }
+    if (brick.powerUpType) {
+      spawnPowerUp(brick.powerUpType, brick);
+    }
+    awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
+  } else {
+    soundManager.play("multihit", { pitch: 1.2, volume: 0.65 });
+    brick.element.classList.add("damaged");
+    brick.element.classList.remove("shake");
+    void brick.element.offsetWidth;
+    brick.element.classList.add("shake");
+  }
+}
+
+function triggerTeslaArcBolts() {
+  const rank = getAugmentRank("tesla");
+  if (rank <= 0) return;
+  const intact = bricks.filter(b => !b.isBroken);
+  if (intact.length === 0) return;
+
+  const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  // Sort by distance to paddle center
+  const sorted = [...intact].sort((a, b) => {
+    const da = Math.hypot((a.x + a.width / 2) - paddleX, (a.y + a.height / 2) - padTop);
+    const db = Math.hypot((b.x + b.width / 2) - paddleX, (b.y + b.height / 2) - padTop);
+    return da - db;
+  });
+
+  const targets = sorted.slice(0, Math.min(rank, sorted.length));
+  targets.forEach((target, idx) => {
+    const tx = target.x + target.width / 2;
+    const ty = target.y + target.height / 2;
+    const sx = paddleX + (idx - (targets.length - 1) / 2) * 18;
+    const sy = padTop;
+
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const length = Math.hypot(dx, dy);
+    const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    const boltEl = document.createElement("div");
+    boltEl.className = "tesla-bolt-line";
+    boltEl.style.width = `${length}px`;
+    boltEl.style.left = `${sx}px`;
+    boltEl.style.top = `${sy}px`;
+    boltEl.style.transform = `rotate(${angleDeg}deg)`;
+    gameArea.appendChild(boltEl);
+    setTimeout(() => boltEl.remove(), 260);
+
+    damageOrBreakBrickByAugment(target, 1, 6);
+  });
+}
+
+function triggerPlasmaNova(originBrick) {
+  const rank = getAugmentRank("nova");
+  if (rank <= 0 || !originBrick) return;
+  novaBrickCounter++;
+  const threshold = [5, 4, 3][Math.min(rank, 3) - 1] || 3;
+  if (novaBrickCounter < threshold) return;
+  novaBrickCounter = 0;
+
+  const cx = originBrick.x + originBrick.width / 2;
+  const cy = originBrick.y + originBrick.height / 2;
+  const blastRadius = 112 + rank * 14;
+
+  const ring = document.createElement("div");
+  ring.className = "plasma-nova-ring";
+  ring.style.left = `${cx}px`;
+  ring.style.top = `${cy}px`;
+  ring.style.setProperty("--nova-size", `${blastRadius * 2}px`);
+  gameArea.appendChild(ring);
+  setTimeout(() => ring.remove(), 420);
+
+  soundManager.play("laserFire", { pitch: 0.72, volume: 0.85 });
+
+  bricks.forEach(b => {
+    if (b.isBroken || b === originBrick) return;
+    const bx = b.x + b.width / 2;
+    const by = b.y + b.height / 2;
+    if (Math.hypot(bx - cx, by - cy) <= blastRadius) {
+      damageOrBreakBrickByAugment(b, 1, 8);
+    }
+  });
+}
+
+function handleAegisFloorSave() {
+  const rank = getAugmentRank("aegis");
+  if (rank <= 0 || !aegisReady) return false;
+
+  aegisReady = false;
+  aegisCooldownLeft = [18, 13, 8][Math.min(rank, 3) - 1] || 8;
+  ballY = GAME_HEIGHT - BALL_SIZE - 16;
+  ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.15);
+  soundManager.play("magActivate", { pitch: 1.25, volume: 0.9 });
+
+  showNotification({
+    title: "AEGIS FORCEFIELD SAVE",
+    emoji: "🛡️",
+    name: "BALL REBOUNDED!",
+    description: `RECHARGING IN ${aegisCooldownLeft}S`,
+    color: "#39ff14",
+    mode: "burst"
+  }, { x: ballX + BALL_SIZE / 2 });
+
+  syncRogueHUD();
+  return true;
+}
+
+function fireAutoTurretVolley() {
+  const boltWidth = 6;
+  const boltHeight = 20;
+  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  const wingOffset = Math.max(16, paddleWidth * 0.34);
+  [paddleX - wingOffset - boltWidth / 2, paddleX + wingOffset - boltWidth / 2].forEach(bx => {
+    const clampedX = Math.max(4, Math.min(GAME_WIDTH - boltWidth - 4, bx));
+    const bolt = { x: clampedX, y: paddleTop - boltHeight, width: boltWidth, height: boltHeight };
+    const el = document.createElement("div");
+    el.className = "laser-bolt turret-auto-bolt";
+    el.style.left = `${bolt.x}px`;
+    el.style.top = `${bolt.y}px`;
+    gameArea.appendChild(el);
+    bolt.element = el;
+    lasers.push(bolt);
+  });
+  soundManager.play("laserFire", { pitch: 1.45, volume: 0.38 });
+}
+
+function updateRogueProgressionFrame(dt) {
+  if (draftResumeGraceTimer > 0) {
+    draftResumeGraceTimer = Math.max(0, draftResumeGraceTimer - dt);
+  }
+
+  // Recharge Aegis Floor Barrier
+  const aegisRank = getAugmentRank("aegis");
+  if (aegisRank > 0 && !aegisReady && aegisCooldownLeft > 0) {
+    const prevCeil = Math.ceil(aegisCooldownLeft);
+    aegisCooldownLeft = Math.max(0, aegisCooldownLeft - dt);
+    if (aegisCooldownLeft <= 0) {
+      aegisReady = true;
+      soundManager.play("powerUpSpawn", { pitch: 1.9, volume: 0.65 });
+      syncRogueHUD();
+    } else if (Math.ceil(aegisCooldownLeft) !== prevCeil) {
+      syncRogueHUD();
+    }
+  }
+
+  // Auto-Pulse Turrets
+  const turretRank = getAugmentRank("turret");
+  if (turretRank > 0 && !ballIsStuck) {
+    const interval = [1.8, 1.2, 0.75][Math.min(turretRank, 3) - 1] || 0.75;
+    turretFireAccum += dt;
+    if (turretFireAccum >= interval) {
+      turretFireAccum = 0;
+      fireAutoTurretVolley();
+    }
+  }
+}
+
+function advanceToNextSector() {
+  sectorsCleared++;
+  const clearedSectorNum = currentSector;
+  const sectorBonus = 500 * clearedSectorNum;
+  score += sectorBonus;
+  if (isCatMode) score = score - (score % 10) + 9;
+  scoreDisplay.textContent = `Score: ${score}`;
+
+  currentSector++;
+  clearedRows.clear();
+  rowBonusCount = 0;
+  rowBonusLevel = 0;
+  isRoofBonusActive = false;
+  ball.classList.remove("bonus-active");
+
+  // Clear active lasers & leftover falling capsules before generating new Sector wave
+  lasers.forEach(l => l.element.remove());
+  lasers = [];
+  gameArea.querySelectorAll(".brick.extra").forEach(el => el.remove());
+  createBricks();
+
+  // Dock ball to paddle for the start of the new Sector
+  ballIsStuck = true;
+  ballSpeedX = 0;
+  ballSpeedY = 0;
+  ballX = paddleX - BALL_SIZE / 2;
+  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+
+  if (getAugmentRank("aegis") > 0) {
+    aegisReady = true;
+    aegisCooldownLeft = 0;
+  }
+
+  soundManager.play("winSong");
+  if (typeof spawnConfettiShards === "function") {
+    spawnConfettiShards(55);
+  }
+
+  showNotification({
+    title: `SECTOR ${clearedSectorNum} CLEARED!`,
+    emoji: "🚀",
+    name: `+${sectorBonus} PTS`,
+    description: `WARPING TO SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE)!`,
+    color: "#00ffff",
+    mode: "burst"
+  }, { x: GAME_WIDTH / 2 });
+
+  syncRogueHUD();
+
+  queueAugmentDraft({
+    title: `SECTOR ${clearedSectorNum} CLEARED // +${sectorBonus} PTS`,
+    subtitle: `WARPING TO SECTOR ${currentSector} (×${getSectorScoreMultiplier().toFixed(1)} SCORE) — DRAFT A BONUS AUGMENT!`
+  });
+}
+
 function initGame() {
+    initRogueProgression();
     isCatMode   = catModeArmed;
     BALL_EMOJI  = isCatMode ? "🐱" : "😊";
     ball.textContent = BALL_EMOJI;  
@@ -951,8 +1598,8 @@ function initGame() {
 }
 
 function createBricks() {
-  // vertical offset from top
-  const offsetY = 50 * GAME_SCALE;
+  // vertical offset from top (leave clean room for top HUD & XP bar)
+  const offsetY = 54 * GAME_SCALE;
   // center the grid horizontally
   const gridLeft = (GAME_WIDTH 
                   - BRICK_COLS * (BRICK_WIDTH + BRICK_GAP) 
@@ -962,34 +1609,44 @@ function createBricks() {
   bricksContainer.innerHTML = '';
   bricks = [];
 
-  for (let row = 0; row < BRICK_ROWS; row++) {
+  const totalRows = currentSector >= 3 ? 6 : BRICK_ROWS;
+  const armorChance = Math.min(0.6, 0.25 + (currentSector - 1) * 0.14);
+  const vaultChance = currentSector >= 2 ? Math.min(0.28, 0.12 + (currentSector - 2) * 0.08) : 0;
+
+  for (let row = 0; row < totalRows; row++) {
     for (let col = 0; col < BRICK_COLS; col++) {
       // 1) create the DOM element
       const el = document.createElement('div');
-      el.classList.add('brick', `brick-row-${row}`);
+      const colorRow = row % BRICK_ROWS;
+      el.classList.add('brick', `brick-row-${colorRow}`);
 
-      // 2) maybe assign a power-up
+      // 2) decide brick tier: Standard (1-hit), Armored (2-hit), or Gold Cyber-Vault (3-hit in Sector 2+)
+      let hitsRequired = 1;
+      let isVaultBrick = false;
+      const roll = Math.random();
+      if (vaultChance > 0 && roll < vaultChance) {
+        hitsRequired = 3;
+        isVaultBrick = true;
+        el.classList.add('multihit', 'brick-vault');
+      } else if (roll < vaultChance + armorChance) {
+        hitsRequired = 2;
+        el.classList.add('multihit');
+      }
+
+      // 3) maybe assign a power-up (Vault bricks always carry a power-up!)
       let powerUpType = null;
-      if (Math.random() < POWER_UP_CHANCE) {
+      if (isVaultBrick || Math.random() < POWER_UP_CHANCE) {
         powerUpType = POWER_UP_SPAWN_CHANCES[
           Math.floor(Math.random() * POWER_UP_SPAWN_CHANCES.length)
         ];
-        // show its indicator
         const indicator = document.createElement('span');
         indicator.className = 'power-up-indicator';
         indicator.textContent = POWER_UP_TYPES[powerUpType].emoji;
         el.appendChild(indicator);
       }
 
-      // 3) decide if it's a multi‐hit brick
-      let hitsRequired = 1;
-      if (Math.random() < 0.25) {
-        hitsRequired = 2;
-        el.classList.add('multihit');
-      }
-
       // 4) position & size it
-      el.style.position = 'absolute';   // ← this line
+      el.style.position = 'absolute';
       const x = gridLeft + col * (BRICK_WIDTH + BRICK_GAP);
       const y = offsetY  + row * (BRICK_HEIGHT + BRICK_GAP);
       el.style.width  = `${BRICK_WIDTH}px`;
@@ -997,7 +1654,7 @@ function createBricks() {
       el.style.left   = `${x}px`;
       el.style.top    = `${y}px`;
 
-      // 5) define its data object — **now with row tagging**!
+      // 5) define its data object
       const brick = {
         element:      el,
         x, 
@@ -1008,7 +1665,8 @@ function createBricks() {
         hitsRequired,
         hitsTaken:    0,
         powerUpType,
-        row           // ← this lets you check row‐clears later
+        isVaultBrick,
+        row
       };
 
       // 6) append & track
@@ -1265,6 +1923,9 @@ function startGame() {
         const headerLeft = document.querySelector('.header-left');
         if (headerLeft) headerLeft.classList.remove('title-page-hidden');
         scoreDisplay.style.display = 'block';
+        const rogueHud = document.getElementById('rogue-hud');
+        if (rogueHud) rogueHud.style.display = 'flex';
+        syncRogueHUD();
         statusIndicatorsContainer.style.display = 'flex';
         ball.style.display = 'block';
         if (pauseButton) {
@@ -1327,6 +1988,7 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
 
   // 3) Update all the moving parts
+  updateRogueProgressionFrame(delta);
   updatePaddlePosition(delta);
   updateBallPosition(delta);
   updatePowerUps(delta);
@@ -1358,14 +2020,14 @@ function gameLoop(timestamp) {
     }
   }
 
-  // 8) Check win / loss conditions
-  //    a) Win if all bricks are broken
-  if (bricks.every(b => b.isBroken)) {
-    endGame(true);
+  // 8) Check Sector Clear / loss conditions
+  //    a) Advance to the next escalating Sector when all bricks in this Sector are broken!
+  if (bricks.length > 0 && bricks.every(b => b.isBroken)) {
+    advanceToNextSector();
     return;
   }
 
-  //    b) God Mode Immortal Floor Shield, Cat Mode 9-Lives Save, OR Loss if the ball falls below the bottom
+  //    b) God Mode Immortal Floor Shield, Aegis Barrier Augment Save, Cat Mode 9-Lives Save, OR Loss if the ball falls below the bottom
   if (typeof isHackModeActive === "function" && isHackModeActive("god") && ballY + BALL_SIZE >= GAME_HEIGHT - 14 && !ballIsStuck && ballSpeedY > 0) {
     ballY = GAME_HEIGHT - BALL_SIZE - 15;
     ballSpeedY = -Math.abs(ballSpeedY);
@@ -1374,23 +2036,29 @@ function gameLoop(timestamp) {
     if (typeof triggerDivinePaddleSmite === "function") {
       triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, GAME_HEIGHT - 16);
     }
+  } else if (ballY + BALL_SIZE >= GAME_HEIGHT - 12 && !ballIsStuck && ballSpeedY > 0 && handleAegisFloorSave()) {
+    // Saved by Aegis Barrier Forcefield Augment!
   } else if (ballY + BALL_SIZE > GAME_HEIGHT && !ballIsStuck) {
     if (typeof isHackModeActive === "function" && isHackModeActive("cat") && typeof handleCatNineLivesSave === "function" && handleCatNineLivesSave()) {
       // Saved by one of the cat's 9 lives!
     } else {
-      endGame(false);
+      endGame(sectorsCleared > 0);
       return;
     }
   }
 
-  // 9) Request the next frame
-  animationFrameId = requestAnimationFrame(gameLoop);
+  // 9) Request the next frame if still running (draft modal may have paused gameRunning)
+  if (gameRunning) {
+    animationFrameId = requestAnimationFrame(gameLoop);
+  }
 }
 
 
 function updatePaddlePosition(dt) {
   const halfPaddle = paddleWidth / 2;
-  const speedMult = (typeof isHackModeActive === "function" && isHackModeActive("juice")) ? 1.45 : 1;
+  const titanRank = getAugmentRank("titan");
+  const titanSpeedMult = 1 + titanRank * 0.14;
+  const speedMult = ((typeof isHackModeActive === "function" && isHackModeActive("juice")) ? 1.45 : 1) * titanSpeedMult;
   if (leftPressed) {
     paddleX = Math.max(halfPaddle, paddleX - PADDLE_SPEED * speedMult * dt);
   }
@@ -1405,6 +2073,15 @@ function updateBallPosition(e) {
   }
   const t = activePowerUps["slow-mo"]?.length || 0;
   let o = Math.pow(0.75, t);
+  const greedRank = getAugmentRank("greed");
+  if (greedRank > 0) {
+    o *= (1 + greedRank * 0.10);
+  }
+  if (draftResumeGraceTimer > 0) {
+    // Smoothly ramp ball speed from 45% to 100% right after closing the Augment Draft modal
+    const graceRatio = 1 - (draftResumeGraceTimer / 0.75) * 0.55;
+    o *= graceRatio;
+  }
   if (typeof isHackModeActive === "function" && isHackModeActive("juice") && !isHackModeActive("god")) {
     o *= 1.6;
   }
@@ -1429,8 +2106,9 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically
-  const scaleFactor = 1 + paddleSizeLevel * 0.35;
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment)
+  const titanBonus = getAugmentRank("titan") * 0.22;
+  const scaleFactor = 1 + paddleSizeLevel * 0.35 + titanBonus;
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -1525,6 +2203,15 @@ function updatePowerUps(dt) {
       pu.y  += pu.vy * 60 * dt;
     } else {
       pu.y  += POWER_UP_SPEED * dt;
+      const magnetRank = getAugmentRank("magnet");
+      if (magnetRank > 0) {
+        const targetX = paddleX - POWER_UP_SIZE / 2;
+        const pullSpeed = (120 + magnetRank * 70) * dt;
+        const diff = targetX - pu.originX;
+        if (Math.abs(diff) > 1) {
+          pu.originX += Math.sign(diff) * Math.min(Math.abs(diff), pullSpeed);
+        }
+      }
       pu.x   = pu.originX
              + pu.swayAmplitude * Math.sin(pu.y * pu.swayFrequency + pu.swayPhase);
     }
@@ -1551,6 +2238,17 @@ function updatePowerUps(dt) {
       } else {
         // Otherwise, collect it
         activatePowerUp(pu.type);
+        const magnetRank = getAugmentRank("magnet");
+        if (magnetRank > 0) {
+          const baseMagBonus = [50, 100, 175][Math.min(magnetRank, 3) - 1] || 175;
+          let magPts = Math.round(baseMagBonus * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+          if (isCatMode) magPts = magPts - (magPts % 10) + 9;
+          score += magPts;
+          if (isCatMode) score = score - (score % 10) + 9;
+          scoreDisplay.textContent = `Score: ${score}`;
+          showBrickScore(paddleX, padRect.top - 10, magPts);
+        }
+        awardRogueXP(2);
         pu.element.remove();
         powerUps.splice(i, 1);
       }
@@ -1809,6 +2507,10 @@ function updateLasers(dt) {
           points *= (expandoStacks + 1);
         }
         points *= (rowBonusLevel + 1);
+        if (b.isVaultBrick) {
+          points = Math.round(points * 2.5);
+        }
+        points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
         if (isCatMode) {
           points = points - (points % 10) + 9;
         }
@@ -1838,6 +2540,7 @@ function updateLasers(dt) {
           evaluateRowClear(b.row);
         }
         if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+        awardRogueXP(b.isVaultBrick ? 3 : 1);
         if (score > 500 && !isNeonLegend) {
           isNeonLegend = true;
           showNotification("neon-legend");
@@ -1903,6 +2606,11 @@ function checkCollisions() {
       ball.classList.add("bonus-active");
       soundManager.play("powerUpSpawn", { pitch: 2.5, volume: 0.5 });
     }
+    if (getAugmentRank("pierce") > 0) {
+      pierceChargesLeft = getAugmentRank("pierce");
+      ball.classList.add("ball-piercing");
+      syncRogueHUD();
+    }
   }
 
  // — Use the DOM to get pixel-perfect paddle bounds —  
@@ -1926,6 +2634,14 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
   }
   if (typeof isHackModeActive === "function" && isHackModeActive("god") && typeof triggerDivinePaddleSmite === "function") {
     triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, padRect.top);
+  }
+  if (getAugmentRank("tesla") > 0) {
+    triggerTeslaArcBolts();
+  }
+  if (getAugmentRank("pierce") > 0) {
+    pierceChargesLeft = getAugmentRank("pierce");
+    ball.classList.add("ball-piercing");
+    syncRogueHUD();
   }
 
   // clear any roof bonus
@@ -2023,8 +2739,16 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         points *= (expandoStacks + 1);
       }
 
-      // Multi-hit logic
-      brick.hitsTaken++;
+      // Multi-hit logic (Piercing Overcharge deals 2x hit damage!)
+      const isPiercingHit = pierceChargesLeft > 0;
+      brick.hitsTaken += (isPiercingHit ? 2 : 1);
+      if (isPiercingHit) {
+        pierceChargesLeft = Math.max(0, pierceChargesLeft - 1);
+        if (pierceChargesLeft <= 0) {
+          ball.classList.remove("ball-piercing");
+        }
+        syncRogueHUD();
+      }
 
       // only when the brick actually dies…
       if (brick.hitsTaken >= brick.hitsRequired) {
@@ -2054,11 +2778,14 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           spawnBrickPoops(brick.x + brick.width / 2, brick.y + brick.height / 2, 2);
         }
 
-        // 3) Apply row-clear and 2-hit brick multipliers before adding to score
+        // 3) Apply row-clear, Armored/Vault brick, Sector, and High-Roller Greed multipliers before adding to score
         points *= (rowBonusLevel + 1);
-        if (brick.hitsRequired > 1) {
+        if (brick.isVaultBrick) {
+          points = Math.round(points * 3.0);
+        } else if (brick.hitsRequired > 1) {
           points = Math.round(points * 1.6);
         }
+        points = Math.round(points * getSectorScoreMultiplier() * getGreedScoreMultiplier());
 
         let rawPoints = points;
 
@@ -2075,30 +2802,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         if (isCatMode) {
           score = score - (score % 10) + 9;
         }
-
-        const devBreakdown = {
-          basePoints:            usedRoofBonus ? 15 : 10,
-          finalPoints:           points,
-          wallBounceBonus:       justBounced ? 2 : 0,
-          brickedUpBonus:        brick.isExtraSpawn ? 6 : 0,
-          expandoStacks:         activePowerUps["wide-paddle"]?.length || 0,
-          expandoMultiplier:     (activePowerUps["wide-paddle"]?.length || 0) + 1,
-          rowClearLevel:         rowBonusLevel,
-          twoHitRequired:        brick.hitsRequired,
-          twoHitMultiplier:      brick.hitsRequired > 1 ? 1.6 : 1
-          
-        };
-        console.log("🔍 Brick break details:", devBreakdown);
-
-
-        // **DEBUG LOG**  
-        console.log("🐱 [Brick] CatMode Debug:", {
-          rawPoints,
-          pointsRounded: points,
-          scoreBefore: preScore,
-          scoreAfter:  score,
-          endsIn9:      (score % 10) === 9
-        });
 
         // 5) Float the +N popup at the brick’s position
         showBrickScore(
@@ -2117,13 +2820,18 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
           spawnPowerUp(brick.powerUpType, brick);
         }
 
+        // 7b) Trigger Plasma Nova shockwave if owned, then award Rogue XP
+        triggerPlasmaNova(brick);
+        awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
+
       } else {
-        // First-hit only: play “multihit” sound and show damage, but NO popup
+        // First-hit only: play “multihit” sound and show damage, plus +1 XP for cracking armor!
         soundManager.play("multihit", { pitch: 1 });
         setTimeout(() => {
           soundManager.play("multihit", { pitch: 1.5, volume: 0.7 });
         }, 50);
         brick.element.classList.add("damaged");
+        awardRogueXP(1);
         if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
           triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "wall");
         }
@@ -2131,9 +2839,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
 
       // 8) Finally, update the score display
       scoreDisplay.textContent = `Score: ${score}`;
-
-    
-
 
       // Neon Legend check
       if (score > 500 && !isNeonLegend) {
@@ -2153,8 +2858,6 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
 
       clearTimeout(emojiSwapTimeout);
       
-      console.log('💡 emoji swap:', { isCatMode, isNeonLegend });
-      
       if (isCatMode) {
         // never change it off the cat face
         BALL_EMOJI = '🐱'; 
@@ -2172,26 +2875,27 @@ if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
         }, 250);
       }
 
+      // Bounce along the shallowest collision axis UNLESS Piercing Overcharge plowed through this broken brick!
+      if (!(isPiercingHit && brick.isBroken)) {
+        const overlapLeft   = ballRect.right   - brickRect.left;
+        const overlapRight  = brickRect.right  - ballRect.left;
+        const overlapTop    = ballRect.bottom  - brickRect.top;
+        const overlapBottom = brickRect.bottom - ballRect.top;
+        const minOverlapX   = Math.min(overlapLeft, overlapRight);
+        const minOverlapY   = Math.min(overlapTop, overlapBottom);
 
-      // Bounce along the shallowest collision axis (side vs top/bottom) and accelerate
-      const overlapLeft   = ballRect.right   - brickRect.left;
-      const overlapRight  = brickRect.right  - ballRect.left;
-      const overlapTop    = ballRect.bottom  - brickRect.top;
-      const overlapBottom = brickRect.bottom - ballRect.top;
-      const minOverlapX   = Math.min(overlapLeft, overlapRight);
-      const minOverlapY   = Math.min(overlapTop, overlapBottom);
-
-      if (minOverlapX < minOverlapY) {
-        ballSpeedX *= -1;
-        ballX += overlapLeft < overlapRight ? -overlapLeft : overlapRight;
-        if (isCatMode) {
-          ballSpeedY = -(INITIAL_BALL_SPEED * 1.18);
-        }
-      } else {
-        ballSpeedY *= -1;
-        ballY += overlapTop < overlapBottom ? -overlapTop : overlapBottom;
-        if (isCatMode && overlapTop < overlapBottom) {
-          ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.22);
+        if (minOverlapX < minOverlapY) {
+          ballSpeedX *= -1;
+          ballX += overlapLeft < overlapRight ? -overlapLeft : overlapRight;
+          if (isCatMode) {
+            ballSpeedY = -(INITIAL_BALL_SPEED * 1.18);
+          }
+        } else {
+          ballSpeedY *= -1;
+          ballY += overlapTop < overlapBottom ? -overlapTop : overlapBottom;
+          if (isCatMode && overlapTop < overlapBottom) {
+            ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.22);
+          }
         }
       }
       ballSpeedX *= 1.005;
@@ -2252,7 +2956,8 @@ function endGame(won) {
   if (isNewLegitHigh) saveHighScore(score);
 
   const rating = getRating(score, won);
-  const titleText = won ? "Mission Complete!" : "System Failure!";
+  const titleText = won ? `Sector ${currentSector} Reached!` : "System Failure!";
+  const augSummary = getActiveAugmentIcons().join(" ");
 
   let savedBannerHTML = "";
   if (isHackedRun) {
@@ -2277,7 +2982,7 @@ function endGame(won) {
   gameMessage.innerHTML = `
     <span class="title">${titleText}</span>
     <span class="name rating">${rating}</span>
-    <span class="description">Runner: ${runnerCallsign} &bull; Final Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ LEGIT)</span>`}</span>
+    <span class="description">Runner: ${runnerCallsign} &bull; Sector ${currentSector} &bull; LVL ${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ LEGIT)</span>`}</span>
     ${savedBannerHTML}
     <div id="end-leaderboard" class="leaderboard-panel">
       ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
@@ -2429,6 +3134,7 @@ function evaluateRowClear(row) {
     rowBonusLevel = rowBonusCount;
     showNotification(`row-clear-${rowBonusLevel}`);
   }
+  awardRogueXP(4);
 }
 
 
@@ -2462,6 +3168,14 @@ document.addEventListener("keydown", e => {
     if (e.key === "Escape" || e.key.toLowerCase() === "g" || e.key === "?") {
       e.preventDefault();
       toggleArcadeGuide(false);
+    }
+    return;
+  }
+
+  if (isDraftModalOpen) {
+    if (e.key === "1" || e.key === "2" || e.key === "3") {
+      e.preventDefault();
+      selectAugmentChoice(parseInt(e.key, 10) - 1);
     }
     return;
   }
