@@ -642,7 +642,30 @@ function updateStartLeaderboard() {
 }
 
 // --- Pre-Game Arcade Callsign & Runner Class Selector ---
-const CALLSIGN_PRESETS = ["NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "JET"];
+const CALLSIGN_PRESETS = [
+  "NEO", "ZAP", "HEX", "CAT", "SYN", "MAX", "ACE", "VEX", "GLX", "NYX", "CYB", "JET",
+  "TRN", "FLY", "BIT", "RAM", "ROM", "CPU", "GPU", "BOT", "AIX", "NET", "WEB", "SYS",
+  "CMD", "EXE", "BUG", "FIX", "DEV", "PRO", "GOD", "MVP", "TOP", "WIN", "GGZ", "AFK",
+  "PWND", "LAG", "FPS", "RPG", "RNG", "XPX", "HPX", "MPX", "ATK", "DEF", "DEX", "STR",
+  "INT", "LUK", "CRT", "HIT", "KOX", "RIP", "FXX", "WIZ", "MAG", "ROG", "PAL", "BRB",
+  "NIN", "SAM", "RON", "SHD", "GHO", "PHA", "VMP", "ZOM", "SKL", "BON", "DRG", "WYR",
+  "PHX", "GRF", "HYD", "KRK", "TIT", "GOL", "260", "C64", "NES", "SNX", "N64", "PSX",
+  "ARC", "PIN", "JOY", "PAD", "BTN", "CRT", "VHS", "DVD", "LAS", "PLZ", "ION", " ARC",
+  "VLT", "AMP", "OHM", "WAT", "JOL", "SPK", "SHK", "BOL", "THN", "STR", "CLD", " SKY",
+  "SUN", "SOL", "LUN", "STR", "COM", "MET", "AST", "ORB", "GAL", "COS", "VOI", "ABY",
+  "RFT", "WRP", "HYP", "SPD", "VEL", "ACC", "BST", "NOZ", "TRB", "JTX", "RKT", "MSL",
+  "BMB", "NUK", "TNT", "C4X", "FRG", "2EZ", "404", "500", "777", "999", "007", "101",
+  "808", "909", "303", "WAV", "MP3", "SYN", "BAS", "DRP", "SUB", " WUB", "MIX", "DJX",
+  "MCX", "VIP", "CEO", "BOS", "KNG", "QUN", "PRN", "DUK", "KNT", "LRD", "SIR", "2P1",
+  "1UP", "HI5", "YO1", "SUP", "BRO", "DUDE", "RAD", "GNL", "2B2", "XOX", "ZIG", "ZAG",
+  "FOX", "WLF", "BRX", "TIG", "LIO", "PNT", "JAG", "24K", "AU7", "AG9", "PT1", "DIA",
+  "RUB", "EME", "SAP", "OPX", "ONY", "JAD", "obs", "KAI", "ZEN", "TAO", "CHI", "RYU",
+  "KEN", "AKM", "CHU", "GUI", "BLK", "ZNG", "DHS", "HON", "BAL", "VEG", "SAG", "BSN",
+  "SUB", "SCP", "RDN", "LIU", "KNG", "JNY", "SNY", "JAX", "KNO", "2KX", "Y2K", "90S",
+  "80S", "RET", "VNT", " Neo", "PIX", "VOX", "TEX", "SHD", "RAY", "TRC", "GLW", "BLR",
+  "2D1", "3D1", "VRX", "ARX", "MRX", "XR1", "HUD", "GUI", "CLI", "API", "SDK", "IDE",
+  "GIT", "SSH", "SSL", "TLS", "VPN", "DNS", "TCP", "UDP", "IPX", "MAC", "LAN", "WAN"
+].map(s => s.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3)).filter((s, i, arr) => s.length === 3 && arr.indexOf(s) === i);
 const KEYPAD_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let activeCallsignSlot = 0;
 let selectedRunnerClass = "striker";
@@ -1153,6 +1176,24 @@ function getGreedScoreMultiplier() {
   return [1.4, 1.85, 2.5][Math.min(r, 3) - 1] || 2.5;
 }
 
+const BOARD_LEVEL_THEMES = {
+  1: { name: "NEON SECTOR",    emoji: "🌐", color: "#00ffff", sub: "STANDARD GRID ONLINE" },
+  2: { name: "DEEP ULTRAVIOLET", emoji: "🔮", color: "#b84dff", sub: "SYNTH GRID • ×2 MULTIPLIER • +14% SPEED" },
+  3: { name: "CRIMSON BREACH", emoji: "🔥", color: "#ff2a55", sub: "FIREWALL ALERT • ×3 MULTIPLIER • +28% SPEED" },
+  4: { name: "SOLAR OVERLOAD", emoji: "⚠️", color: "#ff9900", sub: "CORE MELTDOWN • ×4 MULTIPLIER • +42% SPEED" },
+  5: { name: "BLACKWALL ABYSS", emoji: "👑", color: "#ffd700", sub: "FINAL ECLIPSE • ×5 MULTIPLIER • +56% SPEED" }
+};
+
+function syncBoardLevelAtmosphere() {
+  const lvl = Math.max(1, Math.min(MAX_LEVELS, currentSector || 1));
+  if (gameArea) {
+    gameArea.setAttribute("data-board-level", String(lvl));
+  }
+  if (document.body) {
+    document.body.setAttribute("data-board-level", String(lvl));
+  }
+}
+
 function initRogueProgression() {
   currentSector = 1;
   sectorsCleared = 0;
@@ -1174,6 +1215,7 @@ function initRogueProgression() {
   const aegisBar = document.getElementById("aegis-barrier-bar");
   if (aegisBar) aegisBar.style.display = "none";
   ball.classList.remove("ball-piercing");
+  syncBoardLevelAtmosphere();
 }
 
 function applyRunnerClassTier() {
@@ -1217,8 +1259,9 @@ function syncRogueHUD() {
 
   if (classBadge) {
     const boardMult = getSectorScoreMultiplier();
-    classBadge.textContent = `${cDef.emoji} ${cDef.name} • BOARD ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult})`;
   }
+  syncBoardLevelAtmosphere();
   updateMultiplierBadge();
   if (xpFill) {
     const pct = isMax ? 100 : Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
@@ -1548,12 +1591,27 @@ function advanceToNextSector() {
 
   const newMult = getSectorScoreMultiplier();
   const spdPct = Math.round((getBoardDifficultySpeedMultiplier() - 1) * 100);
+  const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[5];
+
+  syncBoardLevelAtmosphere();
+
+  // 1) Slam the big Arena Floor Jumbotron announcing "LEVEL N!"
   showNotification({
-    title: `BOARD ${clearedSectorNum}/${MAX_LEVELS} CLEARED! (+${sectorBonus} PTS)`,
+    title: `${theme.name} // +${sectorBonus} CLEAR BONUS`,
+    emoji: theme.emoji,
+    name: `LEVEL ${currentSector}!`,
+    description: theme.sub,
+    color: theme.color,
+    mode: "jumbotron"
+  });
+
+  // 2) Also pop the crisp floating burst banner with the exact multiplier & speed stats
+  showNotification({
+    title: `BOARD REPLENISHED`,
     emoji: "🚀",
-    name: `×${newMult} MULTIPLIER!`,
-    description: `BOARD ${currentSector}/${MAX_LEVELS} REPLENISHED • +${spdPct}% SPEED & TOUGHER BRICKS!`,
-    color: "#00ffff",
+    name: `LEVEL ${currentSector}! (×${newMult})`,
+    description: `+${spdPct}% SPEED & TOUGHER BRICKS!`,
+    color: theme.color,
     mode: "burst"
   }, { x: GAME_WIDTH / 2 });
 
