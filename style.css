@@ -577,14 +577,32 @@ body::before {
 }
 .start-prompt.start-play-btn {
     margin: 12px 0 0 0;
-    padding: 12px 32px;
+    padding: 0 20px;
+    width: 470px;
+    min-width: 470px;
+    max-width: 470px;
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
 }
 .start-deck {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 422px;
     gap: 16px;
-    width: 100%;
+    width: 840px;
+    min-width: 840px;
     max-width: 840px;
+    height: 422px;
+    min-height: 422px;
+    max-height: 422px;
     align-items: stretch;
 }
 #game-message {
@@ -1035,7 +1053,7 @@ body::before {
   }
 }
 
-/* --- Arcade Callsign Keypad & Class Picker --- */
+/* --- Arcade Callsign Keypad & Class Picker (Fixed-Dimension Containers) --- */
 .callsign-panel,
 .leaderboard-panel {
   background: rgba(14, 16, 26, 0.88);
@@ -1047,6 +1065,13 @@ body::before {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 422px;
+  min-height: 422px;
+  max-height: 422px;
+  overflow: hidden;
 }
 
 .callsign-panel {
@@ -1055,14 +1080,25 @@ body::before {
   cursor: default;
 }
 
+.callsign-top-section {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
 .callsign-heading {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.56rem;
+  font-size: 0.54rem;
+  height: 18px;
+  line-height: 18px;
   color: var(--clr-neon-pink);
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   margin-bottom: 6px;
   text-align: center;
   text-shadow: 0 0 6px var(--clr-neon-pink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.15s ease, text-shadow 0.15s ease;
 }
 
@@ -1076,11 +1112,14 @@ body::before {
   justify-content: center;
   gap: 8px;
   margin-bottom: 6px;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 .callsign-slot {
   width: 42px;
   height: 40px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1139,14 +1178,20 @@ body::before {
 
 .keypad-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: 26px;
   gap: 4px;
 }
 
 .keypad-key {
   font-family: 'Press Start 2P', cursive;
   font-size: 0.55rem;
-  padding: 5px 0 4px;
+  height: 26px;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--clr-text-main);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 255, 255, 0.25);
@@ -1178,140 +1223,148 @@ body::before {
   box-shadow: 0 0 10px var(--clr-gold-glow);
 }
 
-/* --- Linear Class Picker inside Callsign Panel --- */
+/* --- Linear Class Picker inside Callsign Panel (Fixed-Dimension Grid) --- */
 .class-picker-box {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 6px;
+  padding-top: 7px;
   border-top: 1px dashed rgba(255, 255, 255, 0.16);
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.class-picker-label {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.48rem;
-  color: #b8e7ff;
-  letter-spacing: 0.6px;
-  text-align: center;
+  flex-shrink: 0;
 }
 
 .class-picker-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: 42px;
   gap: 5px;
+  height: 42px;
 }
 
 .class-select-btn {
+  height: 42px;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 5px 3px;
+  gap: 3px;
+  padding: 4px 2px;
   border-radius: 6px;
   background: rgba(10, 14, 24, 0.85);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   color: #dce8ff;
   cursor: pointer;
-  transition: all 0.14s ease;
+  overflow: hidden;
+  transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
 }
 
 .class-select-btn:hover {
-  border-color: var(--class-color, #00ffff);
+  border-color: var(--cls-color, #00ffff);
   background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-1px);
 }
 
+.class-select-btn.active,
 .class-select-btn.selected {
-  border-color: var(--class-color, #00ffff);
-  background: color-mix(in srgb, var(--class-color, #00ffff) 18%, rgba(10, 14, 24, 0.95));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--class-color, #00ffff) 50%, transparent);
+  border-color: var(--cls-color, #00ffff);
+  background: color-mix(in srgb, var(--cls-color, #00ffff) 18%, rgba(10, 14, 24, 0.95));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cls-color, #00ffff) 50%, transparent);
 }
 
+.cls-btn-emoji,
 .class-btn-emoji {
-  font-size: 1rem;
+  font-size: 0.96rem;
   line-height: 1;
 }
 
+.cls-btn-name,
 .class-btn-name {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.4rem;
+  font-size: 0.36rem;
+  line-height: 1;
   color: #ffffff;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 
+.class-select-btn.active .cls-btn-name,
 .class-select-btn.selected .class-btn-name {
-  color: var(--class-color, #00ffff);
-}
-
-.class-btn-role {
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.56rem;
-  font-weight: 700;
-  color: rgba(215, 232, 255, 0.72);
-  white-space: nowrap;
+  color: var(--cls-color, #00ffff);
 }
 
 .class-linear-preview {
+  height: 76px;
+  min-height: 76px;
+  max-height: 76px;
+  box-sizing: border-box;
   background: rgba(6, 10, 20, 0.9);
-  border: 1px solid color-mix(in srgb, var(--class-color, #00ffff) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cls-color, #00ffff) 55%, transparent);
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.class-preview-head {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.43rem;
-  color: var(--class-color, #00ffff);
+  overflow: hidden;
 }
 
-.class-preview-tag {
+.class-preview-tagline {
   font-family: 'Roboto', sans-serif;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #cbe4ff;
+  font-size: 0.68rem;
+  height: 16px;
+  line-height: 16px;
+  color: #d8ecff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.class-preview-tagline strong {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.44rem;
+  color: var(--cls-color, #00ffff);
+  letter-spacing: 0.3px;
 }
 
 .class-path-track {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2px;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 21px);
+  gap: 4px;
+  height: 46px;
 }
 
 .class-path-step {
-  display: inline-flex;
+  height: 21px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
+  gap: 5px;
+  padding: 0 6px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.14);
   font-family: 'Roboto', sans-serif;
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #e6f2ff;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .class-path-lvl {
   font-family: 'Press Start 2P', cursive;
   font-size: 0.38rem;
-  color: var(--class-color, #00ffff);
+  color: var(--cls-color, #00ffff);
+  flex-shrink: 0;
 }
 
-.class-path-arrow {
-  font-size: 0.55rem;
-  color: rgba(255, 255, 255, 0.38);
+.class-path-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .callsign-subhint {
@@ -1326,21 +1379,29 @@ body::before {
 #game-message .leaderboard-panel {
   margin: 10px auto 0;
   width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   box-sizing: border-box;
   padding: 11px 13px;
 }
 
 .leaderboard-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: 30px;
   gap: 6px;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
+  height: 30px;
+  flex-shrink: 0;
 }
 
 .lb-tab {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.52rem;
-  padding: 7px 6px 6px;
+  font-size: 0.5rem;
+  height: 30px;
+  padding: 0 6px;
+  box-sizing: border-box;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
@@ -1351,7 +1412,8 @@ body::before {
   justify-content: center;
   gap: 5px;
   white-space: nowrap;
-  transition: all 0.14s ease;
+  overflow: hidden;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
 }
 
 .lb-tab:hover {
@@ -1389,13 +1451,19 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 4px 8px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
+  padding: 0 8px;
+  box-sizing: border-box;
   border-radius: 4px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.43rem;
-  letter-spacing: 0.4px;
-  margin-bottom: 7px;
+  font-size: 0.42rem;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
   white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .leaderboard-mode-strip.legit-strip {
@@ -2724,33 +2792,43 @@ body::before {
 .rogue-hud {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 7px;
-  padding: 4px 10px;
+  width: 390px;
+  min-width: 390px;
+  max-width: 390px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 10px;
+  box-sizing: border-box;
   background: rgba(10, 14, 28, 0.92);
   border: 1.5px solid color-mix(in srgb, var(--class-color, #00ffff) 65%, transparent);
   border-radius: 99px;
   box-shadow: 0 0 12px color-mix(in srgb, var(--class-color, #00ffff) 28%, transparent);
   white-space: nowrap;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
 .rogue-class-badge {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.46rem;
+  font-size: 0.44rem;
   color: var(--class-color, #00ffff);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
 }
 
 .rogue-xp-track {
   position: relative;
-  width: 96px;
+  width: 92px;
   height: 14px;
   background: rgba(4, 8, 18, 0.95);
   border: 1px solid rgba(57, 255, 20, 0.55);
   border-radius: 99px;
   overflow: hidden;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.85);
+  flex-shrink: 0;
 }
 
 .rogue-xp-fill {
@@ -2777,11 +2855,15 @@ body::before {
 
 .rogue-next-perk {
   font-family: 'Roboto', sans-serif;
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 700;
   color: #d8eeff;
-  padding-left: 4px;
+  padding-left: 6px;
   border-left: 1px solid rgba(255, 255, 255, 0.18);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Aegis Forcefield Floor Bar */

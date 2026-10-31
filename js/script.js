@@ -702,8 +702,18 @@ const RUNNER_CLASSES = {
   }
 };
 
+const RUNNER_CLASS_ORDER = ["striker", "guardian", "demolisher", "highroller"];
+
 function getSelectedClassDef() {
   return RUNNER_CLASSES[selectedRunnerClass] || RUNNER_CLASSES.striker;
+}
+
+function setRunnerClass(classId) {
+  if (!RUNNER_CLASSES[classId]) return;
+  selectedRunnerClass = classId;
+  soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
+  renderCallsignBuilder();
+  updateHighScoreDisplay();
 }
 
 function isStartScreenOpen() {
@@ -776,15 +786,18 @@ function renderCallsignBuilder() {
   }).join("");
 
   const pathStepsHTML = activeClass.tiers.map(t => `
-    <span class="class-path-step"><strong>L${t.level}</strong> ${t.label}</span>
-  `).join(`<span class="class-path-arrow">➔</span>`);
+    <div class="class-path-step" title="LVL ${t.level}: ${t.short}">
+      <span class="class-path-lvl">L${t.level}</span>
+      <span class="class-path-name">${t.label}</span>
+    </div>
+  `).join("");
 
   const headingText = complete
     ? `🕹️ CALLSIGN: ${chars.join("")} • ${activeClass.emoji} ${activeClass.name}`
     : `🕹️ 1. ENTER CALLSIGN &amp; 2. PICK CLASS`;
 
   container.innerHTML = `
-    <div>
+    <div class="callsign-top-section">
       <div class="callsign-heading ${complete ? "callsign-ready" : ""}">${headingText}</div>
       <div class="callsign-slots">${slotsHTML}</div>
       <div class="keypad-grid">${keysHTML}</div>
@@ -1192,10 +1205,10 @@ function syncRogueHUD() {
     const sectorSuffix = currentSector > 1 ? ` • S${currentSector}` : "";
     if (!isMax) {
       const nextTier = cDef.tiers[rogueLevel];
-      nextPerk.textContent = `Next: L${rogueLevel + 1} ${nextTier ? nextTier.short : ""}${sectorSuffix}`;
+      nextPerk.textContent = `Next: L${rogueLevel + 1} ${nextTier ? nextTier.label : ""}${sectorSuffix}`;
     } else {
       const curTier = cDef.tiers[maxLvl - 1];
-      nextPerk.textContent = `★ MAX: ${curTier ? curTier.short : ""}${sectorSuffix}`;
+      nextPerk.textContent = `★ MAX: ${curTier ? curTier.label : ""}${sectorSuffix}`;
     }
   }
 
@@ -1244,8 +1257,8 @@ function awardRogueXP(amount) {
     showNotification({
       title: `${cDef.name} LEVEL ${rogueLevel}!`,
       emoji: cDef.emoji,
-      name: leveledUpTier.title,
-      description: leveledUpTier.desc.toUpperCase(),
+      name: leveledUpTier.label,
+      description: leveledUpTier.short.toUpperCase(),
       color: cDef.color,
       mode: "burst"
     }, { x: paddleX });
