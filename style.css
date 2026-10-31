@@ -55,16 +55,29 @@ body::before {
 /* --- Header --- */
 .game-header {
     width: 900px;
-    height: 64px;
-    min-height: 64px;
-    max-height: 64px;
+    height: 54px;
+    min-height: 54px;
+    max-height: 54px;
     box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
+}
+
+.rogue-hud-row {
+    width: 900px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
 }
 
 .header-left {
@@ -1019,6 +1032,33 @@ body::before {
   background: var(--clr-gold-glow);
   color: #0b0e14;
   box-shadow: 0 0 10px var(--clr-gold-glow);
+}
+.tip-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 118px;
+  color: var(--clr-neon-blue);
+  background: rgba(0, 255, 255, 0.08);
+  border-color: rgba(0, 255, 255, 0.55);
+}
+.tip-control-btn:hover {
+  background: var(--clr-neon-blue);
+  color: #0b0e14;
+  border-color: var(--clr-neon-blue);
+  box-shadow: 0 0 10px var(--clr-neon-blue);
+}
+.tip-restart-btn {
+  min-width: 108px;
+  color: #ff7ab8;
+  background: rgba(255, 51, 102, 0.08);
+  border-color: rgba(255, 51, 102, 0.55);
+}
+.tip-restart-btn:hover {
+  background: var(--clr-neon-pink);
+  color: #0b0e14;
+  border-color: var(--clr-neon-pink);
+  box-shadow: 0 0 10px var(--clr-neon-pink);
 }
 
 .poop-drop {
@@ -2786,26 +2826,26 @@ body::before {
 }
 
 /* ==========================================================================
-   HEADER-MOUNTED LINEAR CLASS PROGRESSION HUD (OUTSIDE GAME AREA)
+   DEDICATED FULL-WIDTH LINEAR CLASS PROGRESSION ROW (900PX ABOVE GAME AREA)
    ========================================================================== */
 
 .rogue-hud {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 7px;
-  width: 390px;
-  min-width: 390px;
-  max-width: 390px;
-  height: 28px;
-  min-height: 28px;
-  max-height: 28px;
-  padding: 0 10px;
+  gap: 10px;
+  width: 900px;
+  min-width: 900px;
+  max-width: 900px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 0 12px;
   box-sizing: border-box;
-  background: rgba(10, 14, 28, 0.92);
+  background: rgba(10, 14, 28, 0.94);
   border: 1.5px solid color-mix(in srgb, var(--class-color, #00ffff) 65%, transparent);
-  border-radius: 99px;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--class-color, #00ffff) 28%, transparent);
+  border-radius: 7px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--class-color, #00ffff) 24%, transparent);
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
@@ -2813,16 +2853,16 @@ body::before {
 
 .rogue-class-badge {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.44rem;
+  font-size: 0.48rem;
   color: var(--class-color, #00ffff);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   flex-shrink: 0;
 }
 
 .rogue-xp-track {
   position: relative;
-  width: 92px;
-  height: 14px;
+  width: 118px;
+  height: 16px;
   background: rgba(4, 8, 18, 0.95);
   border: 1px solid rgba(57, 255, 20, 0.55);
   border-radius: 99px;
@@ -2846,7 +2886,7 @@ body::before {
   align-items: center;
   justify-content: center;
   font-family: 'Roboto', sans-serif;
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   font-weight: 700;
   color: #ffffff;
   text-shadow: 0 1px 2px #000000, 0 0 5px #000000;
@@ -2854,16 +2894,78 @@ body::before {
 }
 
 .rogue-next-perk {
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.64rem;
-  font-weight: 700;
-  color: #d8eeff;
-  padding-left: 6px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding-left: 8px;
   border-left: 1px solid rgba(255, 255, 255, 0.18);
   flex: 1;
   min-width: 0;
+}
+
+.hud-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  box-sizing: border-box;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-tier-pill strong {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.38rem;
+  flex-shrink: 0;
+}
+
+.hud-tier-pill.tier-active {
+  color: #ffffff;
+  background: color-mix(in srgb, var(--class-color, #00ffff) 28%, rgba(8, 12, 24, 0.95));
+  border: 1px solid var(--class-color, #00ffff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--class-color, #00ffff) 45%, transparent);
+}
+
+.hud-tier-pill.tier-active strong {
+  color: var(--class-color, #00ffff);
+}
+
+.hud-tier-pill.tier-unlocked {
+  color: #d6ecff;
+  background: color-mix(in srgb, var(--class-color, #00ffff) 14%, rgba(8, 12, 24, 0.9));
+  border: 1px solid color-mix(in srgb, var(--class-color, #00ffff) 50%, transparent);
+}
+
+.hud-tier-pill.tier-unlocked strong {
+  color: var(--class-color, #00ffff);
+}
+
+.hud-tier-pill.tier-next {
+  color: #e4f4ff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px dashed rgba(57, 255, 20, 0.65);
+}
+
+.hud-tier-pill.tier-next strong {
+  color: #39ff14;
+}
+
+.hud-tier-pill.tier-locked {
+  color: rgba(200, 215, 235, 0.42);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hud-tier-pill.tier-locked strong {
+  color: rgba(200, 215, 235, 0.48);
 }
 
 /* Aegis Forcefield Floor Bar */

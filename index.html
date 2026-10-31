@@ -15,18 +15,17 @@
             <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
             <div id="high-score-display" class="high-score-header"></div>
         </div>
+        <div id="hack-mode-hud" class="hack-mode-hud"></div>
+    </div>
+
+    <div class="rogue-hud-row">
         <div id="rogue-hud" class="rogue-hud" style="display: none;">
-            <span id="rogue-class-badge" class="rogue-class-badge">⚡ STRIKER • L1/4</span>
+            <span id="rogue-class-badge" class="rogue-class-badge">⚡ STRIKER • LVL 1/4</span>
             <div class="rogue-xp-track">
                 <div id="rogue-xp-fill" class="rogue-xp-fill"></div>
-                <span id="rogue-xp-text" class="rogue-xp-text">0/10 XP</span>
+                <span id="rogue-xp-text" class="rogue-xp-text">0/12 XP</span>
             </div>
-            <span id="rogue-next-perk" class="rogue-next-perk">Next: Auto-Turrets</span>
-        </div>
-        <div id="hack-mode-hud" class="hack-mode-hud"></div>
-        <div class="header-actions">
-            <button id="pause-button" class="reset-button">Pause [P]</button>
-            <button id="reset-button" class="reset-button">Restart</button>
+            <div id="rogue-next-perk" class="rogue-next-perk"></div>
         </div>
     </div>
 
@@ -69,9 +68,11 @@
         <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
     </div>
 
-    <!-- ─── Bottom Entry Points Bar ─── -->
+    <!-- ─── Bottom Entry Points & Controls Bar ─── -->
     <div id="tips-box" class="tips-box">
         <div class="tip-actions">
+            <button id="pause-button" class="tip-next-btn tip-control-btn" type="button" style="display: none;">⏸ PAUSE [P]</button>
+            <button id="reset-button" class="tip-next-btn tip-control-btn tip-restart-btn" type="button" style="display: none;">↻ RESTART</button>
             <button id="tip-console-btn" class="tip-next-btn tip-console-btn" type="button">💻 [~] HACK CONSOLE</button>
             <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn" type="button">🕹️ [G] ARCADE MANUAL</button>
         </div>

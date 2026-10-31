@@ -491,7 +491,7 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       statusStripHTML = `
         <div class="leaderboard-mode-strip warn-strip">
           <span>⚠️ HACKS ON (${armedHacks.join("")}) • NEXT RUN GOES TO HACKED</span>
-          <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">GO LEGIT</button>
+          <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">DISABLE HACKS</button>
         </div>
       `;
     } else {
@@ -554,7 +554,7 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
           <span class="lb-pos">#${idx + 1}</span>
           <span class="lb-initials-wrap"><span class="lb-initials">---</span></span>
           <span class="lb-score">---</span>
-          <span class="lb-tier-wrap"><span class="lb-tier">${isHackedTab ? "OPEN HACK SLOT" : "OPEN LEGIT SLOT"}</span></span>
+          <span class="lb-tier-wrap"><span class="lb-tier">${isHackedTab ? "OPEN HACK SLOT" : "OPEN SLOT"}</span></span>
         </div>
       `);
     }
@@ -563,7 +563,7 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
   return `
     <div class="leaderboard-tabs" role="tablist">
       <button type="button" class="lb-tab ${!isHackedTab ? "active-legit" : ""}" data-lb-tab="legit">
-        🏆 LEGIT TOP 5 <span class="lb-tab-count">${legitCount}</span>
+        🏆 TOP 5 RUNNERS <span class="lb-tab-count">${legitCount}</span>
       </button>
       <button type="button" class="lb-tab ${isHackedTab ? "active-hacked" : ""}" data-lb-tab="hacked">
         💻 HACKED TOP 5 <span class="lb-tab-count">${hackedCount}</span>
@@ -964,10 +964,10 @@ function updateHighScoreDisplay() {
     ? ` • 💻 HACKED (${getArmedHackEmojis().join("") || getRunHackEmojis().join("")})`
     : "";
   if (board.length > 0) {
-    highScoreDisplay.textContent = `🏆 Legit High: ${formatArcadeScore(board[0].score)} (${board[0].initials}) • Runner: ${runner}${modeTag}`;
+    highScoreDisplay.textContent = `🏆 High Score: ${formatArcadeScore(board[0].score)} (${board[0].initials}) • Runner: ${runner}${modeTag}`;
   } else {
     const e = getHighScore();
-    highScoreDisplay.textContent = `🏆 Legit High: ${formatArcadeScore(e)} • Runner: ${runner}${modeTag}`;
+    highScoreDisplay.textContent = `🏆 High Score: ${formatArcadeScore(e)} • Runner: ${runner}${modeTag}`;
   }
 }
 
@@ -1192,24 +1192,26 @@ function syncRogueHUD() {
   rogueHud.style.setProperty("--class-color", cDef.color);
 
   if (classBadge) {
-    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LVL ${rogueLevel}/${maxLvl}`;
+    const sectorTag = currentSector > 1 ? ` • S${currentSector}` : "";
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} • LVL ${rogueLevel}/${maxLvl}${sectorTag}`;
   }
   if (xpFill) {
     const pct = isMax ? 100 : Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
     xpFill.style.width = `${pct}%`;
   }
   if (xpText) {
-    xpText.textContent = isMax ? `MAX LVL • ${rogueXP}/${rogueXPToNext} XP` : `${rogueXP}/${rogueXPToNext} XP`;
+    xpText.textContent = isMax ? `MAX • ${rogueXP}/${rogueXPToNext} XP` : `${rogueXP}/${rogueXPToNext} XP`;
   }
   if (nextPerk) {
-    const sectorSuffix = currentSector > 1 ? ` • S${currentSector}` : "";
-    if (!isMax) {
-      const nextTier = cDef.tiers[rogueLevel];
-      nextPerk.textContent = `Next: L${rogueLevel + 1} ${nextTier ? nextTier.label : ""}${sectorSuffix}`;
-    } else {
-      const curTier = cDef.tiers[maxLvl - 1];
-      nextPerk.textContent = `★ MAX: ${curTier ? curTier.label : ""}${sectorSuffix}`;
-    }
+    nextPerk.innerHTML = cDef.tiers.map(t => {
+      const isUnlocked = t.level <= rogueLevel;
+      const isCurrent = t.level === rogueLevel;
+      const isNext = t.level === rogueLevel + 1;
+      const stepClass = isCurrent
+        ? "hud-tier-pill tier-active"
+        : (isUnlocked ? "hud-tier-pill tier-unlocked" : (isNext ? "hud-tier-pill tier-next" : "hud-tier-pill tier-locked"));
+      return `<span class="${stepClass}" title="LVL ${t.level}: ${t.short}"><strong>L${t.level}</strong> ${t.label}</span>`;
+    }).join("");
   }
 
   // Update bottom Aegis Barrier Bar (Guardian Class)
@@ -1589,7 +1591,7 @@ function initGame() {
     ball.style.display = 'none';
     if (pauseButton) {
       pauseButton.style.display = 'none';
-      pauseButton.textContent = 'Pause [P]';
+      pauseButton.textContent = '⏸ PAUSE [P]';
     }
     resetButton.style.display = 'none';
     
@@ -1934,10 +1936,10 @@ function startGame() {
         statusIndicatorsContainer.style.display = 'flex';
         ball.style.display = 'block';
         if (pauseButton) {
-            pauseButton.style.display = 'block';
-            pauseButton.textContent = 'Pause [P]';
+            pauseButton.style.display = 'inline-flex';
+            pauseButton.textContent = '⏸ PAUSE [P]';
         }
-        resetButton.style.display = 'block';
+        resetButton.style.display = 'inline-flex';
         
         ballIsStuck = true;
         soundManager.play('winSong');
@@ -1967,7 +1969,7 @@ function togglePause() {
       }
       pauseStartTime = null;
     }
-    if (pauseButton) pauseButton.textContent = "Pause [P]";
+    if (pauseButton) pauseButton.textContent = "⏸ PAUSE [P]";
     gameMessage.style.display = "none";
     gameArea.classList.add("hide-cursor");
     lastTime = 0;
@@ -1975,7 +1977,7 @@ function togglePause() {
   } else {
     pauseStartTime = Date.now();
     cancelAnimationFrame(animationFrameId);
-    if (pauseButton) pauseButton.textContent = "Resume [P]";
+    if (pauseButton) pauseButton.textContent = "▶ RESUME [P]";
     gameMessage.innerHTML = `<span class="name">PAUSED</span><p class="game-message-prompt">Press P / ESC or Click to Resume</p>`;
     gameMessage.style.display = "block";
     gameArea.classList.remove("hide-cursor");
@@ -2968,18 +2970,18 @@ function endGame(won) {
   if (isHackedRun) {
     const hackBadgeStr = hacksUsed.join("");
     savedBannerHTML = savedEntry
-      ? `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} SAVED TO HACKED TOP 5 &bull; 🏆 LEGIT BOARD PROTECTED!</div>`
-      : `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} HACKED RUN &bull; 🏆 LEGIT LEADERBOARD PROTECTED!</div>`;
+      ? `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} SAVED TO HACKED TOP 5 &bull; 🏆 TOP 5 BOARD PROTECTED!</div>`
+      : `<div class="record-saved-banner hacked-banner">💻 ${hackBadgeStr} HACKED RUN &bull; 🏆 TOP 5 LEADERBOARD PROTECTED!</div>`;
   } else if (savedEntry) {
     savedBannerHTML = `<div class="record-saved-banner">${
       isNewLegitHigh
-        ? `👑 NEW #1 LEGIT HIGH SCORE FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
-        : `🏆 LEGIT TOP 5 RECORD SAVED FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
+        ? `👑 NEW #1 HIGH SCORE FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
+        : `🏆 TOP 5 RECORD SAVED FOR ${savedEntry.initials}! (100% CHEAT-FREE)`
     }</div>`;
   } else {
     const legitBoard = getLeaderboard("legit");
     const minNeeded = legitBoard.length >= MAX_LEADERBOARD_ENTRIES ? (legitBoard[legitBoard.length - 1].score + 1 - score) : 1;
-    savedBannerHTML = `<div class="record-saved-banner legit-try-banner">🛡️ 100% LEGIT RUN &bull; ${formatArcadeScore(Math.max(1, minNeeded))} MORE PTS FOR TOP 5!</div>`;
+    savedBannerHTML = `<div class="record-saved-banner legit-try-banner">🛡️ VERIFIED RUN &bull; ${formatArcadeScore(Math.max(1, minNeeded))} MORE PTS FOR TOP 5!</div>`;
   }
 
   const highlightId = savedEntry ? savedEntry.id : lastSavedEntryId;
@@ -2987,7 +2989,7 @@ function endGame(won) {
   gameMessage.innerHTML = `
     <span class="title">${titleText}</span>
     <span class="name rating">${rating}</span>
-    <span class="description">Runner: ${runnerCallsign} &bull; Sector ${currentSector} &bull; LVL ${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ LEGIT)</span>`}</span>
+    <span class="description">Runner: ${runnerCallsign} &bull; Sector ${currentSector} &bull; LVL ${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)} ${isHackedRun ? `<span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : `<span class="end-run-legit-tag">(✓ VERIFIED)</span>`}</span>
     ${savedBannerHTML}
     <div id="end-leaderboard" class="leaderboard-panel">
       ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
