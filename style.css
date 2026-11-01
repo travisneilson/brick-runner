@@ -1,5 +1,5 @@
 /* --- Fonts and Global Styles --- */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
 
 :root {
     --clr-neon-blue: #00FFFF;
@@ -621,24 +621,29 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     top: 0;
     left: 0;
     display: none;
-    background-color: var(--clr-dark-bg);
+    background:
+        radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.08) 0%, transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(255, 0, 255, 0.07) 0%, transparent 55%),
+        #0c0f18;
     z-index: 19;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     color: var(--clr-text-main);
-    padding: 12px 22px;
+    padding: 14px 24px 14px;
     box-sizing: border-box;
 }
 #start-screen .game-title {
     font-family: 'Press Start 2P', cursive;
-    font-size: 2.35em;
-    margin: 0 0 10px 0;
+    font-size: 2.15em;
+    line-height: 1.1;
+    margin: 0;
+    letter-spacing: 2px;
     color: var(--clr-neon-blue);
-    filter: drop-shadow(0 0 10px var(--clr-neon-blue));
+    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.75));
     white-space: nowrap;
     overflow: hidden;
-    border-right: .15em solid var(--clr-neon-green);
+    border-right: .14em solid var(--clr-neon-green);
     animation: typing 1.5s steps(11), blink-caret .75s step-end infinite;
 }
 .start-prompt.loading {
@@ -647,11 +652,11 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     cursor: wait;
 }
 .start-prompt.start-play-btn {
-    margin: 12px 0 0 0;
-    padding: 0 20px;
-    width: 470px;
-    min-width: 470px;
-    max-width: 470px;
+    margin: 0;
+    padding: 0 24px;
+    width: 440px;
+    min-width: 440px;
+    max-width: 440px;
     height: 46px;
     min-height: 46px;
     max-height: 46px;
@@ -660,20 +665,22 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     align-items: center;
     justify-content: center;
     gap: 10px;
+    font-size: 0.95rem;
+    letter-spacing: 1.5px;
     white-space: nowrap;
     overflow: hidden;
 }
 .start-deck {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 422px;
-    gap: 16px;
-    width: 840px;
-    min-width: 840px;
-    max-width: 840px;
-    height: 422px;
-    min-height: 422px;
-    max-height: 422px;
+    grid-template-rows: 432px;
+    gap: 14px;
+    width: 848px;
+    min-width: 848px;
+    max-width: 848px;
+    height: 432px;
+    min-height: 432px;
+    max-height: 432px;
     align-items: stretch;
 }
 #game-message {
@@ -1239,11 +1246,13 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 /* --- Arcade Callsign Keypad & Class Picker (Fixed-Dimension Containers) --- */
 .callsign-panel,
 .leaderboard-panel {
-  background: rgba(14, 16, 26, 0.88);
-  border: 1px solid rgba(0, 255, 255, 0.35);
-  border-radius: 8px;
-  padding: 10px 14px;
-  box-shadow: inset 0 0 18px rgba(0, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(14, 18, 30, 0.95) 0%, rgba(9, 12, 22, 0.98) 100%);
+  border: 1.5px solid rgba(0, 255, 255, 0.36);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    inset 0 0 20px rgba(0, 255, 255, 0.06);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1251,66 +1260,114 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  height: 422px;
-  min-height: 422px;
-  max-height: 422px;
+  height: 432px;
+  min-height: 432px;
+  max-height: 432px;
   overflow: hidden;
 }
 
 .callsign-panel {
-  border-color: rgba(255, 0, 255, 0.45);
-  box-shadow: inset 0 0 18px rgba(255, 0, 255, 0.08);
+  border-color: rgba(255, 0, 255, 0.42);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    inset 0 0 20px rgba(255, 0, 255, 0.06);
   cursor: default;
 }
 
 .callsign-top-section {
   display: flex;
   flex-direction: column;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.callsign-heading {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.54rem;
+/* Section Headers (01 RUNNER IDENTITY / 02 COMBAT CLASS) */
+.deck-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   height: 18px;
-  line-height: 18px;
-  color: var(--clr-neon-pink);
-  letter-spacing: 0.6px;
-  margin-bottom: 6px;
-  text-align: center;
-  text-shadow: 0 0 6px var(--clr-neon-pink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.15s ease, text-shadow 0.15s ease;
+  min-height: 18px;
+  max-height: 18px;
+  gap: 8px;
 }
 
-.callsign-heading.callsign-ready {
-  color: var(--clr-neon-green);
-  text-shadow: 0 0 8px var(--clr-neon-green);
+.deck-sec-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.48rem;
+  color: #e8f4ff;
+  letter-spacing: 0.8px;
+}
+
+.deck-sec-title .sec-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #061018;
+  background: var(--clr-neon-pink);
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.1;
+}
+
+.class-picker-box .deck-sec-title .sec-num {
+  background: var(--cls-color, var(--clr-neon-blue));
+}
+
+.deck-sec-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--clr-gold-glow);
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.deck-sec-badge.badge-cyan {
+  color: var(--clr-neon-blue);
+  background: rgba(0, 255, 255, 0.1);
+  border-color: rgba(0, 255, 255, 0.35);
+}
+
+/* Horizontal Identity Dock: 3 Letter Slots + Framed Lore Identity Card */
+.callsign-identity-dock {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  cursor: help;
 }
 
 .callsign-slots {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  height: 40px;
+  align-items: center;
+  gap: 5px;
+  height: 48px;
   flex-shrink: 0;
+  margin: 0;
 }
 
 .callsign-slot {
-  width: 42px;
-  height: 40px;
+  width: 40px;
+  height: 48px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Press Start 2P', cursive;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   color: var(--clr-neon-green);
-  background: #0d0f17;
-  border: 2px solid rgba(0, 255, 255, 0.35);
+  background: #080c16;
+  border: 2px solid rgba(0, 255, 255, 0.38);
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
@@ -1332,8 +1389,58 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .callsign-slot.active {
   border-style: solid;
   border-color: var(--clr-neon-pink);
-  box-shadow: 0 0 12px var(--clr-neon-pink), inset 0 0 8px rgba(255, 0, 255, 0.25);
-  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(255, 0, 255, 0.65), inset 0 0 8px rgba(255, 0, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.callsign-lore-readout {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  box-sizing: border-box;
+  background: linear-gradient(90deg, rgba(255, 0, 255, 0.08) 0%, rgba(0, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(0, 255, 255, 0.28);
+  border-left: 3px solid var(--clr-neon-green);
+  border-radius: 6px;
+  padding: 5px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.callsign-lore-readout.is-incomplete {
+  border-left-color: var(--clr-neon-pink);
+  background: rgba(255, 0, 255, 0.06);
+}
+
+.lore-origin-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: var(--clr-neon-blue);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callsign-lore-readout.is-incomplete .lore-origin-tag {
+  color: #ff88dd;
+}
+
+.lore-char-title {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.35);
 }
 
 .callsign-panel.callsign-required-shake {
@@ -1354,31 +1461,26 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border-left-color: #ffb8ff;
 }
 
-.callsign-subhint.subhint-ready {
-  color: var(--clr-neon-green);
-  opacity: 0.9;
-}
-
 .keypad-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: 26px;
+  grid-auto-rows: 27px;
   gap: 4px;
 }
 
 .keypad-key {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.55rem;
-  height: 26px;
+  font-size: 0.54rem;
+  height: 27px;
   padding: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--clr-text-main);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.25);
-  border-radius: 4px;
+  color: #eaf6ff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(0, 255, 255, 0.26);
+  border-radius: 5px;
   cursor: pointer;
   user-select: none;
   text-align: center;
@@ -1388,29 +1490,29 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .keypad-key:hover,
 .keypad-key.key-flash {
   background: var(--clr-neon-blue);
-  color: #0b0e14;
-  border-color: var(--clr-neon-blue);
-  box-shadow: 0 0 8px var(--clr-neon-blue);
-  transform: scale(1.06);
+  color: #060b12;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px var(--clr-neon-blue);
+  transform: translateY(-1px);
 }
 
 .keypad-key.key-special {
+  font-size: 0.72rem;
   color: var(--clr-gold-glow);
-  border-color: rgba(255, 215, 0, 0.4);
-  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.48);
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 165, 0, 0.06) 100%);
 }
 
 .keypad-key.key-special:hover {
   background: var(--clr-gold-glow);
   color: #0b0e14;
-  box-shadow: 0 0 10px var(--clr-gold-glow);
+  box-shadow: 0 0 12px var(--clr-gold-glow);
 }
 
 /* --- Linear Class Picker inside Callsign Panel (Fixed-Dimension Grid) --- */
 .class-picker-box {
-  margin-top: 6px;
-  padding-top: 7px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.16);
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1420,13 +1522,13 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .class-picker-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: 42px;
+  grid-template-rows: 40px;
   gap: 5px;
-  height: 42px;
+  height: 40px;
 }
 
 .class-select-btn {
-  height: 42px;
+  height: 40px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
@@ -1434,10 +1536,10 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 4px 2px;
+  padding: 3px 2px;
   border-radius: 6px;
-  background: rgba(10, 14, 24, 0.85);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 12, 22, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   color: #dce8ff;
   cursor: pointer;
   overflow: hidden;
@@ -1452,13 +1554,15 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .class-select-btn.active,
 .class-select-btn.selected {
   border-color: var(--cls-color, #00ffff);
-  background: color-mix(in srgb, var(--cls-color, #00ffff) 18%, rgba(10, 14, 24, 0.95));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--cls-color, #00ffff) 50%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cls-color, #00ffff) 24%, rgba(10, 14, 24, 0.96)) 0%, rgba(10, 14, 24, 0.96) 100%);
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--cls-color, #00ffff) 42%, transparent),
+    inset 0 2px 0 var(--cls-color, #00ffff);
 }
 
 .cls-btn-emoji,
 .class-btn-emoji {
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   line-height: 1;
 }
 
@@ -1467,103 +1571,171 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   font-family: 'Press Start 2P', cursive;
   font-size: 0.36rem;
   line-height: 1;
-  color: #ffffff;
-  letter-spacing: 0;
+  color: #cbd9ee;
+  letter-spacing: 0.2px;
   white-space: nowrap;
 }
 
 .class-select-btn.active .cls-btn-name,
 .class-select-btn.selected .class-btn-name {
   color: var(--cls-color, #00ffff);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--cls-color, #00ffff) 60%, transparent);
 }
 
+/* Expanded Class Spec & 5-Column Progression Card */
 .class-linear-preview {
-  height: 76px;
-  min-height: 76px;
-  max-height: 76px;
+  height: 118px;
+  min-height: 118px;
+  max-height: 118px;
   box-sizing: border-box;
-  background: rgba(6, 10, 20, 0.9);
-  border: 1px solid color-mix(in srgb, var(--cls-color, #00ffff) 55%, transparent);
-  border-radius: 6px;
-  padding: 5px 8px;
+  background: linear-gradient(180deg, rgba(6, 10, 20, 0.96) 0%, rgba(10, 14, 28, 0.96) 100%);
+  border: 1.5px solid color-mix(in srgb, var(--cls-color, #00ffff) 55%, transparent);
+  border-radius: 8px;
+  padding: 7px 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
 }
 
-.class-preview-tagline {
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.68rem;
-  height: 16px;
-  line-height: 16px;
-  color: #d8ecff;
+.class-spec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 18px;
+  min-height: 18px;
+  cursor: help;
+}
+
+.class-spec-main {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.class-preview-tagline strong {
+.class-spec-main strong {
   font-family: 'Press Start 2P', cursive;
   font-size: 0.44rem;
   color: var(--cls-color, #00ffff);
   letter-spacing: 0.3px;
+  margin-right: 4px;
 }
 
-.class-path-track {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(2, 21px);
-  gap: 4px;
-  height: 46px;
+.class-spec-sub {
+  color: #b8d4f2;
+  font-weight: 600;
 }
 
-.class-path-step {
-  grid-column: span 2;
-  height: 21px;
-  min-width: 0;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 5px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.58rem;
+.class-paddle-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.52rem;
   font-weight: 700;
-  color: #e6f2ff;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.class-path-step:nth-child(n+4) {
-  grid-column: span 3;
-}
-
-.class-path-lvl {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.38rem;
   color: var(--cls-color, #00ffff);
+  background: color-mix(in srgb, var(--cls-color, #00ffff) 14%, rgba(0, 0, 0, 0.6));
+  border: 1px solid color-mix(in srgb, var(--cls-color, #00ffff) 45%, transparent);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.class-path-name {
-  min-width: 0;
+.class-tradeoff-bar {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 5px;
+  height: 21px;
+  min-height: 21px;
+  cursor: help;
+}
+
+.tradeoff-pill {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 700;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.callsign-subhint {
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.72rem;
-  color: var(--clr-text-main);
-  opacity: 0.65;
-  text-align: center;
-  margin-top: 8px;
+.tradeoff-pill.buff-pill {
+  color: #6bff95;
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid rgba(57, 255, 20, 0.32);
 }
 
+.tradeoff-pill.nerf-pill {
+  color: #ff7a99;
+  background: rgba(255, 68, 119, 0.1);
+  border: 1px solid rgba(255, 68, 119, 0.32);
+}
+
+/* 5-Column Horizontal Skill Tree (L1 -> L5) */
+.class-path-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: 52px;
+  gap: 4px;
+  height: 52px;
+}
+
+.class-path-step {
+  height: 52px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 4px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+  overflow: hidden;
+}
+
+.class-path-step:hover {
+  border-color: var(--cls-color, #00ffff);
+  background: color-mix(in srgb, var(--cls-color, #00ffff) 18%, rgba(12, 18, 32, 0.95));
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cls-color, #00ffff) 35%, transparent);
+}
+
+.class-path-lvl {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  color: #061018;
+  background: var(--cls-color, #00ffff);
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.class-path-name {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.12;
+  color: #eef6ff;
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+/* --- Right Panel: Top 5 Runners Leaderboard Dossier --- */
 #game-message .leaderboard-panel {
   margin: 10px auto 0;
   width: 100%;
@@ -1571,34 +1743,34 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   min-height: 0;
   max-height: none;
   box-sizing: border-box;
-  padding: 11px 13px;
+  padding: 10px 12px;
 }
 
 .leaderboard-tabs {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: 30px;
+  grid-template-rows: 32px;
   gap: 6px;
   margin-bottom: 6px;
-  height: 30px;
+  height: 32px;
   flex-shrink: 0;
 }
 
 .lb-tab {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
-  height: 30px;
-  padding: 0 6px;
+  font-size: 0.48rem;
+  height: 32px;
+  padding: 0 8px;
   box-sizing: border-box;
-  border-radius: 5px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   color: rgba(233, 246, 255, 0.65);
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 6px;
   white-space: nowrap;
   overflow: hidden;
   transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
@@ -1611,11 +1783,11 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .lb-tab.active-legit {
-  background: linear-gradient(180deg, rgba(0, 255, 255, 0.2), rgba(0, 180, 255, 0.08));
+  background: linear-gradient(180deg, rgba(0, 255, 255, 0.22), rgba(0, 180, 255, 0.08));
   border-color: var(--clr-neon-blue);
   color: #ffffff;
   text-shadow: 0 0 8px var(--clr-neon-blue);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.28), inset 0 0 8px rgba(0, 255, 255, 0.15);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.25), inset 0 0 8px rgba(0, 255, 255, 0.15);
 }
 
 .lb-tab.active-hacked {
@@ -1623,15 +1795,42 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border-color: var(--clr-neon-pink);
   color: #ffffff;
   text-shadow: 0 0 8px var(--clr-neon-pink);
-  box-shadow: 0 0 12px rgba(255, 0, 255, 0.3), inset 0 0 8px rgba(255, 0, 255, 0.16);
+  box-shadow: 0 0 12px rgba(255, 0, 255, 0.28), inset 0 0 8px rgba(255, 0, 255, 0.16);
 }
 
 .lb-tab-count {
-  font-size: 0.46rem;
-  padding: 2px 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.55);
   color: var(--clr-gold-glow);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+}
+
+.leaderboard-col-headers {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0 10px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.22);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #7ea8cc;
+  flex-shrink: 0;
+}
+
+.leaderboard-col-headers .lb-col-right {
+  text-align: right;
 }
 
 .leaderboard-mode-strip {
@@ -1639,25 +1838,19 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  height: 26px;
-  min-height: 26px;
-  max-height: 26px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
   padding: 0 8px;
   box-sizing: border-box;
   border-radius: 4px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.42rem;
+  font-size: 0.38rem;
   letter-spacing: 0.3px;
   margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.leaderboard-mode-strip.legit-strip {
-  background: rgba(0, 255, 128, 0.08);
-  border: 1px solid rgba(0, 255, 128, 0.35);
-  color: #9effc8;
 }
 
 .leaderboard-mode-strip.warn-strip {
@@ -1666,182 +1859,225 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   color: #ffe680;
 }
 
-.leaderboard-mode-strip.hacked-strip {
-  background: rgba(255, 0, 255, 0.1);
-  border: 1px solid rgba(255, 0, 255, 0.4);
-  color: #ffb3ff;
-}
-
-.lb-verified-pill {
-  color: #05140b;
-  background: var(--clr-neon-green);
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 0.4rem;
-  box-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
-}
-
-.lb-hacked-pill {
-  color: #18041c;
-  background: #ff66ff;
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 0.4rem;
-  box-shadow: 0 0 6px rgba(255, 0, 255, 0.5);
-}
-
 .lb-disable-hacks-btn {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.42rem;
-  padding: 3px 6px;
+  font-size: 0.38rem;
+  padding: 2px 5px;
   border-radius: 3px;
   border: 1px solid var(--clr-neon-green);
   background: var(--clr-neon-green);
   color: #051208;
   cursor: pointer;
   box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
-  transition: transform 0.1s ease;
-}
-
-.lb-disable-hacks-btn:hover {
-  transform: scale(1.06);
 }
 
 .leaderboard-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   flex: 1;
   justify-content: space-between;
 }
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 36px 82px 72px 1fr;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.58rem;
-  padding: 5px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 8px;
+  height: 62px;
+  min-height: 62px;
+  max-height: 62px;
+  padding: 7px 11px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid rgba(0, 255, 255, 0.35);
   color: var(--clr-text-main);
   text-align: left;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
 }
 
 .leaderboard-row.rank-1 {
-  color: var(--clr-gold-glow);
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
-  background: rgba(255, 215, 0, 0.1);
-  border-color: rgba(255, 215, 0, 0.35);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.05) 100%);
+  border-color: rgba(255, 215, 0, 0.45);
+  border-left: 4px solid #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.14);
 }
 
 .leaderboard-row.rank-2 {
-  background: rgba(0, 255, 255, 0.06);
-  border-color: rgba(0, 255, 255, 0.2);
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.03) 100%);
+  border-color: rgba(0, 255, 255, 0.3);
+  border-left: 4px solid #00ffff;
 }
 
 .leaderboard-row.rank-3 {
-  background: rgba(255, 165, 0, 0.06);
-  border-color: rgba(255, 165, 0, 0.2);
+  background: linear-gradient(90deg, rgba(255, 145, 0, 0.1) 0%, rgba(255, 145, 0, 0.03) 100%);
+  border-color: rgba(255, 145, 0, 0.3);
+  border-left: 4px solid #ff9100;
 }
 
 .leaderboard-row.hacked-row.rank-1 {
-  background: rgba(255, 0, 255, 0.12);
-  border-color: rgba(255, 0, 255, 0.42);
+  background: linear-gradient(90deg, rgba(255, 0, 255, 0.16) 0%, rgba(180, 0, 255, 0.05) 100%);
+  border-color: rgba(255, 0, 255, 0.45);
+  border-left: 4px solid #ff00ff;
 }
 
 .leaderboard-row.current-run {
-  border: 1px solid var(--clr-neon-pink);
-  background: rgba(255, 0, 255, 0.16);
-  box-shadow: 0 0 10px rgba(255, 0, 255, 0.35);
+  border: 1.5px solid var(--clr-neon-pink);
+  border-left: 4px solid var(--clr-neon-pink);
+  background: linear-gradient(90deg, rgba(255, 0, 255, 0.2) 0%, rgba(0, 255, 255, 0.08) 100%);
+  box-shadow: 0 0 14px rgba(255, 0, 255, 0.32);
 }
 
 .leaderboard-row.empty-slot {
-  opacity: 0.38;
+  opacity: 0.42;
   background: rgba(255, 255, 255, 0.015);
-  border-style: dashed;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-left: 3px dashed rgba(255, 255, 255, 0.24);
 }
 
 .leaderboard-row .lb-pos {
-  opacity: 0.85;
-  font-size: 0.54rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.56rem;
+  color: #b8d4f0;
+}
+
+.leaderboard-row.rank-1 .lb-pos {
+  color: #ffd700;
+  border-color: rgba(255, 215, 0, 0.55);
+  background: rgba(255, 215, 0, 0.14);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.leaderboard-row.rank-2 .lb-pos {
+  color: #00ffff;
+  border-color: rgba(0, 255, 255, 0.45);
+}
+
+.leaderboard-row.rank-3 .lb-pos {
+  color: #ffaa44;
+  border-color: rgba(255, 170, 68, 0.45);
+}
+
+.lb-runner-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
 }
 
 .lb-initials-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .leaderboard-row .lb-initials {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.72rem;
   color: var(--clr-neon-green);
   letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.35);
 }
 
 .leaderboard-row.rank-1 .lb-initials {
   color: var(--clr-gold-glow);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
 }
 
-.lb-hack-badges {
+.lb-runner-lore {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
   font-size: 0.68rem;
-  line-height: 1;
-  letter-spacing: -1px;
-  filter: drop-shadow(0 0 4px rgba(255, 0, 255, 0.6));
-}
-
-.leaderboard-row .lb-score {
-  text-align: right;
-  padding-right: 8px;
-  font-weight: bold;
-  font-size: 0.56rem;
-}
-
-.lb-tier-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
-  min-width: 0;
-}
-
-.leaderboard-row .lb-tier {
-  font-family: 'Roboto', sans-serif;
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--clr-neon-pink);
-  text-align: right;
+  font-weight: 600;
+  color: #a8c5e2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.lb-flag-cheat-btn {
-  opacity: 0;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.38rem;
-  padding: 2px 4px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 0, 255, 0.45);
-  background: rgba(255, 0, 255, 0.12);
-  color: #ff99ff;
-  cursor: pointer;
+.lb-lore-origin {
+  color: #6d8fb0;
+  font-weight: 500;
+}
+
+.lb-hack-badges {
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 0 4px rgba(255, 0, 255, 0.6));
+}
+
+.lb-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
   flex-shrink: 0;
-  transition: opacity 0.12s ease, background 0.12s ease;
+  text-align: right;
 }
 
-.leaderboard-row:hover .lb-flag-cheat-btn,
-.lb-flag-cheat-btn.confirming {
-  opacity: 1;
+.leaderboard-row .lb-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.68rem;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: 0.5px;
 }
 
-.lb-flag-cheat-btn.confirming {
-  background: var(--clr-neon-pink);
-  color: #0b0410;
-  border-color: #ffffff;
-  box-shadow: 0 0 8px var(--clr-neon-pink);
+.leaderboard-row.rank-1 .lb-score {
+  color: var(--clr-gold-glow);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
+}
+
+.leaderboard-row .lb-tier {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ff66cc;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.leaderboard-row.rank-1 .lb-tier {
+  color: #ffd700;
+}
+
+/* Compact Leaderboard Rows inside End-of-Game Modal */
+#game-message .leaderboard-col-headers {
+  display: none;
+}
+
+#game-message .leaderboard-list {
+  gap: 4px;
+}
+
+#game-message .leaderboard-row {
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding: 4px 9px;
+}
+
+#game-message .lb-runner-lore {
+  display: none;
+}
+
+#game-message .lb-score-col {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
 }
 
 /* --- Retro Arcade Advert Glossary / Field Manual Modal --- */
@@ -3403,69 +3639,32 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 /* Leaderboard Sector & Level Pill (S2•L4) */
 .lb-sector-pill {
   display: inline-block;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.58rem;
-  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 800;
   color: #00ffff;
-  background: rgba(0, 255, 255, 0.12);
-  border: 1px solid rgba(0, 255, 255, 0.35);
+  background: rgba(0, 255, 255, 0.14);
+  border: 1px solid rgba(0, 255, 255, 0.4);
   border-radius: 4px;
-  padding: 1px 4px;
-  margin-left: 4px;
+  padding: 1px 5px;
   vertical-align: middle;
-}
-
-/* ─── Callsign Lore Subtitle & Class Buff/Handicap Row ─── */
-.callsign-lore-badge {
-  color: #00ffff;
-  font-size: 0.68rem;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(0, 255, 255, 0.65);
-  margin-left: 4px;
-}
-
-.class-preview-sub-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 4px;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.58rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.class-buff-pill {
-  color: #39ff14;
-  text-shadow: 0 0 6px rgba(57, 255, 20, 0.45);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.class-nerf-pill {
-  color: #ff6688;
-  text-shadow: 0 0 6px rgba(255, 102, 136, 0.45);
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ─── Instant Cyberpunk Hover Popover ─── */
 .cyber-hover-popover {
   position: fixed;
   z-index: 99999;
-  width: 310px;
+  width: 320px;
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px) scale(0.97);
   transition: opacity 0.12s ease, transform 0.12s ease;
-  background: linear-gradient(165deg, rgba(8, 12, 26, 0.97) 0%, rgba(16, 10, 34, 0.98) 100%);
+  background: linear-gradient(165deg, rgba(8, 12, 26, 0.98) 0%, rgba(16, 10, 34, 0.99) 100%);
   border: 1.5px solid var(--pop-accent, #00ffff);
   border-radius: 10px;
   padding: 10px 12px;
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.85),
+    0 12px 32px rgba(0, 0, 0, 0.9),
     0 0 18px color-mix(in srgb, var(--pop-accent, #00ffff) 45%, transparent),
     inset 0 0 12px color-mix(in srgb, var(--pop-accent, #00ffff) 18%, transparent);
   backdrop-filter: blur(8px);
@@ -3476,6 +3675,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   transform: translateY(0) scale(1);
 }
 
+.pop-head,
 .cyber-pop-head {
   display: flex;
   align-items: center;
@@ -3486,18 +3686,20 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 
+.pop-title,
 .cyber-pop-title {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.56rem;
+  font-size: 0.5rem;
   color: var(--pop-accent, #00ffff);
   text-shadow: 0 0 8px var(--pop-accent, #00ffff);
   line-height: 1.35;
 }
 
+.pop-status-pill,
 .cyber-pop-badge {
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.56rem;
-  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
   color: #061018;
   background: var(--pop-accent, #00ffff);
   padding: 2px 6px;
@@ -3505,13 +3707,20 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   white-space: nowrap;
 }
 
+.pop-status-pill.pop-unlocked {
+  background: #39ff14;
+  color: #041406;
+}
+
+.pop-body,
 .cyber-pop-body {
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.68rem;
-  line-height: 1.42;
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.76rem;
+  line-height: 1.38;
   color: #e6f2ff;
 }
 
+.pop-tradeoffs,
 .cyber-pop-meta {
   margin-top: 7px;
   padding-top: 6px;
@@ -3519,8 +3728,9 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
 }
 
 .pop-buff {
@@ -3528,7 +3738,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .pop-nerf {
-  color: #ff6688;
+  color: #ff7799;
 }
 
 .class-path-step,

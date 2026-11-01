@@ -504,6 +504,14 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
         <button type="button" class="lb-disable-hacks-btn" data-clear-hacks="1">TURN OFF</button>
       </div>
     `;
+  } else {
+    statusStripHTML = `
+      <div class="leaderboard-col-headers">
+        <span>RANK</span>
+        <span>RUNNER // ARCHIVE &amp; BUILD</span>
+        <span class="lb-col-right">SCORE &amp; RATING</span>
+      </div>
+    `;
   }
 
   const slots = [];
@@ -518,34 +526,47 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       if (highlightId && item.id === highlightId) classes.push("current-run");
 
       const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
-      const classEmoji = item.classEmoji || "";
+      const classEmoji = item.classEmoji || "⚡";
       const sectorLvlTag = (item.sector || item.level)
-        ? `<span class="lb-sector-pill" title="Level ${item.level || 1} • Board ${item.sector || 1}">${classEmoji}L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
+        ? `<span class="lb-sector-pill" title="Tier L${item.level || 1} • Level ${item.sector || 1}">${classEmoji} L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
         : "";
       const hackIcons = isHackedTab
         ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
         : sectorLvlTag;
 
+      const lore = typeof getCallsignLore === "function" ? getCallsignLore(item.initials) : null;
+      const loreSub = lore
+        ? `${lore.title} <span class="lb-lore-origin">• ${lore.origin}</span>`
+        : `Registered Cyber-Runner // Sector ${item.sector || 1}`;
+
       slots.push(`
         <div class="${classes.join(" ")}">
           <span class="lb-pos">${posBadge}</span>
-          <span class="lb-initials-wrap">
-            <span class="lb-initials">${item.initials}</span>
-            ${hackIcons}
-          </span>
-          <span class="lb-score">${formatArcadeScore(item.score)}</span>
-          <span class="lb-tier-wrap">
+          <div class="lb-runner-col">
+            <div class="lb-initials-wrap">
+              <span class="lb-initials">${item.initials}</span>
+              ${hackIcons}
+            </div>
+            <div class="lb-runner-lore">${loreSub}</div>
+          </div>
+          <div class="lb-score-col">
+            <span class="lb-score">${formatArcadeScore(item.score)}</span>
             <span class="lb-tier">${item.rating || getRating(item.score, item.won)}</span>
-          </span>
+          </div>
         </div>
       `);
     } else {
       slots.push(`
         <div class="leaderboard-row empty-slot">
           <span class="lb-pos">#${idx + 1}</span>
-          <span class="lb-initials-wrap"><span class="lb-initials">---</span></span>
-          <span class="lb-score">---</span>
-          <span class="lb-tier-wrap"><span class="lb-tier">${isHackedTab ? "OPEN HACK SLOT" : "OPEN SLOT"}</span></span>
+          <div class="lb-runner-col">
+            <div class="lb-initials-wrap"><span class="lb-initials">---</span></div>
+            <div class="lb-runner-lore">Awaiting Challenger Record</div>
+          </div>
+          <div class="lb-score-col">
+            <span class="lb-score">---</span>
+            <span class="lb-tier">${isHackedTab ? "OPEN HACK SLOT" : "OPEN SLOT"}</span>
+          </div>
         </div>
       `);
     }
@@ -554,10 +575,10 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
   return `
     <div class="leaderboard-tabs" role="tablist">
       <button type="button" class="lb-tab ${!isHackedTab ? "active-legit" : ""}" data-lb-tab="legit">
-        🏆 TOP 5 RUNNERS <span class="lb-tab-count">${legitCount}</span>
+        <span>🏆 TOP 5 RUNNERS</span> <span class="lb-tab-count">${legitCount}</span>
       </button>
       <button type="button" class="lb-tab ${isHackedTab ? "active-hacked" : ""}" data-lb-tab="hacked">
-        💻 HACKED TOP 5 <span class="lb-tab-count">${hackedCount}</span>
+        <span>💻 HACKED TOP 5</span> <span class="lb-tab-count">${hackedCount}</span>
       </button>
     </div>
     ${statusStripHTML}
@@ -1007,6 +1028,7 @@ function showCyberPopover(htmlContent, anchorEl, accentColor = "#00ffff") {
   pop.style.setProperty("--pop-accent", accentColor);
   pop.innerHTML = htmlContent;
   pop.style.display = "block";
+  pop.classList.add("visible");
 
   if (!anchorEl) return;
   const rect = anchorEl.getBoundingClientRect();
@@ -1024,6 +1046,7 @@ function showCyberPopover(htmlContent, anchorEl, accentColor = "#00ffff") {
 
 function hideCyberPopover() {
   if (hoverPopoverEl) {
+    hoverPopoverEl.classList.remove("visible");
     hoverPopoverEl.style.display = "none";
   }
 }
@@ -1176,22 +1199,56 @@ function renderCallsignBuilder() {
 
   const codeStr = chars.join("");
   const lore = complete ? getCallsignLore(codeStr) : null;
-  const headingText = complete
-    ? (lore
-        ? `🕹️ ${codeStr}: ${lore.title} (${lore.origin})`
-        : `🕹️ CALLSIGN: ${codeStr} • ${activeClass.emoji} ${activeClass.name}`)
-    : `🕹️ 1. ENTER CALLSIGN &amp; 2. PICK CLASS`;
+  const loreOriginText = complete
+    ? (lore ? `ARCHIVE // ${lore.origin.toUpperCase()}` : `CUSTOM RUNNER ID // ${codeStr}`)
+    : `AWAITING 3-LETTER CALLSIGN`;
+  const loreTitleText = complete
+    ? (lore ? lore.title : `Unregistered Grid Operator (${codeStr})`)
+    : `Type A–Z or press 🎲 to roll a Sci-Fi Legend`;
+
+  const shortBuffMap = {
+    striker: "▲ +10% Speed & +8/+6 Arc PTS",
+    guardian: "▲ ×1.35–1.60 Shield Intact PTS",
+    demolisher: "▲ ×1.35 Armor/Vault Siege PTS",
+    highroller: "▲ 2D6 Dice (up to 3.8×) + 777s"
+  };
+  const shortNerfMap = {
+    striker: "▼ -12% Narrower Deck",
+    guardian: "▼ -10% Slower Heavy Ball",
+    demolisher: "▼ -15% Power-Up Timers",
+    highroller: "▼ Snake Eyes 0.85× & +12% Spd"
+  };
 
   container.innerHTML = `
     <div class="callsign-top-section">
-      <div class="callsign-heading ${complete ? "callsign-ready" : ""}" data-popover-callsign="1">${headingText}</div>
-      <div class="callsign-slots">${slotsHTML}</div>
+      <div class="deck-section-header">
+        <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER IDENTITY</span>
+        <span class="deck-sec-badge">${CALLSIGN_PRESETS.length} SCI-FI ARCHIVES • [🎲]</span>
+      </div>
+      <div class="callsign-identity-dock" data-popover-callsign="1">
+        <div class="callsign-slots">${slotsHTML}</div>
+        <div class="callsign-lore-readout ${complete ? "is-complete" : "is-incomplete"}">
+          <span class="lore-origin-tag">${loreOriginText}</span>
+          <span class="lore-char-title">${loreTitleText}</span>
+        </div>
+      </div>
       <div class="keypad-grid">${keysHTML}</div>
     </div>
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
+      <div class="deck-section-header">
+        <span class="deck-sec-title"><span class="sec-num">02</span> COMBAT CLASS</span>
+        <span class="deck-sec-badge badge-cyan">HOVER L1–L5 FOR SPECS</span>
+      </div>
       <div class="class-picker-grid">${classesHTML}</div>
       <div class="class-linear-preview">
-        <div class="class-preview-tagline" data-popover-class-card="${activeClass.id}">${activeClass.emoji} <strong>${activeClass.name}:</strong> ${activeClass.tagline} <span class="hover-hint-tag">[HOVER L1–L5]</span></div>
+        <div class="class-spec-head" data-popover-class-card="${activeClass.id}">
+          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name}</strong> <span class="class-spec-sub">${activeClass.tagline}</span></span>
+          <span class="class-paddle-chip">${activeClass.paddleStyleName}</span>
+        </div>
+        <div class="class-tradeoff-bar" data-popover-class-card="${activeClass.id}">
+          <span class="tradeoff-pill buff-pill">${shortBuffMap[activeClass.id] || activeClass.buff}</span>
+          <span class="tradeoff-pill nerf-pill">${shortNerfMap[activeClass.id] || activeClass.handicap}</span>
+        </div>
         <div class="class-path-track">${pathStepsHTML}</div>
       </div>
     </div>
