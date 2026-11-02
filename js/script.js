@@ -2405,6 +2405,77 @@ function spawnVictoryDOMConfetti(count = 28) {
   }
 }
 
+function resetStageForNewLevel() {
+  clearTimeout(autoLaunchTimeout);
+  pauseStartTime = null;
+
+  // 1) Remove all falling power-up capsules & active lasers/trails/rings
+  powerUps.forEach(p => p.element.remove());
+  powerUps = [];
+  lasers.forEach(l => l.element.remove());
+  lasers = [];
+  if (gameArea) {
+    gameArea.querySelectorAll(".brick.extra, .onion-skin, .tesla-bolt-line, .plasma-nova-ring").forEach(el => el.remove());
+  }
+
+  // 2) Clear all active timed power-up buffs & status timer bars
+  activePowerUps = {};
+  if (statusIndicatorsContainer) statusIndicatorsContainer.innerHTML = "";
+  if (notificationsContainer) notificationsContainer.innerHTML = "";
+  paddleSizeLevel = 0;
+  isStickyPaddle = false;
+  isLaserActive = false;
+  canFire = true;
+  paddle.classList.remove("paddle-sticky", "paddle-armed", "laser-tier-1", "laser-tier-2", "laser-tier-3");
+
+  // 3) Reset temporary volley / bounce states so the new level starts on a clean slate
+  isRoofBonusActive = false;
+  justBounced = false;
+  magSlingshotCharges = 0;
+  caughtByMagLock = false;
+  laserAutoFireAccum = 0;
+  turretFireAccum = 0;
+  novaBrickCounter = 0;
+  highRollerBustShrink = false;
+  highRollerBankCurveActive = false;
+  highRollerDiceMultiplier = 1.10;
+  highRollerLastRoll = null;
+
+  ball.classList.remove("bonus-active", "ball-slingshot", "ball-piercing");
+  ball.style.transform = "";
+  const pierceRank = getAugmentRank("pierce");
+  if (pierceRank > 0) {
+    pierceChargesLeft = pierceRank;
+    ball.classList.add("ball-piercing");
+  } else {
+    pierceChargesLeft = 0;
+  }
+
+  if (getAugmentRank("aegis") > 0) {
+    aegisReady = true;
+    aegisCooldownLeft = 0;
+  }
+
+  // Re-apply permanent Hack Mode buffs if the player is on a Hacked run (God / Overdrive)
+  if (typeof applyArmedHackModesOnStart === "function" && activeHackModes.size > 0) {
+    applyArmedHackModesOnStart();
+  }
+
+  // 4) Center paddle, recalculate clean base width, and dock the ball on the paddle
+  updatePaddleWidth();
+  paddleX = GAME_WIDTH / 2;
+  prevPaddleX = paddleX;
+  paddleVelocityX = 0;
+  ballIsStuck = true;
+  ballSpeedX = 0;
+  ballSpeedY = 0;
+  ballX = paddleX - BALL_SIZE / 2;
+  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+  syncRogueHUD();
+  updateMultiplierBadge();
+  renderGame();
+}
+
 function resumeFromLevelIntermission(fromKeyboard = false) {
   if (!isLevelIntermissionOpen) return;
   if (!isModalInputReady(fromKeyboard)) return;
@@ -2420,33 +2491,13 @@ function resumeFromLevelIntermission(fromKeyboard = false) {
   if (gameOver) return;
   isLevelIntermissionOpen = false;
 
-  // Preserve active power-up durations across the intermission pause
-  if (pauseStartTime !== null) {
-    const pausedDuration = Date.now() - pauseStartTime;
-    for (const type in activePowerUps) {
-      activePowerUps[type].forEach(timer => {
-        timer.endTime += pausedDuration;
-      });
-    }
-    pauseStartTime = null;
-  }
-
   gameMessage.classList.remove("level-intermission-mode");
   gameMessage.style.display = "none";
   gameArea.classList.add("hide-cursor");
 
-  // Keep the ball docked on the paddle so the player can position & launch it themselves!
-  clearTimeout(autoLaunchTimeout);
-  ballIsStuck = true;
-  caughtByMagLock = false;
-  ballSpeedX = 0;
-  ballSpeedY = 0;
-  paddleVelocityX = 0;
-  prevPaddleX = paddleX;
-  ballX = paddleX - BALL_SIZE / 2;
-  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+  // Ensure the stage is 100% clean and the ball is docked on the centered paddle for player serve!
+  resetStageForNewLevel();
   levelStartLaunchGuardUntil = performance.now() + 220;
-  renderGame();
 
   const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[1];
   showNotification({
@@ -2472,17 +2523,12 @@ function advanceToNextSector() {
   if (isCatMode) score = score - (score % 10) + 9;
   scoreDisplay.textContent = `Score: ${score}`;
 
-  // Pause gameplay & freeze power-up timers so standalone sparkler fireworks & confetti render cleanly!
+  // Pause gameplay & clear all falling/active power-ups and projectiles immediately!
   clearTimeout(autoLaunchTimeout);
-  pauseStartTime = Date.now();
   isLevelIntermissionOpen = true;
   gameRunning = false;
   gameArea.classList.remove("hide-cursor");
-
-  // Clear active lasers so no stray bolts remain in the air
-  lasers.forEach(l => l.element.remove());
-  lasers = [];
-  gameArea.querySelectorAll(".brick.extra").forEach(el => el.remove());
+  resetStageForNewLevel();
 
   // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
   awardRogueXP(8);
@@ -2556,27 +2602,9 @@ function advanceToNextSector() {
   clearedRows.clear();
   rowBonusCount = 0;
   rowBonusLevel = 0;
-  isRoofBonusActive = false;
-  ball.classList.remove("bonus-active");
 
   createBricks();
-  updatePaddleWidth();
-
-  // Dock ball to paddle for the start of the replenished Board Level
-  ballIsStuck = true;
-  caughtByMagLock = false;
-  ballSpeedX = 0;
-  ballSpeedY = 0;
-  paddleVelocityX = 0;
-  prevPaddleX = paddleX;
-  ballX = paddleX - BALL_SIZE / 2;
-  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
-  renderGame();
-
-  if (getAugmentRank("aegis") > 0) {
-    aegisReady = true;
-    aegisCooldownLeft = 0;
-  }
+  resetStageForNewLevel();
 
   soundManager.play("winSong");
   playVictoryFanfareSynth(false);
@@ -4680,7 +4708,7 @@ document.addEventListener("keyup", e => {
   if ("arrowleft" === t || "a" === t) leftPressed = false;
   else if ("arrowright" === t || "d" === t) rightPressed = false;
 });
-document.addEventListener("mousemove",e=>{if(gameRunning||isLevelIntermissionOpen){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
+document.addEventListener("mousemove",e=>{if(gameRunning&&!isLevelIntermissionOpen){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
 
 // Allow clicking on the playfield during active gameplay to launch a Mag-Locked/stuck ball (with mouse flick velocity!) or fire lasers
 gameArea.addEventListener("mousedown", (e) => {
