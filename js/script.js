@@ -277,7 +277,7 @@ let isLevelIntermissionOpen = false;
 let frenzyMeter = 0;
 let frenzyReady = false;
 let frenzyTimerLeft = 0;
-let frenzyMaxDuration = 4.5;
+let frenzyMaxDuration = 2.0;
 let rallyBounceCount = 0;
 let runUnbankedCreds = 0;
 let lastRunRawScoreBeforePenalty = 0;
@@ -1170,11 +1170,10 @@ const BREACH_CONTRACTS = [
     emoji: "🚨",
     name: "HYPER-FRENZY CAPACITOR",
     color: "#ff2a55",
-    buffText: "Skill Rally Frenzy charges +45% faster & lasts +1.5s longer",
+    buffText: "Skill Rally Frenzy charges +55% faster & ×1.30 All Brick Score",
     nerfText: "+12% Faster Ball Velocity",
-    scoreMult: 1.20,
-    frenzyChargeMult: 1.45,
-    frenzyDurationBonus: 1.5,
+    scoreMult: 1.30,
+    frenzyChargeMult: 1.55,
     ballSpeedMod: 0.12
   },
   {
@@ -2405,9 +2404,9 @@ function updateMultiplierBadge() {
   }
 }
 
-// ─── Skill Rally Meter ➔ ⚡ FRENZY READY! ➔ 🚨 LASER FRENZY! (4.5s Overdrive) ───
+// ─── Skill Rally Meter ➔ ⚡ FRENZY READY! ➔ 🚨 LASER FRENZY! (2.0s Overdrive) ───
 function triggerLaserFrenzy(customDurationSec = 0) {
-  const baseDur = customDurationSec > 0 ? customDurationSec : (4.5 + getContractFrenzyBonusDuration());
+  const baseDur = customDurationSec > 0 ? customDurationSec : 2.0;
   frenzyMaxDuration = baseDur;
   frenzyTimerLeft = Math.max(frenzyTimerLeft, baseDur);
   frenzyMeter = 100;
@@ -3466,7 +3465,11 @@ function extractFromSector(fromKeyboard = false) {
   }
   runUnbankedCreds = 0;
   safehouseUpgradesRemaining = 1;
+  safehouseLeaderboardOpen = false;
   isCallsignKeypadOpen = false;
+  gameMessage.classList.remove("end-overlay-mode", "victory-celebration", "level-intermission-mode");
+  gameMessage.style.display = "none";
+  gameMessage.innerHTML = "";
   soundManager.play("grow", { pitch: 1.35, volume: 0.85 });
   initGame(true);
 }
@@ -3793,58 +3796,48 @@ function createBricks() {
 
   for (let row = 0; row < totalRows; row++) {
     for (let col = 0; col < BRICK_COLS; col++) {
-      // Deterministic Stage 1-5 Architectural Patterns + Stage Modifier escalation:
-      // tier: 0 = empty gap, 1 = standard (1-hit), 2 = armored (2-hit), 3 = gold cyber-vault (3-hit + guaranteed power-up)
+      // Deterministic Stage 1-5 Architectural Patterns + Stage Modifier escalation (100% full grid — never missing bricks at stage start!):
+      // tier: 1 = standard (1-hit), 2 = armored (2-hit), 3 = gold cyber-vault (3-hit + guaranteed power-up)
       let tier = 1;
       const isEdgeCol = col === 0 || col === BRICK_COLS - 1;
       const isCenterCol = col === 4 || col === 5;
 
       if (stageInCycle === 1) {
-        // STAGE 1 (Neon Grid): Clean 5x10 Twin-Conduit Grid — Armored top row & center core, 2 vertical shot channels at cols 2 & 7 on row 3
-        if (row === 3 && (col === 2 || col === 7)) {
-          tier = 0;
-        } else if (row === 0 && (col >= 1 && col <= 8)) {
+        // STAGE 1 (Neon Grid): Complete 5x10 Grid — Armored top row & center core, standard 1-hit bricks elsewhere
+        if (row === 0 && (col >= 1 && col <= 8)) {
           tier = 2;
         } else if (row === 2 && isCenterCol) {
           tier = 2;
         }
       } else if (stageInCycle === 2) {
-        // STAGE 2 (Ultraviolet Bastions): Twin Vault Citadels at (row 1, col 2 & 7) surrounded by Armored shields
+        // STAGE 2 (Ultraviolet Bastions): Complete 5x10 Grid — Twin Vault Citadels at (row 1, col 2 & 7) surrounded by Armored shields
         if (row === 1 && (col === 2 || col === 7)) {
           tier = 3;
         } else if (row === 0 || (row === 2 && (col <= 3 || col >= 6)) || (row === 4 && isCenterCol)) {
           tier = 2;
         }
       } else if (stageInCycle === 3) {
-        // STAGE 3 (Crimson Chevron Firewall): 6-Row V-Chevron Fortress with 4 Gold Vaults and Armored Chevron ribs
-        if (row === 5 && (col === 0 || col === 9)) {
-          tier = 0;
-        } else if ((row === 0 && (col === 3 || col === 6)) || (row === 2 && isCenterCol)) {
+        // STAGE 3 (Crimson Chevron Firewall): Complete 6x10 Fortress with 4 Gold Vaults and Armored Chevron ribs
+        if ((row === 0 && (col === 3 || col === 6)) || (row === 2 && isCenterCol)) {
           tier = 3;
-        } else if (row === 0 || row === 1 || Math.abs(col - 4.5) <= row + 0.5 && row <= 3) {
+        } else if (row === 0 || row === 1 || (Math.abs(col - 4.5) <= row + 0.5 && row <= 3)) {
           tier = 2;
         }
       } else if (stageInCycle === 4) {
-        // STAGE 4 (Solar Reactor Core): 6-Row Reactor Chamber with 6 Gold Vaults in the core & Armored blast walls
-        if (row === 3 && isCenterCol) {
-          tier = 0;
-        } else if ((row === 1 || row === 2) && (col === 3 || col === 4 || col === 5 || col === 6)) {
+        // STAGE 4 (Solar Reactor Core): Complete 6x10 Reactor Chamber with 6 Gold Vaults in the core & Armored blast walls
+        if ((row === 1 || row === 2) && (col === 3 || col === 4 || col === 5 || col === 6)) {
           tier = (row === 1 || (col === 3 || col === 6)) ? 3 : 2;
         } else if (row === 0 || row === 4 || isEdgeCol) {
           tier = 2;
         }
       } else {
-        // STAGE 5 (Blackwall Fortress — Safehouse Boss Stage): 6-Row Citadel with 2 Piñata Breach Gates, 10 Gold Vaults, and heavy Armor!
-        if (row === 5 && (col === 2 || col === 7)) {
-          tier = 0; // Narrow breach gates into the upper chamber
-        } else if ((row === 0 && col >= 2 && col <= 7) || (row === 2 && (col === 1 || col === 4 || col === 5 || col === 8))) {
+        // STAGE 5 (Blackwall Fortress — Safehouse Boss Stage): Complete 6x10 Citadel with 10 Gold Vaults and heavy Armor!
+        if ((row === 0 && col >= 2 && col <= 7) || (row === 2 && (col === 1 || col === 4 || col === 5 || col === 8))) {
           tier = 3;
         } else if (row <= 4) {
           tier = 2;
         }
       }
-
-      if (tier === 0) continue;
 
       // Apply Stage Modifier (Breach Contract) & Endless Cycle (Stage 6+) upgrades
       const extraRoll = Math.random();
@@ -7322,7 +7315,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🚨 LASER FRENZY OVERDRIVE</span>
           <span class="advert-card-tag">100% RALLY METER • [F / SPACE]</span>
         </div>
-        <p class="advert-card-body">Unbroken paddle rallies fill your <strong>Skill Rally Frenzy Meter</strong> (+24% on center Sweet-Spot, +15% on wing bounce). Hit <strong>100% ("FRENZY READY!")</strong> and press <strong>[F] or [SPACE]</strong> to unleash a <strong>4.5s 🚨 LASER FRENZY</strong>!</p>
+        <p class="advert-card-body">Unbroken paddle rallies fill your <strong>Skill Rally Frenzy Meter</strong> (+24% on center Sweet-Spot, +15% on wing bounce). Hit <strong>100% ("FRENZY READY!")</strong> and press <strong>[F] or [SPACE]</strong> to unleash a <strong>2.0s 🚨 LASER FRENZY</strong>!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #90ff5a;">
