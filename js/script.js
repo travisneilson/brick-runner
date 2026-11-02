@@ -545,7 +545,7 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       const posBadge = idx === 0 ? "👑1" : `#${idx + 1}`;
       const classEmoji = item.classEmoji || "⚡";
       const sectorLvlTag = (item.sector || item.level)
-        ? `<span class="lb-sector-pill" title="Tier L${item.level || 1} • Level ${item.sector || 1}">${classEmoji} L${item.level || 1}${item.sector > 1 ? `•S${item.sector}` : ""}</span>`
+        ? `<span class="lb-sector-pill" title="Tier L${item.level || 1} • Stage ${item.sector || 1}">${classEmoji} L${item.level || 1}${item.sector > 1 ? `•STG${item.sector}` : ""}</span>`
         : "";
       const hackIcons = isHackedTab
         ? `<span class="lb-hack-badges" title="Hack Modes Used">${(Array.isArray(item.hacks) && item.hacks.length > 0 ? item.hacks : ["💻"]).join("")}</span>`
@@ -554,7 +554,7 @@ function renderLeaderboardHTML(highlightId = null, mode = activeLeaderboardTab) 
       const lore = typeof getCallsignLore === "function" ? getCallsignLore(item.initials) : null;
       const loreSub = lore
         ? `${lore.title} <span class="lb-lore-origin">• ${lore.origin}</span>`
-        : `Registered Cyber-Runner // Sector ${item.sector || 1}`;
+        : `Registered Cyber-Runner // Stage ${item.sector || 1}`;
 
       slots.push(`
         <div class="${classes.join(" ")}">
@@ -959,7 +959,7 @@ const RUNNER_CLASSES = {
     color: "#ffd700",
     tagline: "1D6 Bounce Dice, Wild Cards & Piñata Bricks",
     paddleStyleName: "Gold Casino Marquee Deck",
-    buff: "Every bounce rolls 1D6 Gameplay Chaos (Ricochet Sparks, Pierce, Piñata Bricks & +45% Frenzy Jackpots) + Wild Card Capsule Roulette!",
+    buff: "Every bounce rolls 1D6 Gameplay Chaos (Ricochet Sparks, Pierce, Piñata Bricks & +45% Frenzy Jackpots) + Wild Card Power-Up Roulette!",
     handicap: "Snake Eyes Bust (Roll 1): -20% Paddle Shrink, ×0.75 PTS & Joker Brick Curses",
     tiers: [
       {
@@ -972,15 +972,15 @@ const RUNNER_CLASSES = {
       {
         level: 2,
         label: "Wild Card Roulette",
-        short: "Capsules draw Holo-Cards (2x or Curse)",
-        detail: "Gravity Magnet pulls capsules! Catching any capsule draws a Holo-Card: 50% bonus random power-up burst (4s), 30% Double-Stack upgrade, or 20% Joker Curse (+2 extra bricks)!",
+        short: "Power-Ups draw Holo-Cards (2x or Curse)",
+        detail: "Gravity Magnet pulls power-ups! Catching any power-up draws a Holo-Card: 50% bonus random power-up burst (4s), 30% Double-Stack upgrade, or 20% Joker Curse (+2 extra bricks)!",
         augments: { magnet: 2, greed: 1 }
       },
       {
         level: 3,
         label: "Piñata Jackpot",
         short: "Rolling 4–6 mutates a 🎁 Piñata Brick!",
-        detail: "Rolling 4, 5, or 6 on your paddle bounce mutates an intact brick into a glowing 🎁 Golden Piñata Brick (guaranteed capsule + +15¢)!",
+        detail: "Rolling 4, 5, or 6 on your paddle bounce mutates an intact brick into a glowing 🎁 Golden Piñata Brick (guaranteed power-up + +15¢)!",
         augments: { magnet: 2, greed: 2 }
       },
       {
@@ -994,7 +994,7 @@ const RUNNER_CLASSES = {
         level: 5,
         label: "All-In Chaos MAX",
         short: "Loaded Die (No Roll 1!) + 3-Way Sparks",
-        detail: "MAX HIGH-ROLLER: Loaded Cyber-Die never rolls Snake Eyes [1], upgrades Roll 4–6 to a 3-Way Ricochet Spark Fan (×1.35 PTS), and maximizes Capsule Magnet!",
+        detail: "MAX HIGH-ROLLER: Loaded Cyber-Die never rolls Snake Eyes [1], upgrades Roll 4–6 to a 3-Way Ricochet Spark Fan (×1.35 PTS), and maximizes Power-Up Magnet!",
         augments: { magnet: 3, greed: 3 }
       }
     ]
@@ -1154,6 +1154,11 @@ function getCallsignProfile(code3) {
   }
   if (typeof p.classRank !== "number" || p.classRank < 1) p.classRank = 1;
   if (p.classRank > 5) p.classRank = 5;
+  if (typeof p.creds === "number" && p.creds > 0) {
+    p.credits = (typeof p.credits === "number" ? p.credits : 0) + p.creds;
+    delete p.creds;
+    saveAllCallsignProfiles(all);
+  }
   if (typeof p.credits !== "number" || p.credits < 0) p.credits = 0;
   return p;
 }
@@ -1329,8 +1334,8 @@ function bindHoverPopoverEvents(rootEl) {
       if (!c) return;
       const html = `
         <div class="pop-head">
-          <span class="pop-title">${c.emoji} CONTRACT // ${c.name}</span>
-          <span class="pop-status-pill pop-unlocked">ACTIVE RUN MUTATOR</span>
+          <span class="pop-title">${c.emoji} STAGE MODIFIER // ${c.name}</span>
+          <span class="pop-status-pill pop-unlocked">ACTIVE STAGE MODIFIER</span>
         </div>
         <div class="pop-tradeoffs" style="margin-top: 2px; border-top: none;">
           <div class="pop-buff">▲ BUFF: ${c.buffText}</div>
@@ -1496,7 +1501,7 @@ function renderCallsignBuilder() {
     <div class="callsign-top-section">
       <div class="deck-section-header">
         <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
-        <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST S${profile.bestSector}` : ""}</span>
+        <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST STG ${profile.bestSector}` : ""}</span>
       </div>
       <div class="callsign-identity-dock" data-popover-callsign="1">
         <div class="callsign-slots">${slotsHTML}</div>
@@ -1509,7 +1514,7 @@ function renderCallsignBuilder() {
     </div>
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
       <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">02</span> BOUND CLASS &amp; SAFEHOUSE</span>
+        <span class="deck-sec-title"><span class="sec-num">02</span> CLASS &amp; SAFEHOUSE</span>
         ${boundStatusHTML}
       </div>
       <div class="class-picker-grid">${classesHTML}</div>
@@ -1521,7 +1526,7 @@ function renderCallsignBuilder() {
         <div class="class-path-track">${pathStepsHTML}</div>
         <div class="safehouse-loadout-bar">
           <div class="loadout-bar-header">
-            <span>🎒 EQUIPPED CAPSULE DECK (DROPS IN RUN)</span>
+            <span>🎒 EQUIPPED POWER-UPS (DROPS IN RUN)</span>
             <span>🚨 RALLY METER = LASER FRENZY</span>
           </div>
           <div class="loadout-mod-grid">${loadoutCapsulesHTML}</div>
@@ -1865,7 +1870,7 @@ const ROGUE_AUGMENTS = [
     maxRank: 3,
     getDesc: (nextRank) => {
       const bonus = [25, 40, 55][nextRank - 1] || 55;
-      return `Magnetically pulls falling power-ups toward your paddle and triggers <strong>Wild Card Capsule Roulette (+${bonus}×LVL PTS)</strong>!`;
+      return `Magnetically pulls falling power-ups toward your paddle and triggers <strong>Wild Card Power-Up Roulette (+${bonus}×STG PTS)</strong>!`;
     }
   },
   {
@@ -2315,7 +2320,7 @@ function resetBrickStreakOnMiss() {
 }
 
 const BOARD_LEVEL_THEMES = {
-  1: { name: "NEON SECTOR",       emoji: "🌐", color: "#00ffff", sub: "STANDARD GRID ONLINE" },
+  1: { name: "NEON GRID",         emoji: "🌐", color: "#00ffff", sub: "STANDARD GRID ONLINE" },
   2: { name: "DEEP ULTRAVIOLET",  emoji: "🔮", color: "#b84dff", sub: "SYNTH GRID • ESCALATING STAKES" },
   3: { name: "CRIMSON BREACH",    emoji: "🔥", color: "#ff2a55", sub: "FIREWALL ALERT • HIGH VOLTAGE" },
   4: { name: "SOLAR OVERLOAD",    emoji: "⚠️", color: "#ff9900", sub: "CORE MELTDOWN • HEAVY ARMOR" },
@@ -2441,7 +2446,7 @@ function syncRogueHUD() {
     const extraTag = selectedRunnerClass === "highroller" && highRollerLastRoll
       ? ` • 🎲[${highRollerLastRoll}]`
       : "";
-    classBadge.textContent = `${cDef.emoji} ${cDef.name} L${rogueLevel} • SECTOR ${currentSector} (×${boardMult}${extraTag}) • 💰 +${formatArcadeScore(runUnbankedCreds)}¢`;
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} L${rogueLevel} • STAGE ${currentSector} (×${boardMult}${extraTag}) • 💰 +${formatArcadeScore(runUnbankedCreds)}¢`;
   }
   syncBoardLevelAtmosphere();
   updateMultiplierBadge();
@@ -2461,7 +2466,7 @@ function syncRogueHUD() {
     if (frenzyTimerLeft > 0) {
       xpText.textContent = `🚨 LASER FRENZY! ${frenzyTimerLeft.toFixed(1)}S`;
     } else {
-      xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (RALLY ×${rallyBounceCount})`;
+      xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (×${rallyBounceCount})`;
     }
   }
   if (nextPerk) {
@@ -2470,7 +2475,7 @@ function syncRogueHUD() {
     const contractPillsHTML = activeBreachContracts.map(c =>
       `<span class="hud-tier-pill contract-active-pill" data-popover-contract="${c.id}" style="--contract-color: ${c.color};">${c.emoji} ${c.name}</span>`
     ).join("");
-    nextPerk.innerHTML = classPillHTML + (contractPillsHTML || `<span class="hud-tier-pill tier-unlocked">🛡️ EXTRACT AT CLEAR FOR 100%</span>`);
+    nextPerk.innerHTML = classPillHTML + (contractPillsHTML || `<span class="hud-tier-pill tier-unlocked">🛡️ EXTRACT AT STAGE CLEAR</span>`);
     bindHoverPopoverEvents(nextPerk);
   }
 
@@ -3038,9 +3043,8 @@ function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
   if (!isModalInputReady(fromKeyboard)) return;
 
   const chosen = currentContractOffers.find(c => c.id === contractId) || currentContractOffers[0];
-  if (chosen) {
-    activeBreachContracts.push(chosen);
-  }
+  // Replace active Stage Modifier (never stack previous stage modifiers onto the new stage!)
+  activeBreachContracts = chosen ? [chosen] : [];
 
   isLevelIntermissionOpen = false;
   isFinalLevelIntermission = false;
@@ -3059,9 +3063,9 @@ function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
 
   const theme = getSectorTheme(currentSector);
   showNotification({
-    title: `${chosen ? `${chosen.emoji} ${chosen.name} SIGNED!` : `${theme.emoji} SECTOR ${currentSector}`}`,
+    title: `${chosen ? `${chosen.emoji} ${chosen.name} ACTIVE!` : `${theme.emoji} STAGE ${currentSector}`}`,
     emoji: "🚀",
-    name: `SECTOR ${currentSector}: ${theme.name}`,
+    name: `STAGE ${currentSector}: ${theme.name}`,
     description: "65% AT RISK ON FLATLINE • CLICK OR SPACE TO SERVE!",
     color: chosen ? chosen.color : theme.color,
     mode: "burst"
@@ -3116,14 +3120,14 @@ function advanceToNextSector() {
   const flatlinePenaltyScore = Math.round(score * 0.65);
 
   const contractsHTML = currentContractOffers.map((c, idx) => `
-    <button type="button" class="breach-contract-card" data-contract-id="${c.id}" style="--contract-accent: ${c.color};">
+    <button type="button" class="breach-contract-card" data-contract-id="${c.id}" style="--contract-color: ${c.color};">
       <div class="contract-card-top">
         <span class="contract-card-name">${c.emoji} ${c.name}</span>
         <span class="contract-card-key">[${idx + 1}]</span>
       </div>
       <div class="contract-buff-line">▲ ${c.buffText}</div>
       <div class="contract-nerf-line">▼ ${c.nerfText}</div>
-      <div class="contract-cta-pill">🔴 SIGN &amp; BREACH SECTOR ${nextSectorNum}</div>
+      <div class="contract-cta-pill">🔴 ENTER STAGE ${nextSectorNum} [${idx + 1}]</div>
     </button>
   `).join("");
 
@@ -3132,8 +3136,8 @@ function advanceToNextSector() {
   gameMessage.style.setProperty("--sector-accent", nextTheme.color);
   gameMessage.innerHTML = `
     <div class="level-intermission-card extraction-intermission-card" style="--sector-accent: ${nextTheme.color};">
-      <div class="intermission-kicker">🎉 SECTOR ${clearedSectorNum} CLEARED // ${clearedTheme.name} (+${formatArcadeScore(sectorBonus)} PTS &amp; +${sectorCredBonus}¢) 🎉</div>
-      <h2 class="intermission-title">SECTOR ${clearedSectorNum} COMPLETE!</h2>
+      <div class="intermission-kicker">🎉 STAGE ${clearedSectorNum} CLEARED // ${clearedTheme.name} (+${formatArcadeScore(sectorBonus)} PTS &amp; +${sectorCredBonus}¢) 🎉</div>
+      <h2 class="intermission-title">STAGE ${clearedSectorNum} COMPLETE!</h2>
       <div class="intermission-reward-grid">
         <div class="intermission-reward-box">
           <span class="reward-lbl">CURRENT RUN SCORE</span>
@@ -3149,13 +3153,13 @@ function advanceToNextSector() {
         </div>
       </div>
 
-      <button type="button" id="intermission-extract-btn" class="intermission-extract-btn">
+      <button type="button" id="intermission-extract-btn" class="intermission-continue-btn intermission-extract-btn">
         🟢 JACK OUT &amp; EXTRACT NOW — BANK 100% (${formatArcadeScore(score)} PTS &amp; +${formatArcadeScore(runUnbankedCreds)}¢) [E]
       </button>
 
       <div class="breach-contracts-section">
         <div class="breach-section-header">
-          <span>🔴 OR RISK 65% TO BREACH ${nextTheme.emoji} SECTOR ${nextSectorNum}: PICK 1 BUFF/NERF CONTRACT</span>
+          <span>🔴 OR RISK 65% FOR ${nextTheme.emoji} STAGE ${nextSectorNum}: PICK 1 STAGE MODIFIER</span>
           <span>KEYS [1] [2] [3]</span>
         </div>
         <div class="breach-contracts-grid">${contractsHTML}</div>
@@ -3618,7 +3622,7 @@ function startGame() {
             applyArmedHackModesOnStart();
         }
         showNotification({
-          title: "🌐 LEVEL 1: NEON SECTOR",
+          title: "🌐 STAGE 1: NEON GRID",
           emoji: "🚀",
           name: "READY TO LAUNCH!",
           description: "AIM PADDLE • CLICK OR SPACE TO SERVE!",
@@ -3792,15 +3796,15 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment + Breach Contracts - Striker precision handicap - High-Roller Bust Shrink - slight difficulty tightening per board clear)
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment + Current Stage Modifier - Striker precision handicap - High-Roller Bust Shrink)
+  // Note: No hidden per-stage shrinkage — paddle size only changes when an explicit Class, Power-Up, or active Stage Modifier specifies it!
   const titanBonus = getAugmentRank("titan") * 0.22;
   let classWidthMod = selectedRunnerClass === "striker" ? -0.12 : 0;
   if (selectedRunnerClass === "highroller" && highRollerBustShrink) {
     classWidthMod -= 0.20;
   }
   const contractWidthMod = getContractPaddleWidthMod();
-  const boardPressure = Math.max(0, Math.min(0.22, (currentSector - 1) * 0.03));
-  const scaleFactor = Math.max(0.60, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod + contractWidthMod - boardPressure);
+  const scaleFactor = Math.max(0.60, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod + contractWidthMod);
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -4820,16 +4824,19 @@ function endGame(won) {
   scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
   const runnerCallsign = getLastInitials();
-  // Persist banked Cyber-Creds & Best Extraction Sector to this Callsign's profile!
+  // Persist banked Cyber-Creds & Best Extraction Stage to this Callsign's profile!
   const csProfile = getCallsignProfile(runnerCallsign);
   if (csProfile) {
-    csProfile.creds = (csProfile.creds || 0) + lastRunCredsEarned;
-    csProfile.runs = (csProfile.runs || 0) + 1;
+    csProfile.credits = (csProfile.credits || 0) + lastRunCredsEarned;
+    csProfile.extractions = (csProfile.extractions || 0) + (won ? 1 : 0);
     if (won && sectorsCleared > (csProfile.bestSector || 0)) {
       csProfile.bestSector = sectorsCleared;
+    } else if (!won && currentSector > (csProfile.bestSector || 0)) {
+      csProfile.bestSector = Math.max(csProfile.bestSector || 0, sectorsCleared);
     }
     saveCallsignProfile(runnerCallsign, csProfile);
   }
+  renderCallsignBuilder();
 
   const prevLegitHigh = getHighScore();
   const isNewLegitHigh = !isHackedRun && score > prevLegitHigh && score > 0;
@@ -4843,8 +4850,8 @@ function endGame(won) {
 
   const rating = getRating(score, won);
   const titleText = won
-    ? `🟢 EXTRACTION SUCCESSFUL // SECTOR ${sectorsCleared} SECURED! 🟢`
-    : `💀 FLATLINED IN SECTOR ${currentSector} // -65% BREACH PENALTY APPLIED`;
+    ? `🟢 EXTRACTION SUCCESSFUL // STAGE ${sectorsCleared} SECURED! 🟢`
+    : `💀 FLATLINED IN STAGE ${currentSector} // -65% RISK PENALTY APPLIED`;
   const augSummary = getActiveAugmentIcons().join(" ");
 
   let savedBannerHTML = "";
@@ -4878,14 +4885,14 @@ function endGame(won) {
         </div>
         <div class="victory-stat-box">
           <span class="v-stat-lbl">CYBER-CREDS BANKED</span>
-          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(TOTAL ${formatArcadeScore(csProfile?.creds || 0)}¢)</span></strong>
+          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(BANK: ${formatArcadeScore(csProfile?.credits || 0)}¢)</span></strong>
         </div>
         <div class="victory-stat-box">
           <span class="v-stat-lbl">BOUND CLASS</span>
           <strong class="v-stat-val">${cDef.emoji} ${cDef.name} L${rogueLevel} ${augSummary}</strong>
         </div>
         <div class="victory-stat-box">
-          <span class="v-stat-lbl">SECTORS EXTRACTED</span>
+          <span class="v-stat-lbl">STAGES EXTRACTED</span>
           <strong class="v-stat-val v-green">${sectorsCleared} CLEARED</strong>
         </div>
       </div>
@@ -4907,10 +4914,10 @@ function endGame(won) {
         </div>
         <div class="victory-stat-box">
           <span class="v-stat-lbl">35% SALVAGED CREDS</span>
-          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(-${formatArcadeScore(lastRunCredsLost)}¢ LOST)</span></strong>
+          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(BANK: ${formatArcadeScore(csProfile?.credits || 0)}¢)</span></strong>
         </div>
       </div>
-      <span class="description">Runner: ${runnerCallsign} &bull; Flatlined in Sector ${currentSector} &bull; ${cDef.emoji} L${rogueLevel}${augSummary ? ` (${augSummary})` : ""}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
+      <span class="description">Runner: ${runnerCallsign} &bull; Flatlined in Stage ${currentSector} &bull; ${cDef.emoji} L${rogueLevel}${augSummary ? ` (${augSummary})` : ""}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
     `;
 
   gameMessage.classList.remove("level-intermission-mode");
@@ -4926,8 +4933,8 @@ function endGame(won) {
       </div>
     </div>
     <div class="end-game-actions">
-      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🚀 BREACH AGAIN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
-      <button type="button" id="end-safehouse-btn" class="end-action-btn end-switch-btn">🛠️ UPGRADE IN SAFEHOUSE [U]</button>
+      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🚀 PLAY NEW RUN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
+      <button type="button" id="end-safehouse-btn" class="end-action-btn end-switch-btn">🛠️ SAFEHOUSE [U]</button>
       <button type="button" id="end-switch-runner-btn" class="end-action-btn end-switch-btn">🕹️ SWITCH RUNNER [C]</button>
     </div>
   `;
@@ -6556,7 +6563,7 @@ function buildArcadeGuideHTML() {
       <div>
         <span class="advert-kicker">★ NEON-CORP COIN-OP DIVISION // OPERATOR'S MANUAL ★</span>
         <h2 class="advert-title">SMASH THE GRID. STACK THE JUICE.</h2>
-        <p class="advert-subtitle">4 Runner Classes (Distinct Paddles + Buff &amp; Handicap) • ${MAX_LEVELS} Escalating Levels (×1–×${MAX_LEVELS} Multiplier) • 5 Scoring Power-Ups.</p>
+        <p class="advert-subtitle">4 Bound Runner Classes • Infinite Stages (×1, ×2, ×3... Multiplier) • Stage Modifiers &amp; 65% Extraction Risk • Skill Rally Laser Frenzy &amp; 4 Falling Power-Ups.</p>
       </div>
       <button type="button" id="advert-close-btn" class="advert-close-btn">✕ CLOSE [ESC]</button>
     </div>
@@ -6596,41 +6603,41 @@ function buildArcadeGuideHTML() {
       </div>
     </div>
 
-    <div class="advert-section-title">🚀 ${MAX_LEVELS}-LEVEL REPLENISHMENT, INTERMISSIONS &amp; DIFFICULTY</div>
+    <div class="advert-section-title">🚀 INFINITE STAGES, STAGE MODIFIERS &amp; 65% EXTRACTION LOOP</div>
     <div class="advert-grid">
       <div class="advert-card" style="--card-accent: #90ff5a;">
         <div class="advert-card-head">
-          <span class="advert-card-name">📈 REPLENISHING LEVELS (1–${MAX_LEVELS})</span>
-          <span class="advert-card-tag">×1 ➔ ×2 ➔ ×3 ➔ ×4 ➔ ×${MAX_LEVELS}</span>
+          <span class="advert-card-name">🟢 EXTRACT OR PUSH DEEPER</span>
+          <span class="advert-card-tag">STAGE 1 ➔ ∞ (×1, ×2, ×3...)</span>
         </div>
-        <p class="advert-card-body">Clearing all 50 bricks opens the <strong>Level Clear Celebration Screen</strong>, awards a massive Clear Bonus, shifts the cyber-grid atmosphere, and raises your global <strong>Level Score Multiplier (×1 to ×${MAX_LEVELS})</strong>!</p>
+        <p class="advert-card-body">Clearing all bricks completes the <strong>Stage</strong>! Choose to <strong>🟢 Jack Out &amp; Extract</strong> (bank <strong>100% of your Score &amp; Cyber-Creds ¢</strong> to your Callsign Safehouse) OR risk it all to enter the next Stage!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff3366;">
         <div class="advert-card-head">
-          <span class="advert-card-name">🔥 ESCALATING DIFFICULTY</span>
-          <span class="advert-card-tag">SPEED • ARMOR • GOLD VAULTS</span>
+          <span class="advert-card-name">🔴 STAGE MODIFIERS &amp; 65% RISK</span>
+          <span class="advert-card-tag">1 BUFF + 1 NERF PER STAGE</span>
         </div>
-        <p class="advert-card-body">Each replenished level escalates the challenge: <strong>+14% Ball Speed</strong>, <strong>-4% tighter base paddle</strong>, more <strong>2-Hit Armored Bricks (×1.6 PTS)</strong>, and <strong>3-Hit Gold Vault Bricks (×3.0 PTS &amp; +3 XP)</strong>!</p>
+        <p class="advert-card-body">Entering the next Stage requires picking <strong>1 of 3 Stage Modifiers (1 Buff + 1 Nerf)</strong> for that Stage. If you flatline (drop the ball), <strong>65% of your Run Score &amp; unbanked Cyber-Creds are lost</strong>!</p>
       </div>
     </div>
 
-    <div class="advert-section-title">⚡ 5 POWER-UP MODS (GAMEPLAY + SCORING EFFECTS!)</div>
+    <div class="advert-section-title">⚡ SKILL RALLY LASER FRENZY &amp; 4 FALLING POWER-UPS</div>
     <div class="advert-grid">
+      <div class="advert-card" style="--card-accent: #ff2a55;">
+        <div class="advert-card-head">
+          <span class="advert-card-name">🚨 LASER FRENZY OVERDRIVE</span>
+          <span class="advert-card-tag">100% SKILL RALLY METER</span>
+        </div>
+        <p class="advert-card-body">Unbroken paddle rallies fill your <strong>Skill Rally Frenzy Meter</strong> (+24% on center Sweet-Spot, +15% on wing bounce). Hit <strong>100%</strong> to unleash a <strong>4.5s 🚨 LASER FRENZY</strong> with dual auto-firing Hyper-Lasers!</p>
+      </div>
+
       <div class="advert-card" style="--card-accent: #90ff5a;">
         <div class="advert-card-head">
           <span class="advert-card-name">🪴 EXPANDO</span>
           <span class="advert-card-tag">15s • STACKS UP TO 3×</span>
         </div>
         <p class="advert-card-body"><strong>Gameplay:</strong> +35% paddle width per stack (Lime ➔ Gold ➔ Orange).<br><strong>Scoring:</strong> Multiplies your active Score Multiplier by <strong>×2, ×3, and ×4</strong>!</p>
-      </div>
-
-      <div class="advert-card" style="--card-accent: #ff5555;">
-        <div class="advert-card-head">
-          <span class="advert-card-name">🎯 LASER BLAST (3 TIERS)</span>
-          <span class="advert-card-tag">6.5s • AUTO + MANUAL FIRE</span>
-        </div>
-        <p class="advert-card-body"><strong>Tier 1 (🎯×1):</strong> Auto Twin Pulse (0.38s, +4 PTS, ×1.25).<br><strong>Tier 2 (⚡×2):</strong> Quad Rapid Gatling (0.24s, +7 PTS, ×1.5).<br><strong>Tier 3 (👑×3):</strong> Hyper-Beam Plasma Lance (0.17s, <strong>2× Armor DMG</strong>, +12 PTS, ×2.0)!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff00ff;">
@@ -6654,7 +6661,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🧱 BRICKED UP!</span>
           <span class="advert-card-tag">INSTANT • GRID REFILL</span>
         </div>
-        <p class="advert-card-body"><strong>Gameplay:</strong> Restores <strong>20%–50% of broken bricks</strong> into aligned grid slots.<br><strong>Scoring:</strong> Awards an <strong>instant +150 × Level Bonus on catch</strong>, plus <strong>+8 base PTS</strong> on every restored brick!</p>
+        <p class="advert-card-body"><strong>Gameplay:</strong> Restores <strong>20%–50% of broken bricks</strong> into aligned grid slots.<br><strong>Scoring:</strong> Awards an <strong>instant +150 × Stage Bonus on catch</strong>, plus <strong>+8 base PTS</strong> on every restored brick!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffd700;">
@@ -6689,7 +6696,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">⚡ EDGE RUNNER</span>
           <span class="advert-card-tag">×2 / ×3 / ×4 ROW BONUS</span>
         </div>
-        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to award <strong>+4 Class XP</strong>, slam the arena jumbotron, and <strong>multiply all brick points by ×2, ×3, or ×4</strong> for the current level!</p>
+        <p class="advert-card-body">Wipe out an entire horizontal row of original bricks to award <strong>+4 Class XP</strong>, slam the arena jumbotron, and <strong>multiply all brick points by ×2, ×3, or ×4</strong> for the current Stage!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff00ff;">
@@ -6701,10 +6708,10 @@ function buildArcadeGuideHTML() {
       </div>
     </div>
 
-    <div class="advert-section-title">🏆 THE 14 CYBER-RUNNER RANKS (RECALIBRATED 5-LEVEL CURVE)</div>
+    <div class="advert-section-title">🏆 THE 14 CYBER-RUNNER RANKS (FLATLINE VS. SAFE EXTRACTION)</div>
     <div class="advert-ranks-box">
       <div class="advert-rank-col">
-        <h4>💀 SYSTEM FAILURE (BALL LOST)</h4>
+        <h4>💀 FLATLINED (BALL LOST • -65% RISK PENALTY)</h4>
         <ul class="advert-rank-list">
           <li><span>System Glitch</span><span class="advert-rank-score">&lt; 1,500</span></li>
           <li><span>Code Ghost</span><span class="advert-rank-score">1,500–3,999</span></li>
@@ -6717,7 +6724,7 @@ function buildArcadeGuideHTML() {
         </ul>
       </div>
       <div class="advert-rank-col win-col">
-        <h4>👑 MISSION COMPLETE (ALL ${MAX_LEVELS} LEVELS CLEARED)</h4>
+        <h4>🟢 SAFE EXTRACTION (100% SCORE &amp; CREDS BANKED)</h4>
         <ul class="advert-rank-list">
           <li><span>Neon Legend</span><span class="advert-rank-score">&lt; 55,000</span></li>
           <li><span>Circuit Surfer</span><span class="advert-rank-score">55,000–89,999</span></li>
