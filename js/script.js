@@ -2317,6 +2317,7 @@ function updateRogueProgressionFrame(dt) {
 
 // ─── Anti-Mash Modal Input Lock & Victory Fanfare Synth ───
 let modalInputUnlockTime = 0;
+let levelStartLaunchGuardUntil = 0;
 let isSpaceHeldDown = false;
 let spaceReleasedSinceModalOpen = true;
 let isFinalLevelIntermission = false;
@@ -2418,12 +2419,47 @@ function resumeFromLevelIntermission(fromKeyboard = false) {
 
   if (gameOver) return;
   isLevelIntermissionOpen = false;
+
+  // Preserve active power-up durations across the intermission pause
+  if (pauseStartTime !== null) {
+    const pausedDuration = Date.now() - pauseStartTime;
+    for (const type in activePowerUps) {
+      activePowerUps[type].forEach(timer => {
+        timer.endTime += pausedDuration;
+      });
+    }
+    pauseStartTime = null;
+  }
+
   gameMessage.classList.remove("level-intermission-mode");
   gameMessage.style.display = "none";
   gameArea.classList.add("hide-cursor");
+
+  // Keep the ball docked on the paddle so the player can position & launch it themselves!
+  clearTimeout(autoLaunchTimeout);
+  ballIsStuck = true;
+  caughtByMagLock = false;
+  ballSpeedX = 0;
+  ballSpeedY = 0;
+  paddleVelocityX = 0;
+  prevPaddleX = paddleX;
+  ballX = paddleX - BALL_SIZE / 2;
+  ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+  levelStartLaunchGuardUntil = performance.now() + 220;
+  renderGame();
+
+  const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[1];
+  showNotification({
+    title: `${theme.emoji} LEVEL ${currentSector}: ${theme.name}`,
+    emoji: "🚀",
+    name: `LEVEL ${currentSector} READY!`,
+    description: "AIM PADDLE • CLICK OR SPACE TO LAUNCH!",
+    color: theme.color,
+    mode: "burst"
+  }, { x: paddleX });
+
   gameRunning = true;
   lastTime = 0;
-  launchStuckBall();
   requestAnimationFrame(gameLoop);
 }
 
@@ -2436,8 +2472,9 @@ function advanceToNextSector() {
   if (isCatMode) score = score - (score % 10) + 9;
   scoreDisplay.textContent = `Score: ${score}`;
 
-  // Pause gameplay first so standalone sparkler fireworks & confetti render cleanly!
+  // Pause gameplay & freeze power-up timers so standalone sparkler fireworks & confetti render cleanly!
   clearTimeout(autoLaunchTimeout);
+  pauseStartTime = Date.now();
   isLevelIntermissionOpen = true;
   gameRunning = false;
   gameArea.classList.remove("hide-cursor");
@@ -2527,10 +2564,14 @@ function advanceToNextSector() {
 
   // Dock ball to paddle for the start of the replenished Board Level
   ballIsStuck = true;
+  caughtByMagLock = false;
   ballSpeedX = 0;
   ballSpeedY = 0;
+  paddleVelocityX = 0;
+  prevPaddleX = paddleX;
   ballX = paddleX - BALL_SIZE / 2;
   ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+  renderGame();
 
   if (getAugmentRank("aegis") > 0) {
     aegisReady = true;
@@ -2584,7 +2625,7 @@ function advanceToNextSector() {
         </div>
       </div>
       <button type="button" id="intermission-continue-btn" class="intermission-continue-btn">
-        ▶ LAUNCH LEVEL ${currentSector} [SPACE / CLICK]
+        ▶ ENTER LEVEL ${currentSector} [SPACE / CLICK]
       </button>
     </div>
   `;
@@ -3018,16 +3059,27 @@ function startGame() {
         resetButton.style.display = 'inline-flex';
         
         ballIsStuck = true;
+        caughtByMagLock = false;
+        paddleVelocityX = 0;
+        prevPaddleX = paddleX;
+        ballX = paddleX - BALL_SIZE / 2;
+        ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
+        levelStartLaunchGuardUntil = performance.now() + 220;
         soundManager.play('winSong');
-
-        const songDuration = soundManager.sounds['winSong']?.duration || 2;
-        autoLaunchTimeout = setTimeout(launchStuckBall, songDuration * 1000);
         
         gameArea.classList.add('hide-cursor');
         gameRunning = true; 
         if (typeof applyArmedHackModesOnStart === 'function') {
             applyArmedHackModesOnStart();
         }
+        showNotification({
+          title: "🌐 LEVEL 1: NEON SECTOR",
+          emoji: "🚀",
+          name: "READY TO LAUNCH!",
+          description: "AIM PADDLE • CLICK OR SPACE TO SERVE!",
+          color: "#00ffff",
+          mode: "burst"
+        }, { x: paddleX });
         requestAnimationFrame(gameLoop);
     }
 }
@@ -3550,7 +3602,7 @@ function updateStatusIndicators() {
         "sticky-paddle": () => {
           isStickyPaddle = false;
           paddle.classList.remove("paddle-sticky");
-          if (ballIsStuck) launchStuckBall();
+          if (ballIsStuck && caughtByMagLock) launchStuckBall();
         },
         "laser-blast": () => {
           syncLaserPaddleVisuals();
@@ -4279,9 +4331,14 @@ function endGame(won) {
 
 function launchStuckBall() {
   if (ballIsStuck) {
+    if (performance.now() < levelStartLaunchGuardUntil) return;
     clearTimeout(autoLaunchTimeout);
     soundManager.stop("winSong");
     ballIsStuck = false;
+
+    // Ensure ballX is centered on the current paddle position before computing release vector
+    ballX = paddleX - BALL_SIZE / 2;
+    ballY = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - BALL_SIZE;
 
     // In Cat Mode, start a new cat life with a smaller hop (1.08×) and escalate with each paddle hit!
     if (isCatMode) {
@@ -4291,17 +4348,16 @@ function launchStuckBall() {
       ballSpeedY = -INITIAL_BALL_SPEED;
     }
 
-    const halfPad = paddleWidth / 2;
-    let launchX = (ballX + BALL_SIZE / 2 - paddleX) / halfPad * INITIAL_BALL_SPEED * 1.4;
+    let launchX = 0;
 
-    // MAG-LOCK Flick-Velocity Aiming & Slingshot Overcharge!
-    if (caughtByMagLock || isStickyPaddle) {
+    // MAG-LOCK Flick-Velocity Aiming & Slingshot Overcharge (only when caught mid-level by Mag-Lock!)
+    if (caughtByMagLock) {
       caughtByMagLock = false;
       magSlingshotCharges = 3;
       ball.classList.add("ball-slingshot");
       // Translate horizontal mouse/paddle movement velocity into the ball's release angle!
-      launchX += paddleVelocityX * 0.58;
-      launchX = Math.max(-540, Math.min(540, launchX));
+      launchX = paddleVelocityX * 0.48;
+      launchX = Math.max(-440, Math.min(440, launchX));
       if (Math.abs(paddleVelocityX) > 140) {
         const dirText = paddleVelocityX > 0 ? "RIGHT FLICK ➔" : "⬅ LEFT FLICK";
         showNotification({
@@ -4313,13 +4369,24 @@ function launchStuckBall() {
           mode: "burst"
         }, { x: paddleX });
       }
+      if (Math.abs(launchX) < 65) {
+        launchX = (Math.random() > 0.5 ? 1 : -1) * 90;
+      }
+    } else {
+      // Fresh Level Start Serve: smooth, predictable upward launch angle + gentle 0.65s speed ramp on higher levels!
+      if (currentSector > 1) {
+        draftResumeGraceTimer = Math.max(draftResumeGraceTimer, 0.65);
+      }
+      if (Math.abs(paddleVelocityX) > 45) {
+        launchX = Math.max(-145, Math.min(145, paddleVelocityX * 0.22));
+      } else {
+        launchX = (paddleX < GAME_WIDTH / 2 ? 1 : -1) * 80;
+      }
+      if (isCatMode && Math.abs(launchX) < 135) {
+        launchX = (launchX >= 0 ? 1 : -1) * 165;
+      }
     }
 
-    if (isCatMode && Math.abs(launchX) < 135) {
-      launchX = (Math.random() > 0.5 ? 1 : -1) * 180;
-    } else if (Math.abs(launchX) < 65) {
-      launchX = (Math.random() > 0.5 ? 1 : -1) * 95;
-    }
     ballSpeedX = launchX;
     soundManager.play("magLaunch");
   }
