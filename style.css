@@ -1694,21 +1694,21 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .class-path-track {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: 38px;
+  grid-template-rows: 52px;
   gap: 4px;
-  height: 38px;
+  height: 52px;
   flex-shrink: 0;
 }
 
 .class-path-step {
-  height: 38px;
+  height: 52px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 3px 4px;
+  padding: 4px 5px;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1725,10 +1725,10 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .class-path-lvl {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.36rem;
+  font-size: 0.38rem;
   color: #061018;
   background: var(--cls-color, #00ffff);
-  padding: 1px 3px;
+  padding: 2px 4px;
   border-radius: 3px;
   line-height: 1;
   flex-shrink: 0;
@@ -1736,14 +1736,16 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .class-path-name {
   font-family: 'Chakra Petch', 'Roboto', sans-serif;
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.1;
   color: #eef6ff;
   width: 100%;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 /* --- Right Panel: Top 5 Runners Leaderboard Dossier --- */
@@ -3256,7 +3258,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .rogue-xp-track {
   position: relative;
-  width: 158px;
+  width: 186px;
   height: 16px;
   background: rgba(4, 8, 18, 0.95);
   border: 1px solid rgba(57, 255, 20, 0.55);
@@ -4489,6 +4491,22 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 /* ─── Skill Rally LASER FRENZY HUD & Arena Overdrive ─── */
+@keyframes frenzyReadyPulse {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow: 0 0 12px #ffd700, 0 0 22px #ff2a55;
+  }
+  50% {
+    filter: brightness(1.35);
+    box-shadow: 0 0 20px #ffffff, 0 0 32px #ffd700;
+  }
+}
+
+#rogue-xp-fill.frenzy-ready-fill {
+  background: linear-gradient(90deg, #ffd700, #ff8800, #ff2a55, #ffd700) !important;
+  animation: frenzyReadyPulse 0.65s ease-in-out infinite;
+}
+
 #rogue-xp-fill.frenzy-active-fill {
   background: linear-gradient(90deg, #ff0055, #ffd700, #00ffff, #ff00ff) !important;
   box-shadow: 0 0 16px #ffd700, 0 0 28px #ff0055 !important;

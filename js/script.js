@@ -175,6 +175,7 @@ let demolisherNovaArmed = false;
 let totalBricksBrokenInRun = 0;
 let isLevelIntermissionOpen = false;
 let frenzyMeter = 0;
+let frenzyReady = false;
 let frenzyTimerLeft = 0;
 let frenzyMaxDuration = 4.5;
 let rallyBounceCount = 0;
@@ -986,8 +987,8 @@ const RUNNER_CLASSES = {
       {
         level: 4,
         label: "777 Frenzy Surge",
-        short: "Roll 6 ignites instant 🚨 Laser Frenzy!",
-        detail: "Rolling a 6 (777 Jackpot) on your paddle bounce immediately ignites a 3.5s 🚨 LASER FRENZY Overdrive + Mag-Lock Slingshot!",
+        short: "Roll 6 charges 100% 🚨 Frenzy Ready!",
+        detail: "Rolling a 6 (777 Jackpot) on your paddle bounce immediately charges 100% 🚨 FRENZY READY (press [F] or [SPACE] to unleash) + Mag-Lock Slingshot!",
         augments: { magnet: 3, greed: 2 }
       },
       {
@@ -1120,14 +1121,15 @@ function saveAllCallsignProfiles(map) {
 }
 
 function getCallsignProfile(code3) {
+  const allPowerUps = ["wide-paddle", "slow-mo", "sticky-paddle", "one-up"];
   const clean = (code3 || "").toUpperCase().replace(/[^A-Z]/g, "");
   if (clean.length !== 3) {
     return {
       boundClass: null,
       classRank: 1,
       credits: 0,
-      unlockedMods: ["wide-paddle", "slow-mo"],
-      equippedMods: ["wide-paddle", "slow-mo"],
+      unlockedMods: [...allPowerUps],
+      equippedMods: [...allPowerUps],
       bestSector: 0,
       extractions: 0
     };
@@ -1138,20 +1140,16 @@ function getCallsignProfile(code3) {
       boundClass: null,
       classRank: 1,
       credits: 0,
-      unlockedMods: ["wide-paddle", "slow-mo"],
-      equippedMods: ["wide-paddle", "slow-mo"],
+      unlockedMods: [...allPowerUps],
+      equippedMods: [...allPowerUps],
       bestSector: 0,
       extractions: 0
     };
     saveAllCallsignProfiles(all);
   }
   const p = all[clean];
-  if (!Array.isArray(p.unlockedMods) || p.unlockedMods.length === 0) {
-    p.unlockedMods = ["wide-paddle", "slow-mo"];
-  }
-  if (!Array.isArray(p.equippedMods) || p.equippedMods.length === 0) {
-    p.equippedMods = [...p.unlockedMods];
-  }
+  p.unlockedMods = [...allPowerUps];
+  p.equippedMods = [...allPowerUps];
   if (typeof p.classRank !== "number" || p.classRank < 1) p.classRank = 1;
   if (p.classRank > 5) p.classRank = 5;
   if (typeof p.creds === "number" && p.creds > 0) {
@@ -1194,10 +1192,8 @@ function syncActiveCallsignClassBinding() {
 }
 
 function getEquippedLoadoutPool() {
-  if (!isCallsignComplete()) return ["wide-paddle", "slow-mo"];
-  const profile = getCallsignProfile(getLastInitials());
-  const valid = (profile.equippedMods || []).filter(id => POWER_UP_TYPES[id] && id !== "laser-blast");
-  return valid.length > 0 ? valid : ["wide-paddle", "slow-mo"];
+  // All 4 falling power-ups drop naturally from bricks for every class without any purchase or class restriction
+  return POWER_UP_SPAWN_CHANCES;
 }
 
 function getSelectedClassDef() {
@@ -1465,21 +1461,6 @@ function renderCallsignBuilder() {
              ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢)
            </button>`);
 
-  const loadoutCapsulesHTML = LOADOUT_CAPSULE_SHOP.map(mod => {
-    const isUnlocked = profile.unlockedMods.includes(mod.id);
-    const isEquipped = profile.equippedMods.includes(mod.id);
-    const canBuy = complete && !isUnlocked && profile.credits >= mod.cost;
-    const stateLabel = isUnlocked
-      ? (isEquipped ? "✓ EQUIPPED" : "OFF")
-      : `🔒 ${mod.cost}¢`;
-    return `
-      <button type="button" class="loadout-mod-chip ${isUnlocked ? (isEquipped ? "mod-equipped" : "mod-unequipped") : (canBuy ? "mod-can-buy" : "mod-locked")}" data-loadout-mod="${mod.id}" title="${mod.name}: ${mod.short}">
-        <span class="mod-chip-top">${mod.emoji} ${mod.name}</span>
-        <span class="mod-chip-status">${stateLabel}</span>
-      </button>
-    `;
-  }).join("");
-
   const lore = complete ? getCallsignLore(codeStr) : null;
   const loreOriginText = complete
     ? (lore ? `ARCHIVE // ${lore.origin.toUpperCase()}` : `CUSTOM RUNNER ID // ${codeStr}`)
@@ -1523,14 +1504,11 @@ function renderCallsignBuilder() {
           <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">${activeClass.tagline}</span></span>
           ${upgradeBtnHTML}
         </div>
-        <div class="class-path-track">${pathStepsHTML}</div>
-        <div class="safehouse-loadout-bar">
-          <div class="loadout-bar-header">
-            <span>🎒 EQUIPPED POWER-UPS (DROPS IN RUN)</span>
-            <span>🚨 RALLY METER = LASER FRENZY</span>
-          </div>
-          <div class="loadout-mod-grid">${loadoutCapsulesHTML}</div>
+        <div class="class-tradeoff-bar" data-popover-class-card="${activeClass.id}">
+          <span class="tradeoff-pill buff-pill">▲ ${activeClass.buff}</span>
+          <span class="tradeoff-pill nerf-pill">▼ ${activeClass.handicap}</span>
         </div>
+        <div class="class-path-track">${pathStepsHTML}</div>
       </div>
     </div>
   `;
@@ -1608,46 +1586,6 @@ function renderCallsignBuilder() {
       }
     });
   }
-
-  container.querySelectorAll("[data-loadout-mod]").forEach(modBtn => {
-    modBtn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      if (!complete) {
-        promptCallsignRequired();
-        return;
-      }
-      const modId = modBtn.dataset.loadoutMod;
-      const shopItem = LOADOUT_CAPSULE_SHOP.find(m => m.id === modId);
-      if (!shopItem) return;
-      const p = getCallsignProfile(codeStr);
-      if (p.unlockedMods.includes(modId)) {
-        // Toggle equipped state (keep at least 1 capsule equipped)
-        if (p.equippedMods.includes(modId)) {
-          if (p.equippedMods.length > 1) {
-            p.equippedMods = p.equippedMods.filter(id => id !== modId);
-            soundManager.play("bounce", { pitch: 0.95, volume: 0.4 });
-          } else {
-            soundManager.play("multihit", { pitch: 0.8, volume: 0.4 });
-          }
-        } else {
-          p.equippedMods.push(modId);
-          soundManager.play("powerUpSpawn", { pitch: 1.5, volume: 0.5 });
-        }
-        saveCallsignProfile(codeStr, p);
-        renderCallsignBuilder();
-      } else if (p.credits >= shopItem.cost) {
-        p.credits -= shopItem.cost;
-        p.unlockedMods.push(modId);
-        if (!p.equippedMods.includes(modId)) p.equippedMods.push(modId);
-        if (!p.boundClass) p.boundClass = selectedRunnerClass;
-        saveCallsignProfile(codeStr, p);
-        soundManager.play("grow", { pitch: 1.55, volume: 0.8 });
-        renderCallsignBuilder();
-      } else {
-        soundManager.play("multihit", { pitch: 0.78, volume: 0.45 });
-      }
-    });
-  });
 }
 
 function setCallsignLetter(letter) {
@@ -2092,12 +2030,13 @@ function updateMultiplierBadge() {
   }
 }
 
-// ─── Skill Rally Meter ➔ 🚨 LASER FRENZY! (4.5s Overdrive) ───
+// ─── Skill Rally Meter ➔ ⚡ FRENZY READY! ➔ 🚨 LASER FRENZY! (4.5s Overdrive) ───
 function triggerLaserFrenzy(customDurationSec = 0) {
   const baseDur = customDurationSec > 0 ? customDurationSec : (4.5 + getContractFrenzyBonusDuration());
   frenzyMaxDuration = baseDur;
   frenzyTimerLeft = Math.max(frenzyTimerLeft, baseDur);
   frenzyMeter = 100;
+  frenzyReady = false;
   isLaserActive = true;
   paddle.classList.add("paddle-armed", "laser-tier-3");
   if (gameArea) gameArea.classList.add("laser-frenzy-arena");
@@ -2106,7 +2045,7 @@ function triggerLaserFrenzy(customDurationSec = 0) {
   playVictoryFanfareSynth(false);
 
   showNotification({
-    title: "🚨 SKILL RALLY 100% // OVERDRIVE! 🚨",
+    title: "🚨 LASER FRENZY ACTIVATED! 🚨",
     emoji: "🚨",
     name: `LASER FRENZY! (${baseDur.toFixed(1)}S)`,
     description: "TWIN RAPID-FIRE GATLING CANNONS UNLEASHED!",
@@ -2118,22 +2057,39 @@ function triggerLaserFrenzy(customDurationSec = 0) {
   syncRogueHUD();
 }
 
+function activateReadyLaserFrenzy() {
+  if (gameOver || !gameRunning || isLevelIntermissionOpen) return false;
+  if (!frenzyReady || frenzyTimerLeft > 0) return false;
+  triggerLaserFrenzy();
+  return true;
+}
+
 function addSkillRallyFrenzyCharge(baseAmount = 10, isPaddleBounce = false) {
   if (gameOver || attractArenaActive) return;
   if (isPaddleBounce) {
     rallyBounceCount++;
   }
-  if (frenzyTimerLeft > 0) {
+  if (frenzyTimerLeft > 0 || frenzyReady) {
     syncRogueHUD();
     return;
   }
   const gain = baseAmount * getContractFrenzyChargeMult();
   frenzyMeter = Math.min(100, frenzyMeter + gain);
   if (frenzyMeter >= 100) {
-    triggerLaserFrenzy();
-  } else {
-    syncRogueHUD();
+    frenzyMeter = 100;
+    frenzyReady = true;
+    soundManager.play("powerUpSpawn", { pitch: 1.85, volume: 0.85 });
+    showNotification({
+      title: "⚡ SKILL RALLY 100% CHARGED! ⚡",
+      emoji: "🚨",
+      name: "FRENZY READY!",
+      description: "PRESS [F] OR [SPACE] TO UNLEASH LASERS!",
+      color: "#ffd700",
+      mode: "burst",
+      duration: 1650
+    }, { x: paddleX });
   }
+  syncRogueHUD();
 }
 
 function awardRunCredsForBrick(brick) {
@@ -2265,7 +2221,11 @@ function rollHighRollerCyberDice() {
     if (rogueLevel >= 4) {
       magSlingshotCharges = Math.max(magSlingshotCharges, 1);
       ball.classList.add("ball-slingshot");
-      triggerLaserFrenzy(3.5);
+      if (frenzyTimerLeft > 0) {
+        triggerLaserFrenzy(3.5);
+      } else {
+        addSkillRallyFrenzyCharge(100, false);
+      }
     } else {
       addSkillRallyFrenzyCharge(35, false);
       soundManager.play("powerUpSpawn", { pitch: 1.65, volume: 0.65 });
@@ -2304,7 +2264,7 @@ function resetBrickStreakOnMiss() {
   unbrokenBrickStreak = 0;
   catBounceCombo = 0;
   rallyBounceCount = 0;
-  if (frenzyTimerLeft <= 0) {
+  if (frenzyTimerLeft <= 0 && !frenzyReady) {
     frenzyMeter = 0;
   }
   if (isNeonLegend) {
@@ -2382,6 +2342,7 @@ function initRogueProgression() {
   demolisherNovaArmed = false;
   totalBricksBrokenInRun = 0;
   frenzyMeter = 0;
+  frenzyReady = false;
   frenzyTimerLeft = 0;
   frenzyMaxDuration = 4.5;
   rallyBounceCount = 0;
@@ -2456,15 +2417,22 @@ function syncRogueHUD() {
       const pct = Math.max(0, Math.min(100, Math.round((frenzyTimerLeft / Math.max(0.5, frenzyMaxDuration)) * 100)));
       xpFill.style.width = `${pct}%`;
       xpFill.classList.add("frenzy-active-fill");
+      xpFill.classList.remove("frenzy-ready-fill");
+    } else if (frenzyReady || frenzyMeter >= 100) {
+      xpFill.style.width = "100%";
+      xpFill.classList.remove("frenzy-active-fill");
+      xpFill.classList.add("frenzy-ready-fill");
     } else {
       const pct = Math.max(0, Math.min(100, Math.round(frenzyMeter)));
       xpFill.style.width = `${pct}%`;
-      xpFill.classList.remove("frenzy-active-fill");
+      xpFill.classList.remove("frenzy-active-fill", "frenzy-ready-fill");
     }
   }
   if (xpText) {
     if (frenzyTimerLeft > 0) {
       xpText.textContent = `🚨 LASER FRENZY! ${frenzyTimerLeft.toFixed(1)}S`;
+    } else if (frenzyReady || frenzyMeter >= 100) {
+      xpText.textContent = `⚡ FRENZY READY! [F / SPACE]`;
     } else {
       xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (×${rallyBounceCount})`;
     }
@@ -2840,6 +2808,7 @@ function updateRogueProgressionFrame(dt) {
     }
     if (frenzyTimerLeft <= 0) {
       frenzyMeter = 0;
+      frenzyReady = false;
       if (gameArea) gameArea.classList.remove("laser-frenzy-arena");
       if (!(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
         isLaserActive = false;
@@ -2968,6 +2937,8 @@ function resetStageForNewLevel() {
   isStickyPaddle = false;
   isLaserActive = false;
   frenzyTimerLeft = 0;
+  frenzyReady = false;
+  frenzyMeter = 0;
   canFire = true;
   paddle.classList.remove("paddle-sticky", "paddle-armed", "laser-tier-1", "laser-tier-2", "laser-tier-3");
 
@@ -5314,11 +5285,23 @@ document.addEventListener("keydown", e => {
     } else if (!gameRunning) {
       !e.repeat && togglePause();
     } else {
-      if (ballIsStuck) launchStuckBall();
-      if (isLaserActive) fireLaser();
+      if (ballIsStuck) {
+        launchStuckBall();
+      } else if (frenzyReady && frenzyTimerLeft <= 0) {
+        activateReadyLaserFrenzy();
+      } else if (isLaserActive) {
+        fireLaser();
+      }
     }
-  } else if ("f" === t) {
-    isLaserActive && gameRunning && fireLaser();
+  } else if ("f" === t || "e" === t || "shift" === t) {
+    if (gameRunning && !gameOver && !isLevelIntermissionOpen) {
+      if (frenzyReady && frenzyTimerLeft <= 0) {
+        e.preventDefault();
+        activateReadyLaserFrenzy();
+      } else if (isLaserActive && "f" === t) {
+        fireLaser();
+      }
+    }
   } else if ("p" === t || "escape" === t) {
     !gameOver && !isLevelIntermissionOpen && togglePause();
   }
@@ -6627,9 +6610,9 @@ function buildArcadeGuideHTML() {
       <div class="advert-card" style="--card-accent: #ff2a55;">
         <div class="advert-card-head">
           <span class="advert-card-name">🚨 LASER FRENZY OVERDRIVE</span>
-          <span class="advert-card-tag">100% SKILL RALLY METER</span>
+          <span class="advert-card-tag">100% RALLY METER • [F / SPACE]</span>
         </div>
-        <p class="advert-card-body">Unbroken paddle rallies fill your <strong>Skill Rally Frenzy Meter</strong> (+24% on center Sweet-Spot, +15% on wing bounce). Hit <strong>100%</strong> to unleash a <strong>4.5s 🚨 LASER FRENZY</strong> with dual auto-firing Hyper-Lasers!</p>
+        <p class="advert-card-body">Unbroken paddle rallies fill your <strong>Skill Rally Frenzy Meter</strong> (+24% on center Sweet-Spot, +15% on wing bounce). Hit <strong>100% ("FRENZY READY!")</strong> and press <strong>[F] or [SPACE]</strong> to unleash a <strong>4.5s 🚨 LASER FRENZY</strong>!</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #90ff5a;">
