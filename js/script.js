@@ -165,8 +165,11 @@ let caughtByMagLock = false;
 let laserAutoFireAccum = 0;
 let unbrokenBrickStreak = 0;
 let catBounceCombo = 0;
-let highRollerDiceMultiplier = 1.0;
+let highRollerDiceMultiplier = 1.10;
 let highRollerLastRoll = null;
+let highRollerBustShrink = false;
+let highRollerBankCurveActive = false;
+let highRollerMayhemCounter = 0;
 let isLevelIntermissionOpen = false;
 
 const POWER_UP_TYPES = {
@@ -801,21 +804,21 @@ const RUNNER_CLASSES = {
     color: "#00ffff",
     tagline: "Tesla Arcs & Twin Auto-Turrets",
     paddleStyleName: "Twin-Coil Cyan Rail Deck",
-    buff: "+10% Ball Velocity & +8 Bonus PTS on Tesla/Turret Kills",
-    handicap: "-12% Narrower Precision Paddle",
+    buff: "Velocity Streak: Up to ×1.40 Precision PTS + +10/+8 PTS on Arc/Turret Kills",
+    handicap: "-12% Narrower Precision Paddle & +10% Faster Ball",
     tiers: [
       {
         level: 1,
         label: "Tesla Arc I",
         short: "Paddle bounces zap 1 brick",
-        detail: "Every paddle bounce fires 1 homing chain-lightning bolt into the nearest brick for +8 bonus base PTS!",
+        detail: "Every paddle bounce fires 1 homing chain-lightning bolt into the nearest brick (+10 base PTS) + builds Velocity Streak (up to ×1.40 PTS)!",
         augments: { tesla: 1 }
       },
       {
         level: 2,
         label: "Wing Turrets I",
         short: "Auto-fires twin needle bolts",
-        detail: "Bolts autonomous cyan needle-turrets to your paddle wings that auto-fire every 1.7s (+6 bonus PTS/hit)!",
+        detail: "Bolts autonomous cyan needle-turrets to your paddle wings that auto-fire every 1.7s (+8 base PTS/hit)!",
         augments: { tesla: 1, turret: 1 }
       },
       {
@@ -848,21 +851,21 @@ const RUNNER_CLASSES = {
     color: "#39ff14",
     tagline: "Titan Bastion & Aegis Shield",
     paddleStyleName: "Armored Emerald Bastion Deck",
-    buff: "Fortress Intact Bonus: ×1.35 All Brick PTS while Aegis Shield is Charged!",
-    handicap: "-10% Slower Ball Velocity",
+    buff: "Fortress Intact Bonus: ×1.20–×1.40 All Brick PTS while Aegis Shield is Charged!",
+    handicap: "-10% Slower Ball Velocity (Bonus Lost While Shield Recharges)",
     tiers: [
       {
         level: 1,
         label: "Wide Deck I",
-        short: "+22% wider & faster paddle",
+        short: "+22% wider & faster paddle (×1.2 PTS)",
         detail: "Widens base paddle by +22%, boosts lateral thrusters by +14%, and grants ×1.20 Bastion Score Bonus!",
         augments: { titan: 1 }
       },
       {
         level: 2,
         label: "Aegis Shield I",
-        short: "Floor shield + ×1.35 Intact PTS",
-        detail: "Deploys a bottom Floor Forcefield (18s recharge) that saves missed balls AND grants ×1.35 PTS while charged!",
+        short: "Floor shield + ×1.30 Intact PTS",
+        detail: "Deploys a bottom Floor Forcefield (18s recharge) that saves missed balls AND grants ×1.30 PTS while charged!",
         augments: { titan: 1, aegis: 1 }
       },
       {
@@ -875,15 +878,15 @@ const RUNNER_CLASSES = {
       {
         level: 4,
         label: "Aegis Shield II",
-        short: "Faster 12s shield + ×1.45 PTS",
-        detail: "Cuts Aegis Floor Forcefield recharge to 12s and boosts Fortress Intact Score Bonus to ×1.45 PTS!",
+        short: "Faster 12s shield + ×1.35 PTS",
+        detail: "Cuts Aegis Floor Forcefield recharge to 12s and boosts Fortress Intact Score Bonus to ×1.35 PTS!",
         augments: { titan: 2, aegis: 2 }
       },
       {
         level: 5,
         label: "Fortress MAX",
-        short: "+66% paddle + 8s shield (×1.6 PTS)",
-        detail: "MAX BASTION: +66% colossal paddle, rapid 8s Aegis recharge, and ×1.60 PTS while Aegis is charged!",
+        short: "+66% paddle + 8s shield (×1.40 PTS)",
+        detail: "MAX BASTION: +66% colossal paddle, rapid 8s Aegis recharge, and ×1.40 PTS while Aegis is charged!",
         augments: { titan: 3, aegis: 3 }
       }
     ]
@@ -895,21 +898,21 @@ const RUNNER_CLASSES = {
     color: "#ff7b00",
     tagline: "Piercing Ball & Plasma Nova",
     paddleStyleName: "Hazard-Orange Siege Ram",
-    buff: "Siege Breaker: ×1.35 Bonus PTS on 2-Hit Armored & 3-Hit Gold Vault Bricks",
+    buff: "Siege Breaker: ×1.20 Base + ×1.35 Armored/Vault PTS & +14 Multi-Kill PTS",
     handicap: "-15% Shorter Timed Power-Up Durations",
     tiers: [
       {
         level: 1,
         label: "Armor Pierce I",
         short: "2× hit damage & pierces 1 brick",
-        detail: "Paddle & ceiling bounces supercharge the ball to deal 2× armor damage and plow straight through 1 brick!",
+        detail: "Paddle & ceiling bounces supercharge the ball to deal 2× armor damage and plow straight through 1 brick (+14 Pierce PTS)!",
         augments: { pierce: 1 }
       },
       {
         level: 2,
         label: "Plasma Nova I",
         short: "Shockwave ring every 5th brick",
-        detail: "Every 5th brick you shatter detonates an orange Plasma Ring, blasting adjacent bricks for +10 bonus PTS!",
+        detail: "Every 5th brick you shatter detonates an orange Plasma Ring, blasting adjacent bricks for +14 bonus PTS!",
         augments: { pierce: 1, nova: 1 }
       },
       {
@@ -940,44 +943,44 @@ const RUNNER_CLASSES = {
     emoji: "🎲",
     name: "HIGH-ROLLER",
     color: "#ffd700",
-    tagline: "Cyber-Dice Rolls & Wild Card Gamble",
+    tagline: "Mystery Dice, Wild Cards & Chaos",
     paddleStyleName: "Gold Casino Marquee Deck",
-    buff: "Every Paddle Bounce rolls 2D6 Cyber-Dice (up to ×3.5 PTS + 777 Jackpot Power-Ups!)",
-    handicap: "RNG Swings (0.85× on Snake Eyes) + +12% Faster High-Stakes Ball",
+    buff: "1D6 Bounce Chaos (Ricochet Sparks, Pierce, Frenzy), Wild Card Roulette & Piñata Wheel",
+    handicap: "Snake Eyes Bust (Roll 1): -20% Paddle Shrink, ×0.75 PTS & Joker Brick Curses",
     tiers: [
       {
         level: 1,
-        label: "Cyber-Dice I",
-        short: "Bounce rolls 2D6 (0.85×–2.5× PTS)",
-        detail: "Every paddle bounce rolls 2D6 Cyber-Dice for 0.85× to 2.5× Brick PTS + Gravity Magnet pulls capsules (+60 PTS)!",
+        label: "Mystery Die I",
+        short: "1D6 bounce: Sparks, Pierce or Bust",
+        detail: "Every paddle bounce rolls 1D6 Gameplay Chaos: [1] Snake Eyes Bust (-20% paddle & ×0.75 PTS), [2–3] Bank Curve (+6 bank PTS & ×1.05), [4–5] Ricochet Spark Bolt (×1.18), [6] Hot Hand (1 Pierce + ×1.30 PTS)!",
         augments: { magnet: 1, greed: 1 }
       },
       {
         level: 2,
-        label: "Wild Card Draw",
-        short: "Capsules draw Holo-Cards (+110 PTS)",
-        detail: "Catching any power-up draws a Holo-Card: awards +110 base PTS and a 25% chance to Double-Stack or spawn a bonus mod!",
+        label: "Wild Card Roulette",
+        short: "Capsules draw Holo-Cards (2x or Curse)",
+        detail: "Gravity Magnet pulls capsules! Catching any capsule draws a Holo-Card: 50% bonus random power-up burst (4s), 30% Double-Stack upgrade, or 20% Joker Curse (+2 extra bricks to clear)!",
         augments: { magnet: 2, greed: 1 }
       },
       {
         level: 3,
-        label: "Loaded Dice II",
-        short: "Rolls weighted up to ×3.0 PTS",
-        detail: "Weights your 2D6 Cyber-Dice toward Lucky 7s & High Stakes (up to ×3.0 PTS) + stronger capsule magnet!",
+        label: "Wheel of Mayhem",
+        short: "Every 8th brick spins a Chaos Proc",
+        detail: "Every 8th brick broken spins the Wheel of Mayhem: triggers a Chain-Lightning Zap, a Mini Plasma Pop, or mutates an intact brick into a 🎁 Power-Up Piñata!",
         augments: { magnet: 2, greed: 2 }
       },
       {
         level: 4,
-        label: "777 Slot Reels",
-        short: "18% Jackpot roll on paddle bounce",
-        detail: "18% chance on paddle bounce to hit 🎰 777 JACKPOT: instant +150×LVL bonus PTS + free random power-up burst!",
+        label: "777 Pinball Frenzy",
+        short: "Roll 6 ignites 4.5s Blaster Frenzy",
+        detail: "Rolling a 6 (Hot Hand) on your paddle bounce ignites 4.5s of 🎰 777 Pinball Frenzy: temporary auto-fire blasters + Mag-Lock Slingshot Overcharge!",
         augments: { magnet: 3, greed: 2 }
       },
       {
         level: 5,
-        label: "Whale Jackpot MAX",
-        short: "Up to ×3.8 PTS + 25% 777 Jackpots!",
-        detail: "MAX HIGH-ROLLER: Loaded Dice roll up to ×3.8 PTS, 25% 777 Jackpot rate, and +200 base PTS on every capsule catch!",
+        label: "All-In Chaos MAX",
+        short: "Wheel every 5th + 3-Way Spark Fan",
+        detail: "MAX HIGH-ROLLER: Spins Wheel of Mayhem every 5th brick, upgrades Roll 6 to a 3-Way Ricochet Spark Fan (×1.35 PTS), and maximizes Capsule Magnet!",
         augments: { magnet: 3, greed: 3 }
       }
     ]
@@ -1514,8 +1517,8 @@ const ROGUE_AUGMENTS = [
     color: "#ff00ff",
     maxRank: 3,
     getDesc: (nextRank) => {
-      const bonus = [50, 100, 175][nextRank - 1] || 175;
-      return `Magnetically pulls falling power-ups toward your paddle and awards <strong>+${bonus} PTS</strong> on every catch!`;
+      const bonus = [25, 40, 55][nextRank - 1] || 55;
+      return `Magnetically pulls falling power-ups toward your paddle and triggers <strong>Wild Card Capsule Roulette (+${bonus}×LVL PTS)</strong>!`;
     }
   },
   {
@@ -1532,14 +1535,13 @@ const ROGUE_AUGMENTS = [
   },
   {
     id: "greed",
-    emoji: "💎",
-    name: "HIGH-ROLLER CORE",
+    emoji: "🎲",
+    name: "CHAOS DIE CORE",
     rarity: "LEGENDARY",
     color: "#ffd700",
     maxRank: 3,
     getDesc: (nextRank) => {
-      const mult = ["1.4×", "1.85×", "2.5×"][nextRank - 1] || "2.5×";
-      return `Multiplies ALL brick &amp; laser points by <strong>${mult}</strong>, while accelerating ball velocity by <strong>+${nextRank * 10}%</strong>!`;
+      return `Rolls <strong>1D6 Gameplay Chaos</strong> on every bounce (Sparks, Pierce, 777 Frenzy, or Snake-Eyes Bust) + spins <strong>Wheel of Mayhem</strong> (Rank ${nextRank})!`;
     }
   },
   {
@@ -1594,22 +1596,43 @@ function getNeonLegendMultiplier() {
   return isNeonLegend ? 1.5 : 1.0;
 }
 
+function getStrikerStreakMultiplier() {
+  if (selectedRunnerClass !== "striker") return 1.0;
+  const maxCap = rogueLevel >= 4 ? 1.40 : 1.35;
+  const bonus = 1.12 + Math.min(unbrokenBrickStreak, 8) * 0.035;
+  return Math.min(maxCap, Math.round(bonus * 100) / 100);
+}
+
 function getGuardianFortressMultiplier() {
   if (selectedRunnerClass !== "guardian") return 1.0;
   const aegisRank = getAugmentRank("aegis");
-  if (aegisRank > 0 && aegisReady) {
-    return [1.35, 1.45, 1.60][Math.min(aegisRank, 3) - 1] || 1.35;
+  if (aegisRank > 0) {
+    if (!aegisReady) return 1.0;
+    return [1.30, 1.35, 1.40][Math.min(aegisRank, 3) - 1] || 1.30;
   }
   return getAugmentRank("titan") > 0 ? 1.20 : 1.0;
 }
 
+function getDemolisherBaseMultiplier() {
+  if (selectedRunnerClass !== "demolisher") return 1.0;
+  return [1.15, 1.18, 1.20, 1.22, 1.25][Math.min(Math.max(rogueLevel, 1), 5) - 1] || 1.15;
+}
+
 function getGreedScoreMultiplier() {
   if (selectedRunnerClass === "highroller") {
-    return highRollerDiceMultiplier || 1.35;
+    return highRollerDiceMultiplier || 1.10;
   }
   const r = getAugmentRank("greed");
   if (r <= 0) return 1;
-  return [1.35, 1.75, 2.25][Math.min(r, 3) - 1] || 2.25;
+  return [1.15, 1.22, 1.30][Math.min(r, 3) - 1] || 1.30;
+}
+
+function getClassSkillScoreMultiplier() {
+  if (selectedRunnerClass === "striker") return getStrikerStreakMultiplier();
+  if (selectedRunnerClass === "guardian") return getGuardianFortressMultiplier();
+  if (selectedRunnerClass === "demolisher") return getDemolisherBaseMultiplier();
+  if (selectedRunnerClass === "highroller") return getGreedScoreMultiplier();
+  return 1.0;
 }
 
 function getTotalActiveScoreMultiplier() {
@@ -1617,9 +1640,8 @@ function getTotalActiveScoreMultiplier() {
   const boardMult = getSectorScoreMultiplier();
   const slowMult = getSlowMoScoreMultiplier();
   const legendMult = getNeonLegendMultiplier();
-  const guardianMult = getGuardianFortressMultiplier();
-  const gamblerMult = selectedRunnerClass === "highroller" ? (highRollerDiceMultiplier || 1) : 1;
-  return boardMult * (expandoStacks + 1) * slowMult * legendMult * guardianMult * gamblerMult;
+  const classMult = getClassSkillScoreMultiplier();
+  return boardMult * (expandoStacks + 1) * slowMult * legendMult * classMult;
 }
 
 function updateMultiplierBadge() {
@@ -1637,63 +1659,211 @@ function updateMultiplierBadge() {
   }
 }
 
-function rollHighRollerCyberDice() {
-  if (selectedRunnerClass !== "highroller" || gameOver) return;
-  const greedRank = Math.max(1, getAugmentRank("greed"));
-  // Roll 2D6 with loaded floor at higher levels
-  const d1 = Math.min(6, Math.floor(Math.random() * 6) + 1 + (greedRank >= 2 && Math.random() < 0.35 ? 1 : 0));
-  const d2 = Math.min(6, Math.floor(Math.random() * 6) + 1 + (greedRank >= 3 && Math.random() < 0.45 ? 1 : 0));
-  const sum = d1 + d2;
-  highRollerLastRoll = sum;
+function fireHighRollerSparkFan(boltCount = 1) {
+  const boltWidth = 8;
+  const boltHeight = 18;
+  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  const spreadVx = boltCount >= 3 ? [-210, 0, 210] : [((Math.random() < 0.5 ? -1 : 1) * (95 + Math.random() * 85))];
 
-  // Check for 777 Slot Jackpot on high rolls or L4/L5 slot trigger
-  const jackpotChance = rogueLevel >= 5 ? 0.25 : (rogueLevel >= 4 ? 0.18 : 0.10);
-  if (sum === 12 || Math.random() < jackpotChance) {
-    highRollerDiceMultiplier = rogueLevel >= 5 ? 3.8 : (rogueLevel >= 3 ? 3.2 : 2.6);
-    const jackpotBonus = 150 * currentSector * Math.max(1, greedRank);
-    score += jackpotBonus;
-    if (isCatMode) score = score - (score % 10) + 9;
-    scoreDisplay.textContent = `Score: ${score}`;
-    showBrickScore(paddleX, GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - 18, jackpotBonus);
-    soundManager.play("powerUpSpawn", { pitch: 1.95, volume: 0.75 });
+  spreadVx.forEach((vx, idx) => {
+    const offsetX = boltCount >= 3 ? (idx - 1) * 18 : 0;
+    const clampedX = Math.max(6, Math.min(GAME_WIDTH - boltWidth - 6, paddleX + offsetX - boltWidth / 2));
+    const bolt = {
+      x: clampedX,
+      y: paddleTop - boltHeight - 2,
+      vx,
+      speed: LASER_SPEED * 1.08,
+      width: boltWidth,
+      height: boltHeight,
+      damage: 1,
+      bonusPts: 8,
+      laserMult: 1.0,
+      source: "highroller-spark"
+    };
+    const el = document.createElement("div");
+    el.className = "laser-bolt highroller-spark-bolt";
+    el.style.left = `${bolt.x}px`;
+    el.style.top = `${bolt.y}px`;
+    gameArea.appendChild(el);
+    bolt.element = el;
+    lasers.push(bolt);
+  });
+  soundManager.play("laserFire", { pitch: boltCount >= 3 ? 1.65 : 1.42, volume: 0.55 });
+}
 
-    // Wild Card instant random power-up burst!
-    const wildPool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"];
-    const wildPick = wildPool[Math.floor(Math.random() * wildPool.length)];
-    activatePowerUp(wildPick);
+function triggerWheelOfMayhem(originBrick) {
+  if (selectedRunnerClass !== "highroller" || rogueLevel < 3 || gameOver) return;
+  highRollerMayhemCounter++;
+  const threshold = rogueLevel >= 5 ? 5 : 8;
+  if (highRollerMayhemCounter < threshold) return;
+  highRollerMayhemCounter = 0;
 
+  const intact = bricks.filter(b => !b.isBroken && b !== originBrick);
+  if (intact.length === 0) return;
+
+  const spin = Math.random();
+  if (spin < 0.34) {
+    // 1) Chaos Chain-Lightning Zap
+    triggerTeslaArcBolts(rogueLevel >= 5 ? 2 : 1);
     showNotification({
-      title: `🎰 777 CYBER-JACKPOT! (+${jackpotBonus} PTS)`,
-      emoji: "🎰",
-      name: `JACKPOT ×${highRollerDiceMultiplier}!`,
-      description: `WILD CARD: FREE ${POWER_UP_TYPES[wildPick].name}!`,
+      title: "🎡 WHEEL OF MAYHEM",
+      emoji: "⚡",
+      name: "CHAOS ARC ZAP!",
+      description: "WHEEL SPUN HOMING CHAIN LIGHTNING!",
+      color: "#00ffff",
+      mode: "burst"
+    }, { x: paddleX });
+  } else if (spin < 0.67 && originBrick) {
+    // 2) Mayhem Mini-Pop Ring
+    const cx = originBrick.x + originBrick.width / 2;
+    const cy = originBrick.y + originBrick.height / 2;
+    const blastRadius = 105;
+    const ring = document.createElement("div");
+    ring.className = "plasma-nova-ring";
+    ring.style.left = `${cx}px`;
+    ring.style.top = `${cy}px`;
+    ring.style.setProperty("--nova-size", `${blastRadius * 2}px`);
+    gameArea.appendChild(ring);
+    setTimeout(() => ring.remove(), 420);
+    soundManager.play("laserFire", { pitch: 0.85, volume: 0.7 });
+
+    let hitCount = 0;
+    for (let i = 0; i < intact.length && hitCount < 2; i++) {
+      const b = intact[i];
+      const bx = b.x + b.width / 2;
+      const by = b.y + b.height / 2;
+      if (Math.hypot(bx - cx, by - cy) <= blastRadius) {
+        hitCount++;
+        damageOrBreakBrickByAugment(b, 1, 8);
+      }
+    }
+    showNotification({
+      title: "🎡 WHEEL OF MAYHEM",
+      emoji: "💥",
+      name: "MAYHEM SHOCKWAVE!",
+      description: "WHEEL DETONATED CLUSTER POP!",
+      color: "#ff7b00",
+      mode: "burst"
+    }, { x: paddleX });
+  } else {
+    // 3) Mutate an intact brick into a Golden Power-Up Piñata Brick!
+    const candidates = intact.filter(b => !b.powerUpType);
+    const pool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"];
+    const pickMod = pool[Math.floor(Math.random() * pool.length)];
+    if (candidates.length > 0) {
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      target.powerUpType = pickMod;
+      target.isPinataBrick = true;
+      if (target.element) {
+        target.element.classList.add("pinata-brick");
+      }
+    } else if (originBrick) {
+      spawnPowerUp(pickMod, originBrick);
+    }
+    soundManager.play("powerUpSpawn", { pitch: 1.75, volume: 0.65 });
+    showNotification({
+      title: "🎡 WHEEL OF MAYHEM",
+      emoji: "🎁",
+      name: "PIÑATA BRICK!",
+      description: "MUTATED BRICK GUARANTEES A CAPSULE!",
       color: "#ffd700",
       mode: "burst"
     }, { x: paddleX });
-  } else if (sum <= 4) {
-    // Snake eyes / low roll handicap!
-    highRollerDiceMultiplier = 0.85;
+  }
+}
+
+function rollHighRollerCyberDice() {
+  if (selectedRunnerClass !== "highroller" || gameOver) return;
+  const d = Math.floor(Math.random() * 6) + 1;
+  highRollerLastRoll = d;
+
+  if (d === 1) {
+    // [1] Snake Eyes Bust: -20% temporary paddle shrink & ×0.75 (or ×0.70 at L5) brick points!
+    highRollerDiceMultiplier = rogueLevel >= 5 ? 0.70 : 0.75;
+    highRollerBustShrink = true;
+    highRollerBankCurveActive = false;
+    updatePaddleWidth();
     showNotification({
-      title: `🎲 DICE ROLL: ${d1}+${d2} = ${sum}`,
-      emoji: "🎲",
-      name: `LOW ROLL ×0.85`,
-      description: "SNAKE EYES HANDICAP VOLLEY!",
+      title: "🎲 CHAOS DIE: ROLLED [1]",
+      emoji: "🐍",
+      name: `SNAKE EYES BUST ×${highRollerDiceMultiplier}`,
+      description: "-20% PADDLE SHRINK THIS VOLLEY!",
       color: "#ff5577",
       mode: "burst"
     }, { x: paddleX });
-  } else if (sum >= 10) {
-    highRollerDiceMultiplier = rogueLevel >= 3 ? 2.8 : 2.2;
+  } else if (d <= 3) {
+    // [2–3] Bank-Shot English: +6 bank bonus pts & ×1.05 brick points
+    highRollerDiceMultiplier = 1.05;
+    highRollerBustShrink = false;
+    highRollerBankCurveActive = true;
+    updatePaddleWidth();
     showNotification({
-      title: `🎲 DICE ROLL: ${d1}+${d2} = ${sum}`,
-      emoji: "🎲",
-      name: `HIGH STAKES ×${highRollerDiceMultiplier}!`,
-      description: "LOADED DICE PAYOUT ACTIVE!",
+      title: `🎲 CHAOS DIE: ROLLED [${d}]`,
+      emoji: "🎱",
+      name: "BANK-SHOT ENGLISH!",
+      description: "+6 BANK BONUS PTS • ×1.05 VOLLEY!",
+      color: "#00ffff",
+      mode: "burst"
+    }, { x: paddleX });
+  } else if (d <= 5) {
+    // [4–5] Trick-Shot Spark: Fires 1 ricochet spark bolt & ×1.18 brick points
+    highRollerDiceMultiplier = 1.18;
+    highRollerBustShrink = false;
+    highRollerBankCurveActive = false;
+    updatePaddleWidth();
+    fireHighRollerSparkFan(1);
+    showNotification({
+      title: `🎲 CHAOS DIE: ROLLED [${d}]`,
+      emoji: "✨",
+      name: "TRICK-SHOT SPARK!",
+      description: "RICOCHET SPARK BOLT • ×1.18 VOLLEY!",
       color: "#ffd700",
       mode: "burst"
     }, { x: paddleX });
   } else {
-    // Lucky 7 / House Roll
-    highRollerDiceMultiplier = [1.4, 1.65, 1.95][Math.min(greedRank, 3) - 1] || 1.5;
+    // [6] Hot Hand / 777 Pinball Frenzy: 1 Pierce charge + Spark Fan (L5: 3-way) + L4+ 4.5s Blaster Frenzy!
+    highRollerDiceMultiplier = rogueLevel >= 5 ? 1.35 : 1.30;
+    highRollerBustShrink = false;
+    highRollerBankCurveActive = true;
+    updatePaddleWidth();
+
+    pierceChargesLeft = Math.max(pierceChargesLeft, 1);
+    ball.classList.add("ball-piercing");
+    fireHighRollerSparkFan(rogueLevel >= 5 ? 3 : 1);
+
+    if (rogueLevel >= 4) {
+      // L4+ 777 Pinball Frenzy: 4.5s temporary auto-blaster burst + 1 Slingshot charge (no free stalling points!)
+      const now = Date.now();
+      if (!activePowerUps["laser-blast"]) activePowerUps["laser-blast"] = [];
+      if (activePowerUps["laser-blast"].length === 0) {
+        activePowerUps["laser-blast"].push({ endTime: now + 4500 });
+      } else {
+        activePowerUps["laser-blast"][0].endTime = Math.max(activePowerUps["laser-blast"][0].endTime, now + 4500);
+      }
+      syncLaserPaddleVisuals();
+      createOrUpdateStatusIndicator("laser-blast");
+      magSlingshotCharges = Math.max(magSlingshotCharges, 1);
+      ball.classList.add("ball-slingshot");
+      soundManager.play("powerUpSpawn", { pitch: 1.85, volume: 0.7 });
+      showNotification({
+        title: "🎰 ROLLED [6] // 777 PINBALL FRENZY!",
+        emoji: "🎰",
+        name: `FRENZY OVERDRIVE ×${highRollerDiceMultiplier}!`,
+        description: "4.5S AUTO-BLASTERS + PIERCE + SPARKS!",
+        color: "#ffd700",
+        mode: "burst"
+      }, { x: paddleX });
+    } else {
+      soundManager.play("powerUpSpawn", { pitch: 1.65, volume: 0.65 });
+      showNotification({
+        title: "🎲 CHAOS DIE: ROLLED [6]!",
+        emoji: "🔥",
+        name: `HOT HAND ×${highRollerDiceMultiplier}!`,
+        description: "1× ARMOR PIERCE + SPARK BOLT!",
+        color: "#ffd700",
+        mode: "burst"
+      }, { x: paddleX });
+    }
   }
   syncRogueHUD();
 }
@@ -1709,8 +1879,8 @@ function recordBrickBrokenStreak() {
     ball.classList.add("neon-legend-active");
     showNotification("neon-legend");
     soundManager.play("winSong");
-    updateMultiplierBadge();
   }
+  updateMultiplierBadge();
 }
 
 function resetBrickStreakOnMiss() {
@@ -1723,8 +1893,8 @@ function resetBrickStreakOnMiss() {
       BALL_EMOJI = "😊";
       ball.textContent = "😊";
     }
-    updateMultiplierBadge();
   }
+  updateMultiplierBadge();
 }
 
 const BOARD_LEVEL_THEMES = {
@@ -1766,8 +1936,11 @@ function initRogueProgression() {
   caughtByMagLock = false;
   unbrokenBrickStreak = 0;
   catBounceCombo = 0;
-  highRollerDiceMultiplier = 1.35;
+  highRollerDiceMultiplier = 1.10;
   highRollerLastRoll = null;
+  highRollerBustShrink = false;
+  highRollerBankCurveActive = false;
+  highRollerMayhemCounter = 0;
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
@@ -1820,8 +1993,8 @@ function syncRogueHUD() {
 
   if (classBadge) {
     const boardMult = getSectorScoreMultiplier();
-    const extraTag = selectedRunnerClass === "highroller" && highRollerDiceMultiplier
-      ? ` • 🎲×${highRollerDiceMultiplier}`
+    const extraTag = selectedRunnerClass === "highroller" && highRollerLastRoll
+      ? ` • 🎲[${highRollerLastRoll}]`
       : "";
     classBadge.textContent = `${cDef.emoji} LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult}${extraTag})`;
   }
@@ -1858,7 +2031,7 @@ function syncRogueHUD() {
       const fortMult = getGuardianFortressMultiplier();
       if (aegisReady) {
         aegisBar.className = "aegis-barrier-bar aegis-charged";
-        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult} FORTRESS SCORE BONUS ACTIVE!) 🛡️</span>`;
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} FORTRESS SCORE BONUS ACTIVE!) 🛡️</span>`;
       } else {
         aegisBar.className = "aegis-barrier-bar aegis-recharging";
         aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
@@ -1917,7 +2090,7 @@ function awardRogueXP(amount) {
   syncRogueHUD();
 }
 
-function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 8) {
+function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 10) {
   if (!brick || brick.isBroken) return;
   brick.hitsTaken += damageHits;
 
@@ -1934,6 +2107,9 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 8) {
 
     const expandoStacks = (activePowerUps["wide-paddle"] || []).length;
     let points = (isRoofBonusActive ? 15 : 10) + bonusFlatPts;
+    if (justBounced) {
+      points += (selectedRunnerClass === "highroller" && highRollerBankCurveActive) ? 6 : 2;
+    }
     if (expandoStacks > 0) points *= (expandoStacks + 1);
     points *= (rowBonusLevel + 1);
     const siegeMult = selectedRunnerClass === "demolisher" ? 1.35 : 1.0;
@@ -1945,10 +2121,9 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 8) {
     points = Math.round(
       points *
       getSectorScoreMultiplier() *
-      getGreedScoreMultiplier() *
+      getClassSkillScoreMultiplier() *
       getSlowMoScoreMultiplier() *
-      getNeonLegendMultiplier() *
-      getGuardianFortressMultiplier()
+      getNeonLegendMultiplier()
     );
     if (isCatMode) points = points - (points % 10) + 9;
 
@@ -1975,8 +2150,8 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 8) {
   }
 }
 
-function triggerTeslaArcBolts() {
-  const rank = getAugmentRank("tesla");
+function triggerTeslaArcBolts(overrideCount = 0) {
+  const rank = overrideCount > 0 ? overrideCount : getAugmentRank("tesla");
   if (rank <= 0) return;
   const intact = bricks.filter(b => !b.isBroken);
   if (intact.length === 0) return;
@@ -2010,7 +2185,7 @@ function triggerTeslaArcBolts() {
     gameArea.appendChild(boltEl);
     setTimeout(() => boltEl.remove(), 260);
 
-    damageOrBreakBrickByAugment(target, 1, 8);
+    damageOrBreakBrickByAugment(target, 1, 10);
   });
 }
 
@@ -2041,7 +2216,7 @@ function triggerPlasmaNova(originBrick) {
     const bx = b.x + b.width / 2;
     const by = b.y + b.height / 2;
     if (Math.hypot(bx - cx, by - cy) <= blastRadius) {
-      damageOrBreakBrickByAugment(b, 1, 10);
+      damageOrBreakBrickByAugment(b, 1, 14);
     }
   });
 }
@@ -2083,7 +2258,7 @@ function fireAutoTurretVolley() {
       width: boltWidth,
       height: boltHeight,
       damage: 1,
-      bonusPts: 6,
+      bonusPts: 8,
       laserMult: 1.0,
       source: "turret"
     };
@@ -3019,11 +3194,14 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - Striker precision handicap - slight difficulty tightening per board clear)
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - Striker precision handicap - High-Roller Bust Shrink - slight difficulty tightening per board clear)
   const titanBonus = getAugmentRank("titan") * 0.22;
-  const classWidthMod = selectedRunnerClass === "striker" ? -0.12 : 0;
+  let classWidthMod = selectedRunnerClass === "striker" ? -0.12 : 0;
+  if (selectedRunnerClass === "highroller" && highRollerBustShrink) {
+    classWidthMod -= 0.20;
+  }
   const boardPressure = Math.max(0, (currentSector - 1) * 0.04);
-  const scaleFactor = Math.max(0.72, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod - boardPressure);
+  const scaleFactor = Math.max(0.68, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod - boardPressure);
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -3155,27 +3333,70 @@ function updatePowerUps(dt) {
         activatePowerUp(pu.type);
         const magnetRank = getAugmentRank("magnet");
         if (magnetRank > 0) {
-          const baseMagBonus = [60, 110, 200][Math.min(magnetRank, 3) - 1] || 200;
-          let magPts = Math.round(baseMagBonus * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+          const baseMagBonus = [25, 40, 55][Math.min(magnetRank, 3) - 1] || 55;
+          let magPts = Math.round(baseMagBonus * getSectorScoreMultiplier());
           if (isCatMode) magPts = magPts - (magPts % 10) + 9;
           score += magPts;
           if (isCatMode) score = score - (score % 10) + 9;
           scoreDisplay.textContent = `Score: ${score}`;
           showBrickScore(paddleX, padRect.top - 10, magPts);
 
-          // High-Roller L2+ Wild Card Holo-Draw: 25% chance to double-stack or trigger a bonus mod!
-          if (selectedRunnerClass === "highroller" && rogueLevel >= 2 && Math.random() < 0.25) {
-            if (def.type === "stacking" && (activePowerUps[pu.type]?.length || 0) < MAX_PADDLE_LEVEL) {
-              activatePowerUp(pu.type);
+          // High-Roller L2+ Wild Card Capsule Roulette:
+          // 50% Bonus 4s Mini-Mod, 30% Double-Stack Upgrade, 20% Joker Curse (+2 extra bricks to clear!)
+          if (selectedRunnerClass === "highroller" && rogueLevel >= 2) {
+            const cardRoll = Math.random();
+            if (cardRoll < 0.50) {
+              const wildPool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"].filter(k => k !== pu.type);
+              const bonusMod = wildPool[Math.floor(Math.random() * wildPool.length)] || "laser-blast";
+              const now = Date.now();
+              if (!activePowerUps[bonusMod]) activePowerUps[bonusMod] = [];
+              if (activePowerUps[bonusMod].length < MAX_PADDLE_LEVEL) {
+                const lastEnd = activePowerUps[bonusMod].slice(-1)[0]?.endTime || now;
+                activePowerUps[bonusMod].push({ endTime: Math.max(now, lastEnd) + 4000 });
+              }
+              if (bonusMod === "wide-paddle") {
+                paddleSizeLevel = Math.min(activePowerUps[bonusMod].length, MAX_PADDLE_LEVEL);
+                updatePaddleWidth();
+              } else if (bonusMod === "sticky-paddle") {
+                isStickyPaddle = true;
+                paddle.classList.add("paddle-sticky");
+              } else if (bonusMod === "laser-blast") {
+                syncLaserPaddleVisuals();
+              }
+              createOrUpdateStatusIndicator(bonusMod);
+              updateMultiplierBadge();
+              showNotification({
+                title: "🃏 WILD CARD ROULETTE!",
+                emoji: POWER_UP_TYPES[bonusMod].emoji,
+                name: `+4S ${POWER_UP_TYPES[bonusMod].name}!`,
+                description: "HOLO-DRAW BONUS POWER-UP BURST!",
+                color: "#ffd700",
+                mode: "burst"
+              }, { x: paddleX });
+            } else if (cardRoll < 0.80) {
+              if (def.type === "stacking" && (activePowerUps[pu.type]?.length || 0) < MAX_PADDLE_LEVEL) {
+                activatePowerUp(pu.type);
+              }
+              showNotification({
+                title: "🃏 WILD CARD ROULETTE!",
+                emoji: "🃏",
+                name: "DOUBLE STACK!",
+                description: `LUCKY DRAW UPGRADED ${def.name}!`,
+                color: "#ff00ff",
+                mode: "burst"
+              }, { x: paddleX });
+            } else {
+              spawnDisruptiveBricks(2);
+              soundManager.play("multihit", { pitch: 0.75, volume: 0.7 });
+              showNotification({
+                title: "🃏 WILD CARD: JOKER CURSE!",
+                emoji: "🃏",
+                name: "+2 CURSED BRICKS!",
+                description: "BAD DRAW SPAWNED 2 EXTRA BRICKS!",
+                color: "#ff5577",
+                mode: "burst"
+              }, { x: paddleX });
             }
-            showNotification({
-              title: "🃏 HOLO-CARD WILD DRAW!",
-              emoji: "🃏",
-              name: "DOUBLE STACK!",
-              description: `LUCKY DRAW DOUBLED ${def.name}!`,
-              color: "#ff00ff",
-              mode: "burst"
-            }, { x: paddleX });
           }
         }
         awardRogueXP(2);
@@ -3219,7 +3440,7 @@ function activatePowerUp(type) {
     if (type === 'one-up') {
       spawnDisruptiveBricks(5);
       // Scoring effect for Bricked Up: Instant +150 * Level Grid Injection Bonus!
-      let injectPts = Math.round(150 * getSectorScoreMultiplier() * getGreedScoreMultiplier());
+      let injectPts = Math.round(150 * getSectorScoreMultiplier() * getClassSkillScoreMultiplier());
       if (isCatMode) injectPts = injectPts - (injectPts % 10) + 9;
       score += injectPts;
       if (isCatMode) score = score - (score % 10) + 9;
@@ -3401,10 +3622,21 @@ function updateLasers(dt) {
   for (let i = lasers.length - 1; i >= 0; i--) {
     const l = lasers[i];
 
-    // 1) Move the laser bolt upward
+    // 1) Move the laser bolt upward (and horizontally if it's a ricocheting High-Roller Spark Bolt!)
     const boltSpd = l.speed || LASER_SPEED;
     l.y -= boltSpd * dt;
     l.element.style.top = `${l.y}px`;
+    if (l.vx) {
+      l.x += l.vx * dt;
+      if (l.x <= 4 && l.vx < 0) {
+        l.x = 4;
+        l.vx *= -1;
+      } else if (l.x + l.width >= GAME_WIDTH - 4 && l.vx > 0) {
+        l.x = GAME_WIDTH - l.width - 4;
+        l.vx *= -1;
+      }
+      l.element.style.left = `${l.x}px`;
+    }
 
     // 2) Remove if off‐screen
     if (l.y + l.height < 0) {
@@ -3461,10 +3693,9 @@ function updateLasers(dt) {
           points = Math.round(
             points *
             getSectorScoreMultiplier() *
-            getGreedScoreMultiplier() *
+            getClassSkillScoreMultiplier() *
             getSlowMoScoreMultiplier() *
-            getNeonLegendMultiplier() *
-            getGuardianFortressMultiplier()
+            getNeonLegendMultiplier()
           );
           if (isCatMode) {
             points = points - (points % 10) + 9;
@@ -3493,6 +3724,8 @@ function updateLasers(dt) {
             evaluateRowClear(b.row);
           }
           if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
+          triggerPlasmaNova(b);
+          triggerWheelOfMayhem(b);
           recordBrickBrokenStreak();
           awardRogueXP(b.isVaultBrick ? 3 : (b.hitsRequired > 1 ? 2 : 1));
         } else {
@@ -3656,9 +3889,9 @@ function checkCollisions() {
       // Base points
       let points = isRoofBonusActive ? 15 : 10;
 
-      // Wall-bounce bonus
+      // Wall-bounce bonus (+6 on High-Roller Bank Curve roll!)
       if (justBounced) {
-        points += 2;
+        points += (selectedRunnerClass === "highroller" && highRollerBankCurveActive) ? 6 : 2;
       }
 
       // Bricked Up! restored brick bonus (+8 base PTS)
@@ -3678,14 +3911,18 @@ function checkCollisions() {
         }
       }
 
+      // Multi-hit logic (Piercing Overcharge deals 2x hit damage & +14 Demolisher Pierce bonus!)
+      const isPiercingHit = pierceChargesLeft > 0;
+      if (isPiercingHit && selectedRunnerClass === "demolisher") {
+        points += 14;
+      }
+
       // Expando multiplier (🪴 1 stack → 2×, 2 stacks → 3×, 3 stacks → 4×)
       const expandoStacks = (activePowerUps['wide-paddle'] || []).length;
       if (expandoStacks > 0) {
         points *= (expandoStacks + 1);
       }
 
-      // Multi-hit logic (Piercing Overcharge deals 2x hit damage!)
-      const isPiercingHit = pierceChargesLeft > 0;
       brick.hitsTaken += (isPiercingHit ? 2 : 1);
       if (isPiercingHit) {
         pierceChargesLeft = Math.max(0, pierceChargesLeft - 1);
@@ -3722,7 +3959,7 @@ function checkCollisions() {
           spawnBrickPoops(brick.x + brick.width / 2, brick.y + brick.height / 2, 2);
         }
 
-        // 3) Apply row-clear, Armored/Vault brick (+ Demolisher Siege Bonus), Sector, Greed/Dice, Slow-Mo, Neon Legend & Guardian Fortress multipliers!
+        // 3) Apply row-clear, Armored/Vault brick (+ Demolisher Siege Bonus), Sector, Class Skill, Slow-Mo & Neon Legend multipliers!
         points *= (rowBonusLevel + 1);
         const siegeMult = selectedRunnerClass === "demolisher" ? 1.35 : 1.0;
         if (brick.isVaultBrick) {
@@ -3733,10 +3970,9 @@ function checkCollisions() {
         points = Math.round(
           points *
           getSectorScoreMultiplier() *
-          getGreedScoreMultiplier() *
+          getClassSkillScoreMultiplier() *
           getSlowMoScoreMultiplier() *
-          getNeonLegendMultiplier() *
-          getGuardianFortressMultiplier()
+          getNeonLegendMultiplier()
         );
 
         let rawPoints = points;
@@ -3769,8 +4005,9 @@ function checkCollisions() {
           spawnPowerUp(brick.powerUpType, brick);
         }
 
-        // 7b) Trigger Plasma Nova shockwave if owned, record streak, then award Rogue XP
+        // 7b) Trigger Plasma Nova shockwave / Wheel of Mayhem if owned, record streak, then award Rogue XP
         triggerPlasmaNova(brick);
+        triggerWheelOfMayhem(brick);
         recordBrickBrokenStreak();
         awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
 
@@ -5615,7 +5852,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">⚡ STRIKER</span>
           <span class="advert-card-tag">TWIN-COIL CYAN RAIL DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1–L5:</strong> 1×–3× Homing Tesla Bolts (+8 PTS) + Twin Wing Auto-Turrets (1.8s ➔ 0.75s, +6 PTS) + L5 Tractor.<br><strong>▲ BUFF:</strong> +10% Ball Velocity &amp; +8/+6 Bonus PTS on Arc/Turret hits.<br><strong>▼ HANDICAP:</strong> -12% Narrower Precision Paddle.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> 1×–3× Homing Tesla Bolts (+10 PTS) + Twin Wing Auto-Turrets (1.7s ➔ 0.72s, +8 PTS).<br><strong>▲ BUFF:</strong> <strong>Velocity Streak (×1.12–×1.40 PTS)</strong> on unbroken rallies!<br><strong>▼ HANDICAP:</strong> -12% Narrower Precision Paddle &amp; +10% Faster Ball.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #00ff88;">
@@ -5623,7 +5860,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🛡️ GUARDIAN</span>
           <span class="advert-card-tag">ARMORED EMERALD BASTION DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1–L5:</strong> +22% to +66% Paddle Width + Aegis Floor Forcefield (22s ➔ 9s recharge) + L5 Fortress MAX.<br><strong>▲ BUFF:</strong> <strong>×1.35 PTS Fortress Intact Bonus (×1.60 at L5)</strong> while Aegis Shield is charged!<br><strong>▼ HANDICAP:</strong> -10% Heavy Ball Velocity.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> +22% to +66% Paddle Width + Aegis Floor Forcefield (18s ➔ 8s recharge) + L5 Fortress MAX.<br><strong>▲ BUFF:</strong> <strong>×1.20–×1.40 Fortress Intact Bonus</strong> while Aegis Shield is charged!<br><strong>▼ HANDICAP:</strong> -10% Slower Ball (Bonus lost while shield recharges).</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff6600;">
@@ -5631,7 +5868,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">💥 DEMOLISHER</span>
           <span class="advert-card-tag">HAZARD-ORANGE SIEGE RAM</span>
         </div>
-        <p class="advert-card-body"><strong>L1–L5:</strong> Ball plows through 1–3 bricks (2× armor dmg) + Plasma Nova Ring every 4th/3rd/2nd brick (+15 PTS/splash).<br><strong>▲ BUFF:</strong> <strong>×1.35 Siege Breaker PTS</strong> on Armored &amp; Gold Vault bricks.<br><strong>▼ HANDICAP:</strong> -15% Shorter Timed Power-Up Durations.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> Ball plows through 1–3 bricks (2× armor dmg, +14 PTS) + Plasma Nova Ring every 5th/4th/3rd brick (+14 PTS).<br><strong>▲ BUFF:</strong> <strong>×1.15–×1.25 Base + ×1.35 Siege PTS</strong> on Armored &amp; Gold Vaults.<br><strong>▼ HANDICAP:</strong> -15% Shorter Timed Power-Up Durations.</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ffd700;">
@@ -5639,7 +5876,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🎲 HIGH-ROLLER</span>
           <span class="advert-card-tag">GOLD CASINO MARQUEE DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1–L5:</strong> Every paddle bounce rolls <strong>2D6 Cyber-Dice (0.85× to 3.8× PTS)</strong> + <strong>🎰 777 Slot Jackpot</strong> (instant bonus PTS + free power-up!) + <strong>🃏 Holo-Card Tractor</strong> (25% chance to double-stack capsules!).<br><strong>▼ HANDICAP:</strong> Snake Eyes rolls 0.85× &amp; +12% Faster Ball.</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> <strong>1D6 Bounce Chaos</strong> (Ricochet Sparks, Pierce, 4.5s Blaster Frenzy) + <strong>🃏 Wild Card Roulette</strong> (50% bonus mod, 30% double-stack, 20% Joker curse) + <strong>🎡 Wheel of Mayhem</strong> (every 8th/5th brick: Zap, Pop, or 🎁 Piñata Brick!).<br><strong>▼ HANDICAP:</strong> Roll 1 Snake Eyes shrinks paddle -20% &amp; ×0.75 PTS.</p>
       </div>
     </div>
 
