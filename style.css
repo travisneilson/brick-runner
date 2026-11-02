@@ -585,8 +585,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .start-prompt.start-play-btn {
     margin: 20px 0 0 0;
 }
-#click-to-start-overlay .attract-cta::before,
-.start-prompt.start-play-btn::before {
+#click-to-start-overlay .attract-cta::before {
     content: '';
     display: inline-block;
     width: 0;
@@ -597,8 +596,9 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     transform: translateY(-1px);
     flex-shrink: 0;
 }
-.start-prompt.start-play-btn.loading::before {
+.start-prompt.start-play-btn::before {
     display: none;
+    content: none;
 }
 #click-to-start-overlay .attract-cta:hover,
 .start-prompt.start-play-btn:hover {
@@ -653,10 +653,10 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 .start-prompt.start-play-btn {
     margin: 0;
-    padding: 0 24px;
-    width: 440px;
-    min-width: 440px;
-    max-width: 440px;
+    padding: 0 28px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
     height: 46px;
     min-height: 46px;
     max-height: 46px;
@@ -665,23 +665,29 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     align-items: center;
     justify-content: center;
     gap: 10px;
-    font-size: 0.95rem;
-    letter-spacing: 1.5px;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
     white-space: nowrap;
     overflow: hidden;
 }
 .start-deck {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 432px;
+    grid-template-rows: 486px;
     gap: 14px;
     width: 848px;
     min-width: 848px;
     max-width: 848px;
-    height: 432px;
-    min-height: 432px;
-    max-height: 432px;
+    height: 486px;
+    min-height: 486px;
+    max-height: 486px;
     align-items: stretch;
+}
+#start-screen.safehouse-mode .start-deck {
+    grid-template-rows: 444px;
+    height: 444px;
+    min-height: 444px;
+    max-height: 444px;
 }
 #game-message {
     position: absolute;
@@ -1247,8 +1253,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   }
 }
 
-/* --- Arcade Callsign Keypad & Class Picker (Fixed-Dimension Containers) --- */
-.callsign-panel,
+/* --- Arcade Callsign Keypad & Class Picker (Two Distinct Separated Modules) --- */
 .leaderboard-panel {
   background: linear-gradient(180deg, rgba(14, 18, 30, 0.95) 0%, rgba(9, 12, 22, 0.98) 100%);
   border: 1.5px solid rgba(0, 255, 255, 0.36);
@@ -1264,26 +1269,42 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  height: 432px;
-  min-height: 432px;
-  max-height: 432px;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
 .callsign-panel {
-  border-color: rgba(255, 0, 255, 0.42);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.55),
-    inset 0 0 20px rgba(255, 0, 255, 0.06);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
   cursor: default;
-  padding: 10px 12px;
-  gap: 5px;
 }
 
 .callsign-top-section {
+  background: linear-gradient(180deg, rgba(16, 14, 30, 0.96) 0%, rgba(10, 12, 22, 0.98) 100%);
+  border: 1.5px solid rgba(255, 0, 255, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.52),
+    inset 0 0 18px rgba(255, 0, 255, 0.06);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -1515,13 +1536,20 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   box-shadow: 0 0 12px var(--clr-gold-glow);
 }
 
-/* --- Linear Class Picker inside Callsign Panel (Fixed-Dimension Grid) --- */
+/* --- Linear Class Picker Module (Module 02 Card) --- */
 .class-picker-box {
-  padding-top: 5px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(12, 18, 30, 0.96) 0%, rgba(8, 12, 22, 0.98) 100%);
+  border: 1.5px solid color-mix(in srgb, var(--cls-color, #00ffff) 52%, rgba(0, 255, 255, 0.35));
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.52),
+    inset 0 0 18px color-mix(in srgb, var(--cls-color, #00ffff) 8%, transparent);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 6px;
   flex: 1;
   min-height: 0;
 }
@@ -1658,20 +1686,20 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .class-tradeoff-bar {
   display: grid;
-  grid-template-columns: 1.12fr 0.88fr;
-  gap: 5px;
-  height: 21px;
-  min-height: 21px;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  height: 22px;
+  min-height: 22px;
   cursor: help;
 }
 
 .tradeoff-pill {
   display: flex;
   align-items: center;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.56rem;
+  font-size: 0.52rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -4839,17 +4867,26 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   animation: none;
 }
 
+.safehouse-banner-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.95rem;
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
+  letter-spacing: 1px;
+}
+
 .start-deck.deck-single-col {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.start-deck.deck-single-col .callsign-panel {
+.start-deck.deck-single-col .callsign-top-section,
+.start-deck.deck-single-col .class-picker-box {
   border-color: rgba(57, 255, 20, 0.55);
   box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.65),
-    0 0 22px rgba(57, 255, 20, 0.18),
-    inset 0 0 24px rgba(255, 215, 0, 0.08);
-  padding: 12px 16px;
+    0 10px 26px rgba(0, 0, 0, 0.65),
+    0 0 18px rgba(57, 255, 20, 0.16),
+    inset 0 0 20px rgba(255, 215, 0, 0.08);
+  padding: 11px 16px;
 }
 
 .class-path-top {
@@ -4955,14 +4992,17 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .safehouse-max-pill,
 .safehouse-hint-pill,
 .safehouse-used-pill {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.4rem;
-  padding: 4px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
   border-radius: 4px;
   color: #ffd700;
   background: rgba(255, 215, 0, 0.12);
   border: 1px solid rgba(255, 215, 0, 0.4);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .safehouse-used-pill {

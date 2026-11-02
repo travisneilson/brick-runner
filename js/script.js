@@ -817,8 +817,10 @@ const RUNNER_CLASSES = {
     emoji: "⚡",
     name: "STRIKER",
     color: "#00ffff",
-    tagline: "Bounce Tesla Arcs & Sweet-Spot Rail Shots",
+    tagline: "Tesla Arcs & Rail Bolts",
     paddleStyleName: "Twin-Coil Cyan Rail Deck",
+    shortBuff: "Tesla Arcs + Center Rail Bolts",
+    shortHandicap: "-12% Width • +10% Ball Speed",
     buff: "Every bounce zaps bricks with Cyan Tesla Lightning + Center Sweet-Spot fires Twin Rail Bolts + ×1.12–×1.40 Velocity Streak!",
     handicap: "-12% Narrower Precision Paddle & +10% Faster Ball",
     tiers: [
@@ -864,8 +866,10 @@ const RUNNER_CLASSES = {
     emoji: "🛡️",
     name: "GUARDIAN",
     color: "#39ff14",
-    tagline: "Bastion Mortar, Perfect Parry & Aegis Shield",
+    tagline: "Mortar, Parry & Aegis Shield",
     paddleStyleName: "Armored Emerald Bastion Deck",
+    shortBuff: "+22% Width + Mortar & Parry",
+    shortHandicap: "-10% Slower Ball Velocity",
     buff: "Every bounce fires Emerald Mortar Bolts! Center Sweet-Spot catches trigger a PERFECT PARRY (2× Armor Dmg + Emerald Splash) + ×1.20–×1.40 Fortress Intact PTS!",
     handicap: "-10% Slower Ball Velocity (Fortress Bonus pauses while shield recharges)",
     tiers: [
@@ -911,8 +915,10 @@ const RUNNER_CLASSES = {
     emoji: "💥",
     name: "DEMOLISHER",
     color: "#ff7b00",
-    tagline: "Siege Pierce & Bounce-Primed Plasma Nova",
+    tagline: "Siege Pierce & Plasma Nova",
     paddleStyleName: "Hazard-Orange Siege Ram",
+    shortBuff: "2× Armor Pierce + Plasma Nova",
+    shortHandicap: "-15% Timed Power-Up Duration",
     buff: "Every bounce primes Piercing Siege Charges (2× Armor Dmg) & arms a Plasma Nova detonation on the next brick hit! (×1.15–×1.25 Base + ×1.35 Armored/Vault PTS)",
     handicap: "-15% Shorter Timed Power-Up Durations",
     tiers: [
@@ -958,8 +964,10 @@ const RUNNER_CLASSES = {
     emoji: "🎲",
     name: "HIGH-ROLLER",
     color: "#ffd700",
-    tagline: "1D6 Bounce Dice, Wild Cards & Piñata Bricks",
+    tagline: "1D6 Chaos Dice & Piñata Bricks",
     paddleStyleName: "Gold Casino Marquee Deck",
+    shortBuff: "1D6 Chaos Die + Piñata Bricks",
+    shortHandicap: "Roll [1]: -20% Width & ×0.75",
     buff: "Every bounce rolls 1D6 Gameplay Chaos (Ricochet Sparks, Pierce, Piñata Bricks & +45% Frenzy Jackpots) + Wild Card Power-Up Roulette!",
     handicap: "Snake Eyes Bust (Roll 1): -20% Paddle Shrink, ×0.75 PTS & Joker Brick Curses",
     tiers: [
@@ -1376,24 +1384,23 @@ let safehouseUpgradesRemaining = 0;
 function syncSafehouseAndStartScreenUI() {
   const startDeck = startScreen ? startScreen.querySelector(".start-deck") : null;
   const lbPanel = document.getElementById("start-leaderboard");
-  const titleEl = document.getElementById("start-screen-title");
+  const topbarEl = document.getElementById("safehouse-topbar");
+  const topbarTitleEl = document.getElementById("safehouse-topbar-title");
   const lbBtn = document.getElementById("safehouse-lb-toggle-btn");
   const code = isCallsignComplete() ? callsignSlots.join("") : "ARMORY";
 
   if (startScreen) {
     startScreen.classList.toggle("safehouse-mode", isSafehouseMode);
   }
-  if (titleEl) {
-    titleEl.textContent = isSafehouseMode ? `🏠 SAFEHOUSE // ${code}` : "BRICK RUNNER";
+  if (topbarEl) {
+    topbarEl.style.display = isSafehouseMode ? "flex" : "none";
+  }
+  if (topbarTitleEl) {
+    topbarTitleEl.textContent = `🏠 SAFEHOUSE // ${code}`;
   }
   if (lbBtn) {
-    if (isSafehouseMode) {
-      lbBtn.style.display = "inline-flex";
-      lbBtn.textContent = safehouseLeaderboardOpen ? "✕ HIDE LEADERBOARD" : "🏆 SHOW LEADERBOARD";
-      lbBtn.classList.toggle("active-mode", safehouseLeaderboardOpen);
-    } else {
-      lbBtn.style.display = "none";
-    }
+    lbBtn.textContent = safehouseLeaderboardOpen ? "✕ HIDE LEADERBOARD" : "🏆 SHOW LEADERBOARD";
+    lbBtn.classList.toggle("active-mode", safehouseLeaderboardOpen);
   }
   const hideLb = isSafehouseMode && !safehouseLeaderboardOpen;
   if (lbPanel) {
@@ -1407,20 +1414,14 @@ function syncSafehouseAndStartScreenUI() {
 function syncStartPlayButtonState() {
   if (!startPrompt) return;
   if (!assetsReady) {
-    startPrompt.textContent = "Loading...";
+    startPrompt.textContent = "LOADING...";
     startPrompt.classList.add("loading");
     startPrompt.classList.remove("callsign-locked");
     return;
   }
   startPrompt.classList.remove("loading");
-  if (isCallsignComplete()) {
-    const code = callsignSlots.join("");
-    startPrompt.textContent = `▶ DEPLOY ${code}`;
-    startPrompt.classList.remove("callsign-locked");
-  } else {
-    startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
-    startPrompt.classList.add("callsign-locked");
-  }
+  startPrompt.textContent = "START";
+  startPrompt.classList.toggle("callsign-locked", !isCallsignComplete());
 }
 
 function promptCallsignRequired() {
@@ -1494,16 +1495,16 @@ function renderCallsignBuilder() {
 
   let upgradeBtnHTML = "";
   if (!complete) {
-    upgradeBtnHTML = `<span class="safehouse-hint-pill">ENTER 3 LETTERS TO LOAD PROFILE</span>`;
+    upgradeBtnHTML = `<span class="safehouse-hint-pill">ENTER CALLSIGN</span>`;
   } else if (profile.classRank >= 5) {
-    upgradeBtnHTML = `<span class="safehouse-max-pill">👑 CLASS MASTERED (L5 MAX)</span>`;
+    upgradeBtnHTML = `<span class="safehouse-max-pill">👑 L5 MAX</span>`;
   } else if (!isSafehouseMode) {
-    upgradeBtnHTML = `<span class="safehouse-hint-pill">🔒 CLEAR 5 STAGES FOR SAFEHOUSE UPGRADE (L${nextRank}: ${upgradeCost}¢)</span>`;
+    upgradeBtnHTML = `<span class="safehouse-hint-pill">🔒 STG 5 UPGRADE • L${nextRank}: ${upgradeCost}¢</span>`;
   } else if (safehouseUpgradesRemaining <= 0) {
-    upgradeBtnHTML = `<span class="safehouse-used-pill">✅ 1/1 UPGRADE COMPLETE — CLEAR 5 STAGES FOR NEXT UPGRADE</span>`;
+    upgradeBtnHTML = `<span class="safehouse-used-pill">✅ 1/1 UPGRADE DONE</span>`;
   } else {
     upgradeBtnHTML = `<button type="button" id="safehouse-upgrade-rank-btn" class="safehouse-upgrade-btn ${canAffordRank ? "can-afford" : "locked-afford"}">
-      ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢) • 1/1 ALLOWED
+      ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢)
     </button>`;
   }
 
@@ -1516,13 +1517,13 @@ function renderCallsignBuilder() {
     : `Type A–Z or press 🎲 to roll a Sci-Fi Legend`;
 
   const boundStatusHTML = !complete
-    ? `<span class="deck-sec-badge badge-cyan">PICK CLASS FOR CALLSIGN</span>`
+    ? `<span class="deck-sec-badge badge-cyan">PICK CLASS</span>`
     : (boundClassId
         ? `<div class="bound-class-actions">
-             <span class="deck-sec-badge badge-bound">🔒 ${codeStr} = ${activeClass.emoji} ${activeClass.name} L${profile.classRank}</span>
+             <span class="deck-sec-badge badge-bound">🔒 ${codeStr}: ${activeClass.name} L${profile.classRank}</span>
              <button type="button" id="respec-callsign-btn" class="respec-mini-btn" title="Reset Callsign Class Binding">♻️ RE-SPEC</button>
            </div>`
-        : `<span class="deck-sec-badge badge-cyan">NEW CALLSIGN • BINDS ON LAUNCH!</span>`);
+        : `<span class="deck-sec-badge badge-cyan">BINDS ON START</span>`);
 
   const topSectionHTML = isSafehouseMode
     ? `
@@ -1558,7 +1559,7 @@ function renderCallsignBuilder() {
       <div class="callsign-top-section">
         <div class="deck-section-header">
           <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
-          <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST STG ${profile.bestSector}` : ""}</span>
+          <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 STG ${profile.bestSector}` : ""}</span>
         </div>
         <div class="callsign-identity-dock" data-popover-callsign="1">
           <div class="callsign-slots">${slotsHTML}</div>
@@ -1575,7 +1576,7 @@ function renderCallsignBuilder() {
     ${topSectionHTML}
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
       <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">02</span> ${isSafehouseMode ? "SAFEHOUSE ARMORY (MAX 1 UPGRADE PER 5 STAGES)" : "CLASS &amp; PROGRESSION"}</span>
+        <span class="deck-sec-title"><span class="sec-num">02</span> ${isSafehouseMode ? "SAFEHOUSE ARMORY (MAX 1 UPGRADE)" : "COMBAT CLASS"}</span>
         ${boundStatusHTML}
       </div>
       <div class="class-picker-grid">${classesHTML}</div>
@@ -1585,8 +1586,8 @@ function renderCallsignBuilder() {
           ${upgradeBtnHTML}
         </div>
         <div class="class-tradeoff-bar" data-popover-class-card="${activeClass.id}">
-          <span class="tradeoff-pill buff-pill">▲ ${activeClass.buff}</span>
-          <span class="tradeoff-pill nerf-pill">▼ ${activeClass.handicap}</span>
+          <span class="tradeoff-pill buff-pill">▲ ${activeClass.shortBuff || activeClass.buff}</span>
+          <span class="tradeoff-pill nerf-pill">▼ ${activeClass.shortHandicap || activeClass.handicap}</span>
         </div>
         <div class="class-path-track">${pathStepsHTML}</div>
       </div>
@@ -3359,7 +3360,7 @@ function initGame(enterSafehouse = false) {
     
     startScreen.style.display = 'flex';
     const headerLeft = document.querySelector('.header-left');
-    if (headerLeft) headerLeft.classList.add('title-page-hidden');
+    if (headerLeft) headerLeft.classList.remove('title-page-hidden');
     renderCallsignBuilder();
     updateStartLeaderboard();
     updateHighScoreDisplay();

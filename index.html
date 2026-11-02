@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="game-header">
-        <div class="header-left title-page-hidden">
+        <div class="header-left">
             <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
             <div id="high-score-display" class="high-score-header"></div>
         </div>
@@ -58,17 +58,17 @@
         <div id="notifications-container"></div>
         
         <div id="start-screen">
-            <div class="start-screen-topbar">
-                <h1 id="start-screen-title" class="game-title">BRICK RUNNER</h1>
+            <div id="safehouse-topbar" class="start-screen-topbar" style="display: none;">
+                <span id="safehouse-topbar-title" class="safehouse-banner-title">🏠 SAFEHOUSE ARMORY</span>
                 <div class="start-screen-top-actions">
-                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button" style="display: none;">🏆 SHOW LEADERBOARD</button>
+                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button">🏆 SHOW LEADERBOARD</button>
                 </div>
             </div>
             <div class="start-deck">
                 <div id="callsign-builder" class="callsign-panel"></div>
                 <div id="start-leaderboard" class="leaderboard-panel"></div>
             </div>
-            <button id="start-play-btn" class="start-prompt start-play-btn" type="button">PLAY GAME</button>
+            <button id="start-play-btn" class="start-prompt start-play-btn" type="button">START</button>
         </div>
         
         <div id="ball"></div>
