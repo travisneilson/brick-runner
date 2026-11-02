@@ -170,6 +170,7 @@ let highRollerLastRoll = null;
 let highRollerBustShrink = false;
 let highRollerBankCurveActive = false;
 let highRollerMayhemCounter = 0;
+let guardianAegisBeamCounter = 0;
 let isLevelIntermissionOpen = false;
 
 const POWER_UP_TYPES = {
@@ -849,44 +850,44 @@ const RUNNER_CLASSES = {
     emoji: "🛡️",
     name: "GUARDIAN",
     color: "#39ff14",
-    tagline: "Titan Bastion & Aegis Shield",
+    tagline: "Bastion Mortar, Perfect Parry & Aegis Beam",
     paddleStyleName: "Armored Emerald Bastion Deck",
-    buff: "Fortress Intact Bonus: ×1.20–×1.40 All Brick PTS while Aegis Shield is Charged!",
-    handicap: "-10% Slower Ball Velocity (Bonus Lost While Shield Recharges)",
+    buff: "Every bounce fires Emerald Mortar Bolts! Center Sweet-Spot catches trigger a PERFECT PARRY (2× Armor Dmg + Emerald Splash) + ×1.20–×1.40 Fortress Intact PTS!",
+    handicap: "-10% Slower Ball Velocity (Fortress Bonus & Aegis Beam pause while shield recharges)",
     tiers: [
       {
         level: 1,
-        label: "Wide Deck I",
-        short: "+22% wider & faster paddle (×1.2 PTS)",
-        detail: "Widens base paddle by +22%, boosts lateral thrusters by +14%, and grants ×1.20 Bastion Score Bonus!",
+        label: "Bastion Mortar I",
+        short: "+22% paddle + Mortar & Perfect Parry!",
+        detail: "Widens paddle +22% (×1.20 PTS) AND every paddle bounce fires an Emerald Mortar Bolt! Catching the ball on the center Sweet-Spot triggers a 🛡️ PERFECT PARRY (2× Armor Dmg & Splash Ring)!",
         augments: { titan: 1 }
       },
       {
         level: 2,
         label: "Aegis Shield I",
-        short: "Floor shield + ×1.30 Intact PTS",
-        detail: "Deploys a bottom Floor Forcefield (18s recharge) that saves missed balls AND grants ×1.30 PTS while charged!",
+        short: "Floor shield + Homing Aegis Beam (5th brick)",
+        detail: "Deploys a bottom Floor Forcefield (16s recharge, ×1.30 PTS while charged) that Counter-Zaps 2 bricks on rebound AND fires a Homing Emerald Aegis Beam every 5th brick broken!",
         augments: { titan: 1, aegis: 1 }
       },
       {
         level: 3,
-        label: "Wide Deck II",
-        short: "+44% wider & faster paddle",
-        detail: "Expands armored bastion deck to +44% width and +28% lateral thruster speed!",
+        label: "Twin Bastion II",
+        short: "+44% paddle + Twin Mortar Volley!",
+        detail: "Expands armored bastion deck to +44% width and upgrades every paddle bounce to fire Twin Emerald Mortar Bolts (with a wider Perfect Parry Sweet-Spot)!",
         augments: { titan: 2, aegis: 1 }
       },
       {
         level: 4,
-        label: "Aegis Shield II",
-        short: "Faster 12s shield + ×1.35 PTS",
-        detail: "Cuts Aegis Floor Forcefield recharge to 12s and boosts Fortress Intact Score Bonus to ×1.35 PTS!",
+        label: "Aegis Beam II",
+        short: "10s shield + Aegis Beam every 4th brick",
+        detail: "Cuts Aegis Floor Forcefield recharge to 10s (×1.35 PTS) and fires a Homing Emerald Aegis Beam from the bottom shield every 4th brick broken!",
         augments: { titan: 2, aegis: 2 }
       },
       {
         level: 5,
-        label: "Fortress MAX",
-        short: "+66% paddle + 8s shield (×1.40 PTS)",
-        detail: "MAX BASTION: +66% colossal paddle, rapid 8s Aegis recharge, and ×1.40 PTS while Aegis is charged!",
+        label: "Citadel Overlord MAX",
+        short: "+66% deck + 3× Mortar + Shockwave Parry!",
+        detail: "CITADEL OVERLORD: +66% colossal paddle, 7s Aegis recharge (×1.40 PTS), 3-Bolt Bastion Mortar Volley on every bounce, and Perfect Parries unleash a huge Emerald Shockwave!",
         augments: { titan: 3, aegis: 3 }
       }
     ]
@@ -1941,6 +1942,7 @@ function initRogueProgression() {
   highRollerBustShrink = false;
   highRollerBankCurveActive = false;
   highRollerMayhemCounter = 0;
+  guardianAegisBeamCounter = 0;
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
@@ -2030,8 +2032,9 @@ function syncRogueHUD() {
       aegisBar.style.display = "flex";
       const fortMult = getGuardianFortressMultiplier();
       if (aegisReady) {
+        const beamFreq = aegisRank >= 3 ? 3 : (aegisRank === 2 ? 4 : 5);
         aegisBar.className = "aegis-barrier-bar aegis-charged";
-        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} FORTRESS SCORE BONUS ACTIVE!) 🛡️</span>`;
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} PTS • HOMING BEAM EVERY ${beamFreq}TH BRICK!) 🛡️</span>`;
       } else {
         aegisBar.className = "aegis-barrier-bar aegis-recharging";
         aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
@@ -2221,21 +2224,146 @@ function triggerPlasmaNova(originBrick) {
   });
 }
 
+function fireGuardianBastionMortar(absImpactPos = 0.5) {
+  if (selectedRunnerClass !== "guardian") return;
+  const titanRank = Math.max(1, getAugmentRank("titan"));
+  const parryWindow = titanRank >= 3 ? 0.48 : (titanRank === 2 ? 0.43 : 0.38);
+  const isPerfectParry = absImpactPos <= parryWindow;
+
+  const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+  const count = Math.min(3, titanRank);
+  const wingSpread = Math.max(16, paddleWidth * 0.27);
+  const offsets = count === 1
+    ? [0]
+    : (count === 2 ? [-wingSpread * 0.65, wingSpread * 0.65] : [-wingSpread, 0, wingSpread]);
+
+  const w = isPerfectParry ? 10 : 7;
+  const h = isPerfectParry ? 24 : 18;
+  const splashRadius = isPerfectParry ? (titanRank >= 3 ? 98 : 74) : 0;
+
+  offsets.forEach(dx => {
+    const bx = Math.max(6, Math.min(GAME_WIDTH - w - 6, paddleX + dx - w / 2));
+    const el = document.createElement("div");
+    el.className = isPerfectParry
+      ? "laser-bolt guardian-mortar-bolt guardian-parry-bolt"
+      : "laser-bolt guardian-mortar-bolt";
+    el.style.left = `${bx}px`;
+    el.style.top = `${paddleTop - h}px`;
+    gameArea.appendChild(el);
+    lasers.push({
+      element: el,
+      x: bx,
+      y: paddleTop - h,
+      width: w,
+      height: h,
+      damage: isPerfectParry ? 2 : 1,
+      bonusPts: isPerfectParry ? 10 : 5,
+      laserMult: 1.0,
+      speed: LASER_SPEED * (isPerfectParry ? 1.12 : 0.96),
+      splashRadius,
+      source: "guardian-mortar"
+    });
+  });
+
+  if (isPerfectParry) {
+    paddle.classList.remove("guardian-parry-flash");
+    void paddle.offsetWidth;
+    paddle.classList.add("guardian-parry-flash");
+    soundManager.play("laserFire", { pitch: 1.32, volume: 0.52 });
+    showNotification({
+      title: "🛡️ PERFECT PARRY!",
+      emoji: "🛡️",
+      name: count > 1 ? `${count}× OVERCHARGED MORTARS` : "OVERCHARGED MORTAR",
+      description: "CENTER CATCH: 2× ARMOR DMG + EMERALD SPLASH!",
+      color: "#39ff14",
+      mode: "burst",
+      duration: 900
+    }, { x: paddleX });
+  } else {
+    soundManager.play("laserFire", { pitch: 0.98, volume: 0.34 });
+  }
+}
+
+function triggerGuardianAegisBeam(originBrick) {
+  if (selectedRunnerClass !== "guardian") return;
+  const aegisRank = getAugmentRank("aegis");
+  if (aegisRank <= 0 || !aegisReady || !originBrick) return;
+
+  guardianAegisBeamCounter++;
+  const threshold = aegisRank >= 3 ? 3 : (aegisRank === 2 ? 4 : 5);
+  if (guardianAegisBeamCounter < threshold) return;
+  guardianAegisBeamCounter = 0;
+
+  // Target the lowest intact brick on the board (closest to the bottom Aegis Forcefield!)
+  const candidates = bricks
+    .filter(b => !b.isBroken && b !== originBrick)
+    .sort((a, b) => (b.y - a.y) || (Math.abs((a.x + a.width / 2) - paddleX) - Math.abs((b.x + b.width / 2) - paddleX)));
+  if (candidates.length === 0) return;
+
+  const target = candidates[0];
+  const tx = target.x + target.width / 2;
+  const ty = target.y + target.height / 2;
+  const startX = Math.max(40, Math.min(GAME_WIDTH - 40, tx + (paddleX - tx) * 0.25));
+  const startY = GAME_HEIGHT - 10;
+
+  const dx = tx - startX;
+  const dy = ty - startY;
+  const length = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  const beamEl = document.createElement("div");
+  beamEl.className = "tesla-arc-bolt guardian-aegis-beam";
+  beamEl.style.left = `${startX}px`;
+  beamEl.style.top = `${startY}px`;
+  beamEl.style.width = `${length}px`;
+  beamEl.style.transform = `rotate(${angle}deg)`;
+  gameArea.appendChild(beamEl);
+  setTimeout(() => beamEl.remove(), 300);
+
+  soundManager.play("laserFire", { pitch: 1.5, volume: 0.55 });
+  damageOrBreakBrickByAugment(target, aegisRank >= 3 ? 2 : 1, 10);
+}
+
 function handleAegisFloorSave() {
   const rank = getAugmentRank("aegis");
   if (rank <= 0 || !aegisReady) return false;
 
   aegisReady = false;
-  aegisCooldownLeft = [18, 12, 8][Math.min(rank, 3) - 1] || 8;
+  aegisCooldownLeft = [16, 10, 7][Math.min(rank, 3) - 1] || 7;
   resetBrickStreakOnMiss();
   ballY = GAME_HEIGHT - BALL_SIZE - 16;
   ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.15);
   soundManager.play("magActivate", { pitch: 1.25, volume: 0.9 });
 
+  // Counter-Zap up to 2 lowest intact bricks when Aegis rebounds the ball!
+  const counterTargets = bricks
+    .filter(b => !b.isBroken)
+    .sort((a, b) => b.y - a.y)
+    .slice(0, 2);
+  const startX = ballX + BALL_SIZE / 2;
+  const startY = GAME_HEIGHT - 12;
+  counterTargets.forEach(target => {
+    const tx = target.x + target.width / 2;
+    const ty = target.y + target.height / 2;
+    const dx = tx - startX;
+    const dy = ty - startY;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const beamEl = document.createElement("div");
+    beamEl.className = "tesla-arc-bolt guardian-aegis-beam";
+    beamEl.style.left = `${startX}px`;
+    beamEl.style.top = `${startY}px`;
+    beamEl.style.width = `${length}px`;
+    beamEl.style.transform = `rotate(${angle}deg)`;
+    gameArea.appendChild(beamEl);
+    setTimeout(() => beamEl.remove(), 320);
+    damageOrBreakBrickByAugment(target, 1, 12);
+  });
+
   showNotification({
-    title: "AEGIS FORCEFIELD SAVE",
+    title: "🛡️ AEGIS COUNTER-ZAP SAVE!",
     emoji: "🛡️",
-    name: "BALL REBOUNDED!",
+    name: "REBOUND + 2× AEGIS ZAP!",
     description: `RECHARGING IN ${aegisCooldownLeft}S`,
     color: "#39ff14",
     mode: "burst"
@@ -2436,6 +2564,7 @@ function resetStageForNewLevel() {
   laserAutoFireAccum = 0;
   turretFireAccum = 0;
   novaBrickCounter = 0;
+  guardianAegisBeamCounter = 0;
   highRollerBustShrink = false;
   highRollerBankCurveActive = false;
   highRollerDiceMultiplier = 1.10;
@@ -3806,6 +3935,7 @@ function updateLasers(dt) {
           if (b.powerUpType) spawnPowerUp(b.powerUpType, b);
           triggerPlasmaNova(b);
           triggerWheelOfMayhem(b);
+          triggerGuardianAegisBeam(b);
           recordBrickBrokenStreak();
           awardRogueXP(b.isVaultBrick ? 3 : (b.hitsRequired > 1 ? 2 : 1));
         } else {
@@ -3815,6 +3945,28 @@ function updateLasers(dt) {
           b.element.classList.remove("shake");
           void b.element.offsetWidth;
           b.element.classList.add("shake");
+        }
+
+        // Guardian Perfect Parry Mortar splash ring on impact!
+        if (l.splashRadius && l.splashRadius > 0) {
+          const cx = b.x + b.width / 2;
+          const cy = b.y + b.height / 2;
+          const ring = document.createElement("div");
+          ring.className = "plasma-nova-ring guardian-parry-ring";
+          ring.style.left = `${cx}px`;
+          ring.style.top = `${cy}px`;
+          ring.style.setProperty("--nova-size", `${l.splashRadius * 2}px`);
+          gameArea.appendChild(ring);
+          setTimeout(() => ring.remove(), 360);
+
+          bricks.forEach(adj => {
+            if (adj.isBroken || adj === b) return;
+            const ax = adj.x + adj.width / 2;
+            const ay = adj.y + adj.height / 2;
+            if (Math.hypot(ax - cx, ay - cy) <= l.splashRadius) {
+              damageOrBreakBrickByAugment(adj, 1, 8);
+            }
+          });
         }
 
         l.element.remove();
@@ -3894,6 +4046,11 @@ function checkCollisions() {
 
   // only proceed if the ball is coming down
   if (isColliding(ballRect, padRect) && ballSpeedY > 0) {
+    const padWidth     = padRect.right - padRect.left;
+    const halfPaddle   = Math.max(1, padWidth / 2);
+    const paddleCenter = padRect.left + halfPaddle;
+    const impactPos    = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
+
     soundManager.play("bounce");
     if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
       triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
@@ -3908,6 +4065,9 @@ function checkCollisions() {
       pierceChargesLeft = getAugmentRank("pierce");
       ball.classList.add("ball-piercing");
       syncRogueHUD();
+    }
+    if (selectedRunnerClass === "guardian") {
+      fireGuardianBastionMortar(Math.abs(impactPos));
     }
     if (selectedRunnerClass === "highroller") {
       rollHighRollerCyberDice();
@@ -3938,10 +4098,6 @@ function checkCollisions() {
       }
 
       // compute X-velocity based on hit position + subtle mouse-flick English
-      const padWidth     = padRect.right - padRect.left;
-      const halfPaddle   = padWidth / 2;
-      const paddleCenter = padRect.left + halfPaddle;
-      const impactPos    = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
       ballSpeedX         = impactPos * INITIAL_BALL_SPEED * 1.5 + paddleVelocityX * 0.18;
       ballSpeedX         = Math.max(-520, Math.min(520, ballSpeedX));
       if (isCatMode && Math.abs(ballSpeedX) < 135) {
@@ -4085,9 +4241,10 @@ function checkCollisions() {
           spawnPowerUp(brick.powerUpType, brick);
         }
 
-        // 7b) Trigger Plasma Nova shockwave / Wheel of Mayhem if owned, record streak, then award Rogue XP
+        // 7b) Trigger Plasma Nova shockwave / Wheel of Mayhem / Guardian Aegis Beam if owned, record streak, then award Rogue XP
         triggerPlasmaNova(brick);
         triggerWheelOfMayhem(brick);
+        triggerGuardianAegisBeam(brick);
         recordBrickBrokenStreak();
         awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
 
@@ -5955,7 +6112,7 @@ function buildArcadeGuideHTML() {
           <span class="advert-card-name">🛡️ GUARDIAN</span>
           <span class="advert-card-tag">ARMORED EMERALD BASTION DECK</span>
         </div>
-        <p class="advert-card-body"><strong>L1–L5:</strong> +22% to +66% Paddle Width + Aegis Floor Forcefield (18s ➔ 8s recharge) + L5 Fortress MAX.<br><strong>▲ BUFF:</strong> <strong>×1.20–×1.40 Fortress Intact Bonus</strong> while Aegis Shield is charged!<br><strong>▼ HANDICAP:</strong> -10% Slower Ball (Bonus lost while shield recharges).</p>
+        <p class="advert-card-body"><strong>L1–L5:</strong> +22%–+66% Paddle + <strong>1×–3× Emerald Mortar Bolts</strong> on every bounce + <strong>🛡️ Perfect Parry</strong> on center catches (2× Armor Dmg &amp; Emerald Splash) + <strong>Aegis Floor Shield</strong> (fires Homing Aegis Beams every 5th/4th/3rd brick &amp; Counter-Zaps 2 bricks on rebound!).<br><strong>▲ BUFF:</strong> <strong>×1.20–×1.40 Fortress Intact Bonus</strong> while Aegis is charged.<br><strong>▼ HANDICAP:</strong> -10% Slower Ball (Bonus pauses while shield recharges).</p>
       </div>
 
       <div class="advert-card" style="--card-accent: #ff6600;">
