@@ -1369,6 +1369,45 @@ function getCallsignChars() {
   return [callsignSlots[0] || "", callsignSlots[1] || "", callsignSlots[2] || ""];
 }
 
+let isSafehouseMode = false;
+let safehouseLeaderboardOpen = false;
+
+function syncSafehouseAndStartScreenUI() {
+  const startDeck = startScreen ? startScreen.querySelector(".start-deck") : null;
+  const lbPanel = document.getElementById("start-leaderboard");
+  const titleEl = document.getElementById("start-screen-title");
+  const modeBtn = document.getElementById("safehouse-mode-toggle-btn");
+  const lbBtn = document.getElementById("safehouse-lb-toggle-btn");
+  const code = isCallsignComplete() ? callsignSlots.join("") : "ARMORY";
+
+  if (startScreen) {
+    startScreen.classList.toggle("safehouse-mode", isSafehouseMode);
+  }
+  if (titleEl) {
+    titleEl.textContent = isSafehouseMode ? `🏠 SAFEHOUSE // ${code}` : "BRICK RUNNER";
+  }
+  if (modeBtn) {
+    modeBtn.textContent = isSafehouseMode ? "🕹️ START SCREEN" : "🏠 SAFEHOUSE";
+    modeBtn.classList.toggle("active-mode", isSafehouseMode);
+  }
+  if (lbBtn) {
+    if (isSafehouseMode) {
+      lbBtn.style.display = "inline-flex";
+      lbBtn.textContent = safehouseLeaderboardOpen ? "✕ HIDE LEADERBOARD" : "🏆 SHOW LEADERBOARD";
+      lbBtn.classList.toggle("active-mode", safehouseLeaderboardOpen);
+    } else {
+      lbBtn.style.display = "none";
+    }
+  }
+  const hideLb = isSafehouseMode && !safehouseLeaderboardOpen;
+  if (lbPanel) {
+    lbPanel.style.display = hideLb ? "none" : "flex";
+  }
+  if (startDeck) {
+    startDeck.classList.toggle("deck-single-col", hideLb);
+  }
+}
+
 function syncStartPlayButtonState() {
   if (!startPrompt) return;
   if (!assetsReady) {
@@ -1380,9 +1419,7 @@ function syncStartPlayButtonState() {
   startPrompt.classList.remove("loading");
   if (isCallsignComplete()) {
     const code = callsignSlots.join("");
-    const profile = getCallsignProfile(code);
-    const cDef = getSelectedClassDef();
-    startPrompt.textContent = `▶ DEPLOY ${code} (${cDef.emoji} ${cDef.name} L${profile.classRank})`;
+    startPrompt.textContent = `▶ DEPLOY ${code}`;
     startPrompt.classList.remove("callsign-locked");
   } else {
     startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
@@ -1441,10 +1478,16 @@ function renderCallsignBuilder() {
   const pathStepsHTML = activeClass.tiers.map(t => {
     const isUnlocked = t.level <= profile.classRank;
     const isCurrent = t.level === profile.classRank;
+    const tierCost = CLASS_RANK_UPGRADE_COSTS[t.level] || 0;
+    const statusTag = isCurrent ? "ACTIVE" : (isUnlocked ? "UNLOCKED" : `${tierCost}¢`);
     return `
       <div class="class-path-step ${isUnlocked ? "step-unlocked" : "step-locked"} ${isCurrent ? "step-current" : ""}" data-popover-class="${activeClass.id}" data-popover-tier="${t.level}">
-        <span class="class-path-lvl">${isUnlocked ? "✓" : "🔒"} L${t.level}</span>
+        <div class="class-path-top">
+          <span class="class-path-lvl">${isUnlocked ? "✓" : "🔒"} L${t.level}</span>
+          <span class="class-path-cost">${statusTag}</span>
+        </div>
         <span class="class-path-name">${t.label}</span>
+        <span class="class-path-desc">${t.short}</span>
       </div>
     `;
   }).join("");
@@ -1514,6 +1557,7 @@ function renderCallsignBuilder() {
   `;
 
   syncStartPlayButtonState();
+  syncSafehouseAndStartScreenUI();
   bindHoverPopoverEvents(container);
 
   container.querySelectorAll(".callsign-slot").forEach(slotEl => {
@@ -2078,15 +2122,25 @@ function addSkillRallyFrenzyCharge(baseAmount = 10, isPaddleBounce = false) {
   if (frenzyMeter >= 100) {
     frenzyMeter = 100;
     frenzyReady = true;
-    soundManager.play("powerUpSpawn", { pitch: 1.85, volume: 0.85 });
+    soundManager.play("powerUpSpawn", { pitch: 1.85, volume: 0.95 });
+    playVictoryFanfareSynth(false);
     showNotification({
       title: "⚡ SKILL RALLY 100% CHARGED! ⚡",
       emoji: "🚨",
       name: "FRENZY READY!",
       description: "PRESS [F] OR [SPACE] TO UNLEASH LASERS!",
       color: "#ffd700",
+      mode: "jumbotron",
+      duration: 2400
+    });
+    showNotification({
+      title: "⚡ PRESS [F] OR [SPACE] ⚡",
+      emoji: "🚨",
+      name: "FRENZY READY!",
+      description: "HIT [F] OR [SPACE] ANYTIME!",
+      color: "#ffd700",
       mode: "burst",
-      duration: 1650
+      duration: 1850
     }, { x: paddleX });
   }
   syncRogueHUD();
@@ -2436,6 +2490,14 @@ function syncRogueHUD() {
     } else {
       xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (×${rallyBounceCount})`;
     }
+  }
+  const frenzyBanner = document.getElementById("frenzy-ready-banner");
+  const showFrenzyPrompt = Boolean((frenzyReady || frenzyMeter >= 100) && frenzyTimerLeft <= 0 && !gameOver && !isLevelIntermissionOpen);
+  if (frenzyBanner) {
+    frenzyBanner.style.display = showFrenzyPrompt ? "flex" : "none";
+  }
+  if (paddle) {
+    paddle.classList.toggle("paddle-frenzy-ready", showFrenzyPrompt);
   }
   if (nextPerk) {
     const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)] || cDef.tiers[0];
@@ -3156,7 +3218,12 @@ function advanceToNextSector() {
   });
 }
 
-function initGame() {
+function initGame(enterSafehouse = false) {
+    const openSafehouse = enterSafehouse === true;
+    isSafehouseMode = openSafehouse;
+    if (openSafehouse) {
+      safehouseLeaderboardOpen = false;
+    }
     initRogueProgression();
     isCatMode   = catModeArmed;
     BALL_EMOJI  = isCatMode ? "🐱" : "😊";
@@ -3178,7 +3245,9 @@ function initGame() {
     ball.classList.remove('bonus-active', 'ball-piercing', 'ball-slingshot', 'neon-legend-active');
     lasers.forEach(l => l.element.remove());
     lasers = [];
-    paddle.classList.remove('paddle-sticky', 'paddle-armed', 'laser-tier-1', 'laser-tier-2', 'laser-tier-3');
+    const frenzyBanner = document.getElementById("frenzy-ready-banner");
+    if (frenzyBanner) frenzyBanner.style.display = "none";
+    paddle.classList.remove('paddle-sticky', 'paddle-armed', 'paddle-frenzy-ready', 'laser-tier-1', 'laser-tier-2', 'laser-tier-3');
     syncPaddleClassVisual();
     paddleSizeLevel = 0;
     activePowerUps = {};
@@ -3527,6 +3596,41 @@ function setupGame() {
         startPrompt.addEventListener('click', (e) => {
             e.stopPropagation();
             if (gameOver && assetsReady) startGame();
+        });
+    }
+    const safehouseModeBtn = document.getElementById("safehouse-mode-toggle-btn");
+    if (safehouseModeBtn) {
+        safehouseModeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            isSafehouseMode = !isSafehouseMode;
+            if (isSafehouseMode) {
+                safehouseLeaderboardOpen = false;
+            }
+            soundManager.play("bounce", { pitch: isSafehouseMode ? 1.35 : 1.1, volume: 0.4 });
+            renderCallsignBuilder();
+        });
+    }
+    const safehouseLbBtn = document.getElementById("safehouse-lb-toggle-btn");
+    if (safehouseLbBtn) {
+        safehouseLbBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            safehouseLeaderboardOpen = !safehouseLeaderboardOpen;
+            soundManager.play("bounce", { pitch: safehouseLeaderboardOpen ? 1.4 : 1.05, volume: 0.38 });
+            syncSafehouseAndStartScreenUI();
+        });
+    }
+    const frenzyBanner = document.getElementById("frenzy-ready-banner");
+    if (frenzyBanner) {
+        frenzyBanner.addEventListener("click", (e) => {
+            e.stopPropagation();
+            activateReadyLaserFrenzy();
+        });
+    }
+    const rogueXpTrack = document.querySelector(".rogue-xp-track");
+    if (rogueXpTrack) {
+        rogueXpTrack.addEventListener("click", (e) => {
+            e.stopPropagation();
+            activateReadyLaserFrenzy();
         });
     }
 }
@@ -4930,7 +5034,7 @@ function endGame(won) {
     safehouseBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
       if (!isModalInputReady(false)) return;
-      initGame();
+      initGame(true);
     });
   }
   const switchRunnerBtn = document.getElementById("end-switch-runner-btn");
@@ -4939,7 +5043,7 @@ function endGame(won) {
       ev.stopPropagation();
       if (!isModalInputReady(false)) return;
       clearCallsignSlots();
-      initGame();
+      initGame(false);
     });
   }
 }
@@ -5262,8 +5366,12 @@ document.addEventListener("keydown", e => {
   if (gameOver && gameMessage.style.display === "block" && ("c" === t || "u" === t)) {
     e.preventDefault();
     if (!e.repeat && isModalInputReady(false)) {
-      if ("c" === t) clearCallsignSlots();
-      initGame();
+      if ("c" === t) {
+        clearCallsignSlots();
+        initGame(false);
+      } else {
+        initGame(true);
+      }
     }
     return;
   }

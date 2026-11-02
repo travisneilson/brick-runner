@@ -42,6 +42,12 @@
             <span id="score-multiplier" class="multiplier-badge" style="display: none;">2X</span>
         </div>
 
+        <div id="frenzy-ready-banner" class="frenzy-ready-banner" style="display: none;">
+            <span class="frenzy-banner-icon">🚨</span>
+            <span class="frenzy-banner-text">FRENZY READY! — PRESS <kbd>[F]</kbd> OR <kbd>[SPACE]</kbd></span>
+            <span class="frenzy-banner-icon">🚨</span>
+        </div>
+
         <div id="aegis-barrier-bar" class="aegis-barrier-bar" style="display: none;"></div>
 
         <div id="hack-lighting-overlay" class="hack-lighting-overlay"></div>
@@ -52,7 +58,13 @@
         <div id="notifications-container"></div>
         
         <div id="start-screen">
-            <h1 class="game-title">BRICK RUNNER</h1>
+            <div class="start-screen-topbar">
+                <h1 id="start-screen-title" class="game-title">BRICK RUNNER</h1>
+                <div class="start-screen-top-actions">
+                    <button id="safehouse-mode-toggle-btn" class="safehouse-top-btn" type="button">🏠 SAFEHOUSE</button>
+                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button" style="display: none;">🏆 SHOW LEADERBOARD</button>
+                </div>
+            </div>
             <div class="start-deck">
                 <div id="callsign-builder" class="callsign-panel"></div>
                 <div id="start-leaderboard" class="leaderboard-panel"></div>

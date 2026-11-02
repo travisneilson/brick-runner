@@ -4685,6 +4685,308 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   background: rgba(50, 10, 24, 0.78) !important;
 }
 
+/* ─── Huge On-Canvas FRENZY READY Banner & Paddle Prompt ─── */
+@keyframes frenzyBannerPulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    box-shadow:
+      0 0 24px rgba(255, 215, 0, 0.92),
+      0 0 48px rgba(255, 0, 85, 0.75),
+      inset 0 0 18px rgba(255, 215, 0, 0.35);
+    border-color: #ffd700;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.045);
+    box-shadow:
+      0 0 36px rgba(255, 255, 255, 0.98),
+      0 0 68px rgba(255, 215, 0, 0.95),
+      inset 0 0 26px rgba(255, 42, 85, 0.55);
+    border-color: #ffffff;
+  }
+}
+
+.frenzy-ready-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(44, 6, 22, 0.96) 0%, rgba(72, 24, 6, 0.96) 50%, rgba(44, 6, 22, 0.96) 100%);
+  border: 2.5px solid #ffd700;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  animation: frenzyBannerPulse 0.65s ease-in-out infinite;
+}
+
+.frenzy-ready-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px #ffd700);
+}
+
+.frenzy-ready-main {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.78rem;
+  color: #ffd700;
+  text-shadow: 0 0 10px #ffd700, 0 0 20px #ff0055;
+  letter-spacing: 1px;
+}
+
+.frenzy-ready-key {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.54rem;
+  color: #090612;
+  background: linear-gradient(90deg, #ffd700, #39ff14);
+  padding: 5px 10px 4px;
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.85);
+  letter-spacing: 0.6px;
+}
+
+#paddle.paddle-frenzy-ready {
+  box-shadow:
+    0 0 18px #ffd700,
+    0 0 34px #ff0055,
+    inset 0 0 10px #ffffff !important;
+  border-top-color: #ffd700 !important;
+}
+
+#paddle.paddle-frenzy-ready::after {
+  content: "⚡ FRENZY READY! [F / SPACE] ⚡";
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.44rem;
+  color: #ffd700;
+  background: rgba(20, 6, 18, 0.94);
+  border: 1.5px solid #ffd700;
+  border-radius: 999px;
+  padding: 4px 9px 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.85), 0 0 24px rgba(255, 0, 85, 0.65);
+  text-shadow: 0 0 6px #ffd700;
+}
+
+/* ─── Start Screen Topbar & Distinct Safehouse Mode ─── */
+.start-screen-topbar {
+  width: 848px;
+  min-width: 848px;
+  max-width: 848px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.start-screen-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.safehouse-top-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1.5px solid rgba(0, 255, 136, 0.55);
+  color: #55ffaa;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.safehouse-top-btn:hover,
+.safehouse-top-btn.active-mode {
+  background: linear-gradient(180deg, rgba(0, 255, 136, 0.26) 0%, rgba(255, 215, 0, 0.18) 100%);
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.45);
+}
+
+#start-screen.safehouse-mode {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(57, 255, 20, 0.13) 0%, transparent 58%),
+    radial-gradient(circle at 50% 100%, rgba(255, 215, 0, 0.11) 0%, transparent 58%),
+    repeating-linear-gradient(90deg, rgba(57, 255, 20, 0.03) 0 1px, transparent 1px 36px),
+    #081110;
+}
+
+#start-screen.safehouse-mode .game-title {
+  font-size: 1.55em;
+  color: #ffd700;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.75));
+  border-right-color: #39ff14;
+  animation: none;
+}
+
+.start-deck.deck-single-col {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.start-deck.deck-single-col .callsign-panel {
+  border-color: rgba(57, 255, 20, 0.55);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.65),
+    0 0 22px rgba(57, 255, 20, 0.18),
+    inset 0 0 24px rgba(255, 215, 0, 0.08);
+  padding: 12px 16px;
+}
+
+.class-path-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.class-path-cost {
+  display: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.48rem;
+  font-weight: 800;
+  color: #ffd700;
+  letter-spacing: 0.3px;
+}
+
+.class-path-step.step-unlocked .class-path-cost {
+  color: #55ffaa;
+}
+
+.class-path-desc {
+  display: none;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: #bfd6ee;
+  width: 100%;
+  overflow: hidden;
+  display: none;
+}
+
+/* In Single-Column Safehouse Mode, expand the L1-L5 Class Progression Cards! */
+.start-deck.deck-single-col .class-path-track {
+  grid-template-rows: 96px;
+  height: 96px;
+  gap: 8px;
+}
+
+.start-deck.deck-single-col .class-path-step {
+  height: 96px;
+  padding: 7px 8px;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.start-deck.deck-single-col .class-path-cost {
+  display: inline-block;
+}
+
+.start-deck.deck-single-col .class-path-name {
+  font-size: 0.68rem;
+  -webkit-line-clamp: 1;
+}
+
+.start-deck.deck-single-col .class-path-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.class-path-step.step-locked {
+  opacity: 0.62;
+  border-style: dashed;
+}
+
+.class-path-step.step-current {
+  border-color: var(--cls-color, #00ffff);
+  background: color-mix(in srgb, var(--cls-color, #00ffff) 18%, rgba(10, 16, 28, 0.95));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cls-color, #00ffff) 35%, transparent);
+}
+
+.safehouse-upgrade-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.44rem;
+  padding: 5px 9px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1.5px solid #ffd700;
+  transition: all 0.14s ease;
+}
+
+.safehouse-upgrade-btn.can-afford {
+  background: linear-gradient(90deg, #ffd700, #39ff14);
+  color: #07100c;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
+}
+
+.safehouse-upgrade-btn.can-afford:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.9);
+}
+
+.safehouse-upgrade-btn.locked-afford {
+  background: rgba(255, 215, 0, 0.08);
+  color: rgba(255, 215, 0, 0.65);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.safehouse-max-pill,
+.safehouse-hint-pill {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.42rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  white-space: nowrap;
+}
+
+.bound-class-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.respec-mini-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.38rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #ff88aa;
+  background: rgba(255, 42, 85, 0.12);
+  border: 1px solid rgba(255, 42, 85, 0.45);
+  cursor: pointer;
+}
+
+.respec-mini-btn:hover {
+  background: #ff2a55;
+  color: #ffffff;
+}
+
+
 
 
 
