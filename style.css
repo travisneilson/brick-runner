@@ -55,35 +55,34 @@ body::before {
 /* --- Header --- */
 .game-header {
     width: 900px;
-    height: 54px;
-    min-height: 54px;
-    max-height: 54px;
+    min-height: 48px;
+    height: auto;
     box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
     padding: 0;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .rogue-hud-row {
     width: 900px;
-    height: 34px;
-    min-height: 34px;
-    max-height: 34px;
+    min-height: 0;
+    height: auto;
     box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .header-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    gap: 5px;
     min-width: 0;
     transition: opacity 0.25s ease;
 }
@@ -95,10 +94,12 @@ body::before {
 }
 
 .game-title-glitch {
+    margin: 0;
+    padding: 0;
     font-family: 'Press Start 2P', cursive;
     color: var(--clr-neon-blue);
-    font-size: 1.9em;
-    line-height: 1.1;
+    font-size: 1.75em;
+    line-height: 1.05;
     position: relative;
     text-shadow: 0 0 5px var(--clr-neon-blue);
     white-space: nowrap;
@@ -131,10 +132,11 @@ body::before {
 
 .high-score-header {
     font-family: 'Press Start 2P', cursive;
-    font-size: 0.82em;
+    font-size: 0.72em;
+    line-height: 1.2;
     color: var(--clr-text-main);
-    opacity: 0.75;
-    margin-top: 6px;
+    opacity: 0.85;
+    margin: 0;
     white-space: nowrap;
 }
 
@@ -3276,29 +3278,37 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 /* ==========================================================================
-   DEDICATED FULL-WIDTH LINEAR CLASS PROGRESSION ROW (900PX ABOVE GAME AREA)
+   DEDICATED FULL-WIDTH LINEAR CLASS PROGRESSION & LASER FRENZY BAR (900PX)
    ========================================================================== */
 
 .rogue-hud {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 5px;
   width: 900px;
   min-width: 900px;
   max-width: 900px;
-  height: 32px;
-  min-height: 32px;
-  max-height: 32px;
-  padding: 0 12px;
+  padding: 5px 10px 6px;
   box-sizing: border-box;
-  background: rgba(10, 14, 28, 0.94);
+  background: linear-gradient(180deg, rgba(10, 14, 28, 0.96) 0%, rgba(6, 10, 22, 0.98) 100%);
   border: 1.5px solid color-mix(in srgb, var(--class-color, #00ffff) 65%, transparent);
-  border-radius: 7px;
+  border-radius: 8px;
   box-shadow: 0 0 14px color-mix(in srgb, var(--class-color, #00ffff) 24%, transparent);
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.rogue-hud-top-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 22px;
+  min-height: 22px;
+  width: 100%;
 }
 
 .rogue-class-badge {
@@ -3311,37 +3321,129 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .rogue-xp-track {
   position: relative;
-  width: 186px;
-  height: 16px;
-  background: rgba(4, 8, 18, 0.95);
-  border: 1px solid rgba(57, 255, 20, 0.55);
-  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 26px;
+  min-height: 26px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  background: linear-gradient(90deg, rgba(8, 12, 26, 0.96) 0%, rgba(16, 8, 28, 0.96) 100%);
+  border: 1.5px solid rgba(0, 255, 255, 0.52);
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.9),
+    0 0 10px rgba(0, 255, 255, 0.16);
+  cursor: pointer;
   flex-shrink: 0;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.14s ease;
+}
+
+.rogue-xp-track.frenzy-track-ready {
+  border-color: #ffd700;
+  background: linear-gradient(90deg, rgba(46, 14, 6, 0.96) 0%, rgba(62, 24, 6, 0.96) 50%, rgba(46, 14, 6, 0.96) 100%);
+  box-shadow:
+    0 0 16px rgba(255, 215, 0, 0.78),
+    0 0 32px rgba(255, 42, 85, 0.55),
+    inset 0 0 14px rgba(255, 215, 0, 0.35);
+}
+
+.rogue-xp-track.frenzy-track-active {
+  border-color: #ff2a55;
+  background: linear-gradient(90deg, rgba(58, 4, 24, 0.96) 0%, rgba(74, 12, 32, 0.96) 100%);
+  box-shadow:
+    0 0 20px rgba(255, 42, 85, 0.92),
+    0 0 36px rgba(255, 215, 0, 0.65),
+    inset 0 0 16px rgba(255, 42, 85, 0.45);
+}
+
+.frenzy-bar-tag {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.44rem;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.65);
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.frenzy-bar-well {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  background: rgba(3, 6, 14, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.9);
 }
 
 .rogue-xp-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--class-color, #00e5ff), #39ff14);
-  box-shadow: 0 0 8px rgba(57, 255, 20, 0.75);
-  transition: width 0.18s ease-out;
+  background: linear-gradient(90deg, #00e5ff 0%, #39ff14 55%, #ffd700 100%);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.85), inset 0 0 6px rgba(255, 255, 255, 0.45);
+  transition: width 0.16s ease-out;
+}
+
+.frenzy-bar-segments {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 26px,
+    rgba(4, 8, 18, 0.58) 26px,
+    rgba(4, 8, 18, 0.58) 28px
+  );
+  z-index: 1;
 }
 
 .rogue-xp-text {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'JetBrains Mono', 'Roboto', monospace;
-  font-size: 0.56rem;
-  font-weight: 800;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
   color: #ffffff;
-  text-shadow: 0 1px 2px #000000, 0 0 5px #000000;
-  letter-spacing: 0.2px;
+  text-shadow:
+    0 1px 2px #000000,
+    0 0 6px #000000,
+    0 0 10px rgba(0, 0, 0, 0.95);
+  letter-spacing: 0.5px;
   white-space: nowrap;
+}
+
+.frenzy-bar-action-pill {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  color: #b8d4f2;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 4px;
+  padding: 3px 7px 2px;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.rogue-xp-track.frenzy-track-ready .frenzy-bar-action-pill {
+  color: #061208;
+  background: linear-gradient(90deg, #ffd700, #39ff14);
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.85);
+}
+
+.rogue-xp-track.frenzy-track-active .frenzy-bar-action-pill {
+  color: #ffffff;
+  background: #ff2a55;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 42, 85, 0.85);
 }
 
 .rogue-next-perk {
@@ -3350,7 +3452,6 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   justify-content: flex-end;
   gap: 6px;
   padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -5198,29 +5299,34 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 28px;
+  height: 30px;
   padding: 0 8px;
   border-radius: 6px;
-  background: rgba(10, 14, 26, 0.92);
-  border: 1.5px solid rgba(0, 255, 255, 0.42);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  background: #080d18;
+  border: 1.5px solid rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.18), inset 0 0 8px rgba(0, 255, 255, 0.08);
   box-sizing: border-box;
   user-select: none;
 }
 
 .volume-control-widget.is-muted {
-  border-color: rgba(255, 68, 119, 0.55);
-  background: rgba(28, 10, 20, 0.92);
+  border-color: rgba(255, 68, 119, 0.7);
+  background: #180812;
+  box-shadow: 0 0 10px rgba(255, 68, 119, 0.22);
 }
 
 .vol-mute-btn {
+  appearance: none;
   background: transparent;
   border: none;
   padding: 0 2px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   line-height: 1;
   cursor: pointer;
   color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.12s ease;
 }
 
@@ -5228,33 +5334,68 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   transform: scale(1.15);
 }
 
-.vol-bars {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 16px;
-  padding: 0 2px;
-}
-
-.vol-bar-btn {
-  width: 6px;
+.vol-step-btn {
+  appearance: none;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  border-radius: 2px;
-  border: 1px solid rgba(0, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(0, 255, 255, 0.55);
+  color: #00ffff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.12s ease;
 }
 
-.vol-bar-btn[data-vol="0.25"] { height: 6px; }
-.vol-bar-btn[data-vol="0.5"]  { height: 9px; }
-.vol-bar-btn[data-vol="0.75"] { height: 12px; }
-.vol-bar-btn[data-vol="1"]    { height: 15px; }
+.vol-step-btn:hover:not(:disabled) {
+  background: #00ffff;
+  color: #050a12;
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.75);
+}
+
+.vol-step-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.vol-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+  padding: 0 2px;
+}
+
+.vol-bar-btn {
+  appearance: none;
+  width: 7px;
+  padding: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.vol-bar-btn[data-vol="0.25"] { height: 7px; }
+.vol-bar-btn[data-vol="0.50"],
+.vol-bar-btn[data-vol="0.5"]  { height: 10px; }
+.vol-bar-btn[data-vol="0.75"] { height: 13px; }
+.vol-bar-btn[data-vol="1.00"],
+.vol-bar-btn[data-vol="1"]    { height: 17px; }
 
 .vol-bar-btn.active {
   background: #39ff14;
   border-color: #39ff14;
-  box-shadow: 0 0 6px rgba(57, 255, 20, 0.75);
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.8);
 }
 
 .vol-bar-btn:hover {
@@ -5263,17 +5404,27 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .vol-pct-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.54rem;
-  font-weight: 800;
-  color: #b8d4f2;
-  min-width: 28px;
-  text-align: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  color: #39ff14;
+  background: rgba(5, 10, 18, 0.92);
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  border-radius: 4px;
+  padding: 3px 6px 2px;
+  min-width: 36px;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .volume-control-widget.is-muted .vol-pct-label {
-  color: #ff7799;
+  color: #ff6688;
+  border-color: rgba(255, 68, 119, 0.55);
+  text-shadow: 0 0 6px rgba(255, 68, 119, 0.5);
 }
 
 .class-path-step.step-locked {

@@ -226,6 +226,8 @@ const soundManager = {
 
 function syncVolumeControlUI() {
     const muteBtn = document.getElementById("volume-mute-btn");
+    const downBtn = document.getElementById("volume-down-btn");
+    const upBtn = document.getElementById("volume-up-btn");
     const pctLabel = document.getElementById("volume-pct-label");
     const widget = document.getElementById("volume-control-widget");
     const effective = soundManager.isMuted ? 0 : soundManager.masterVolume;
@@ -245,11 +247,17 @@ function syncVolumeControlUI() {
             muteBtn.textContent = "🔊";
         }
     }
+    if (downBtn) {
+        downBtn.disabled = soundManager.isMuted || pct === 0;
+    }
+    if (upBtn) {
+        upBtn.disabled = !soundManager.isMuted && pct >= 100;
+    }
     if (pctLabel) {
-        pctLabel.textContent = soundManager.isMuted ? "MUTE" : `${pct}%`;
+        pctLabel.textContent = (soundManager.isMuted || pct === 0) ? "MUTE" : `${pct}%`;
     }
     document.querySelectorAll(".vol-bar-btn").forEach(btn => {
-        const barVol = parseFloat(btn.dataset.vol || "0");
+        const barVol = parseFloat(btn.dataset.vol || btn.dataset.volStep || "0");
         const isActive = !soundManager.isMuted && effective >= barVol - 0.05;
         btn.classList.toggle("active", isActive);
     });
@@ -2796,6 +2804,14 @@ function syncRogueHUD() {
   syncBoardLevelAtmosphere();
   updateMultiplierBadge();
 
+  const frenzyTrack = document.getElementById("frenzy-meter-bar");
+  const frenzyActionPill = document.getElementById("frenzy-bar-action-pill");
+
+  if (frenzyTrack) {
+    frenzyTrack.classList.toggle("frenzy-track-active", frenzyTimerLeft > 0);
+    frenzyTrack.classList.toggle("frenzy-track-ready", frenzyTimerLeft <= 0 && (frenzyReady || frenzyMeter >= 100));
+  }
+
   if (xpFill) {
     if (frenzyTimerLeft > 0) {
       const pct = Math.max(0, Math.min(100, Math.round((frenzyTimerLeft / Math.max(0.5, frenzyMaxDuration)) * 100)));
@@ -2814,11 +2830,20 @@ function syncRogueHUD() {
   }
   if (xpText) {
     if (frenzyTimerLeft > 0) {
-      xpText.textContent = `🚨 LASER FRENZY! ${frenzyTimerLeft.toFixed(1)}S`;
+      xpText.textContent = `🚨 LASER FRENZY OVERDRIVE! ${frenzyTimerLeft.toFixed(1)}S REMAINING 🚨`;
     } else if (frenzyReady || frenzyMeter >= 100) {
-      xpText.textContent = `⚡ FRENZY READY! [F / SPACE]`;
+      xpText.textContent = `⚡ FRENZY 100% READY! — PRESS [F] OR [SPACE] TO FIRE! ⚡`;
     } else {
-      xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (×${rallyBounceCount})`;
+      xpText.textContent = `SKILL RALLY CHARGE: ${Math.round(frenzyMeter)}% (×${rallyBounceCount} BOUNCES)`;
+    }
+  }
+  if (frenzyActionPill) {
+    if (frenzyTimerLeft > 0) {
+      frenzyActionPill.textContent = `🔥 ${frenzyTimerLeft.toFixed(1)}S`;
+    } else if (frenzyReady || frenzyMeter >= 100) {
+      frenzyActionPill.textContent = `🚀 FIRE [F / SPACE]`;
+    } else {
+      frenzyActionPill.textContent = `${Math.round(frenzyMeter)}%`;
     }
   }
   const frenzyBanner = document.getElementById("frenzy-ready-banner");
@@ -4159,10 +4184,34 @@ function setupGame() {
             }
         });
     }
+    const volDownBtn = document.getElementById("volume-down-btn");
+    if (volDownBtn) {
+        volDownBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            soundManager.init();
+            const currentEff = soundManager.isMuted ? 0 : soundManager.masterVolume;
+            const nextVol = Math.max(0, Math.round((currentEff - 0.25) * 4) / 4);
+            soundManager.setVolume(nextVol);
+            if (!soundManager.isMuted && nextVol > 0) {
+                soundManager.play("bounce", { pitch: 0.95 + nextVol * 0.4, volume: 0.45 });
+            }
+        });
+    }
+    const volUpBtn = document.getElementById("volume-up-btn");
+    if (volUpBtn) {
+        volUpBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            soundManager.init();
+            const currentEff = soundManager.isMuted ? 0 : soundManager.masterVolume;
+            const nextVol = Math.min(1, Math.round((currentEff + 0.25) * 4) / 4);
+            soundManager.setVolume(nextVol);
+            soundManager.play("bounce", { pitch: 0.95 + nextVol * 0.45, volume: 0.45 });
+        });
+    }
     document.querySelectorAll(".vol-bar-btn").forEach(barBtn => {
         barBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            const targetVol = parseFloat(barBtn.dataset.vol || "0.75");
+            const targetVol = parseFloat(barBtn.dataset.vol || barBtn.dataset.volStep || "0.75");
             soundManager.init();
             soundManager.setVolume(targetVol);
             soundManager.play("bounce", { pitch: 1.0 + targetVol * 0.45, volume: 0.45 });
@@ -4174,6 +4223,9 @@ function setupGame() {
             e.stopPropagation();
             soundManager.init();
             soundManager.toggleMute();
+            if (!soundManager.isMuted) {
+                soundManager.play("bounce", { pitch: 1.35, volume: 0.45 });
+            }
         });
     }
 }
