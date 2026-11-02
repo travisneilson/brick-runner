@@ -50,7 +50,7 @@ const loadingEmoji = document.getElementById('loading-emoji');
 function showBrickScore(x, y, pts) {
   const pop = document.createElement("div");
   pop.className = "score-pop-up";
-  pop.textContent = `+${pts}`;
+  pop.textContent = `+${Number(pts).toLocaleString("en-US")}`;
   // position it centered on the brick
   pop.style.left = `${x}px`;
   pop.style.top  = `${y}px`;
@@ -171,6 +171,7 @@ let highRollerBustShrink = false;
 let highRollerBankCurveActive = false;
 let highRollerMayhemCounter = 0;
 let guardianAegisBeamCounter = 0;
+let totalBricksBrokenInRun = 0;
 let isLevelIntermissionOpen = false;
 
 const POWER_UP_TYPES = {
@@ -1870,6 +1871,7 @@ function rollHighRollerCyberDice() {
 }
 
 function recordBrickBrokenStreak() {
+  totalBricksBrokenInRun++;
   unbrokenBrickStreak++;
   if (!isNeonLegend && (unbrokenBrickStreak >= 10 || score >= 5000)) {
     isNeonLegend = true;
@@ -1943,6 +1945,7 @@ function initRogueProgression() {
   highRollerBankCurveActive = false;
   highRollerMayhemCounter = 0;
   guardianAegisBeamCounter = 0;
+  totalBricksBrokenInRun = 0;
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
@@ -2032,9 +2035,9 @@ function syncRogueHUD() {
       aegisBar.style.display = "flex";
       const fortMult = getGuardianFortressMultiplier();
       if (aegisReady) {
-        const beamFreq = aegisRank >= 3 ? 3 : (aegisRank === 2 ? 4 : 5);
+        const beamOrd = aegisRank >= 3 ? "3RD" : (aegisRank === 2 ? "4TH" : "5TH");
         aegisBar.className = "aegis-barrier-bar aegis-charged";
-        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} PTS • HOMING BEAM EVERY ${beamFreq}TH BRICK!) 🛡️</span>`;
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} PTS • HOMING BEAM EVERY ${beamOrd} BRICK!) 🛡️</span>`;
       } else {
         aegisBar.className = "aegis-barrier-bar aegis-recharging";
         aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
@@ -2078,7 +2081,7 @@ function awardRogueXP(amount) {
     const bonusPts = 250 * currentSector * overclockBonuses;
     score += bonusPts;
     if (isCatMode) score = score - (score % 10) + 9;
-    scoreDisplay.textContent = `Score: ${score}`;
+    scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
     soundManager.play("powerUpSpawn", { pitch: 1.75, volume: 0.75 });
     showNotification({
       title: `${cDef.name} OVERCLOCK`,
@@ -2132,7 +2135,7 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 10) {
 
     score += points;
     if (isCatMode) score = score - (score % 10) + 9;
-    scoreDisplay.textContent = `Score: ${score}`;
+    scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
     showBrickScore(brick.x + brick.width / 2, brick.y, points);
 
@@ -2650,7 +2653,7 @@ function advanceToNextSector() {
   const sectorBonus = 500 * clearedSectorNum;
   score += sectorBonus;
   if (isCatMode) score = score - (score % 10) + 9;
-  scoreDisplay.textContent = `Score: ${score}`;
+  scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
   // Pause gameplay & clear all falling/active power-ups and projectiles immediately!
   clearTimeout(autoLaunchTimeout);
@@ -2703,13 +2706,13 @@ function advanceToNextSector() {
         </div>
         <div class="intermission-next-box finale-next-box">
           <div class="intermission-next-label">🏆 ALL ${MAX_LEVELS} CYBER-SECTORS CONQUERED! 🏆</div>
-          <div class="intermission-next-name" style="color: #ffd700;">250 / 250 BRICKS OBLITERATED</div>
+          <div class="intermission-next-name" style="color: #ffd700;">${formatArcadeScore(totalBricksBrokenInRun || 250)} BRICKS OBLITERATED${totalBricksBrokenInRun > 250 ? ` (+${formatArcadeScore(totalBricksBrokenInRun - 250)} BRICKED UP!)` : ""}</div>
           <div class="intermission-finale-desc">
             You survived every escalating sector from the Neon Grid to the Blackwall Core! Step into the Hall of Fame to claim your final Cyber-Runner Rank.
           </div>
         </div>
         <button type="button" id="intermission-continue-btn" class="intermission-continue-btn finale-continue-btn">
-          🏆 CLAIM GRAND VICTORY &amp; RANK [SPACE / CLICK]
+          🏆 CLAIM GRAND VICTORY &amp; RANK
         </button>
       </div>
     `;
@@ -2782,7 +2785,7 @@ function advanceToNextSector() {
         </div>
       </div>
       <button type="button" id="intermission-continue-btn" class="intermission-continue-btn">
-        ▶ ENTER LEVEL ${currentSector} [SPACE / CLICK]
+        ▶ ENTER LEVEL ${currentSector}
       </button>
     </div>
   `;
@@ -2804,7 +2807,7 @@ function initGame() {
     BALL_EMOJI  = isCatMode ? "🐱" : "😊";
     ball.textContent = BALL_EMOJI;  
     score = 0;
-    scoreDisplay.textContent = `Score: ${score}`;
+    scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
     clearedRows.clear();
     rowBonusCount = 0;
     rowBonusLevel = 0;
@@ -3547,7 +3550,7 @@ function updatePowerUps(dt) {
           if (isCatMode) magPts = magPts - (magPts % 10) + 9;
           score += magPts;
           if (isCatMode) score = score - (score % 10) + 9;
-          scoreDisplay.textContent = `Score: ${score}`;
+          scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
           showBrickScore(paddleX, padRect.top - 10, magPts);
 
           // High-Roller L2+ Wild Card Capsule Roulette:
@@ -3653,7 +3656,7 @@ function activatePowerUp(type) {
       if (isCatMode) injectPts = injectPts - (injectPts % 10) + 9;
       score += injectPts;
       if (isCatMode) score = score - (score % 10) + 9;
-      scoreDisplay.textContent = `Score: ${score}`;
+      scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
       showBrickScore(paddleX, GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET - 14, injectPts);
     }
     showNotification(type, { x: paddleX });
@@ -3915,7 +3918,7 @@ function updateLasers(dt) {
           if (isCatMode) {
             score = score - (score % 10) + 9;
           }
-          scoreDisplay.textContent = `Score: ${score}`;
+          scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
           // 4) Show the floating +N
           showBrickScore(b.x + b.width / 2, b.y, points);
@@ -4262,7 +4265,7 @@ function checkCollisions() {
       }
 
       // 8) Finally, update the score display
-      scoreDisplay.textContent = `Score: ${score}`;
+      scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
       // Brick shake & ball impact animation
       brick.element.classList.remove("shake");
@@ -4899,7 +4902,7 @@ window.devSetScore = function(newScore) {
   score = newScore;
 
   // 2) Refresh the on‐screen score text
-  scoreDisplay.textContent = `Score: ${score}`;
+  scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
   // 3) If you have a multiplier badge or high-score display, refresh those too:
   if (typeof updateMultiplierBadge === 'function') {
@@ -5331,6 +5334,7 @@ function triggerDivinePaddleSmite(hitX, hitY) {
 
       // Break the primary smited brick
       targetBrick.isBroken = true;
+      totalBricksBrokenInRun++;
       targetBrick.element.classList.add("broken");
       if (typeof targetBrick.row === "number" && !targetBrick.isExtraSpawn) {
         evaluateRowClear(targetBrick.row);
@@ -5343,7 +5347,7 @@ function triggerDivinePaddleSmite(hitX, hitY) {
       const smitePts = isCatMode ? 9999 : 1000;
       score += smitePts;
       if (isCatMode) score = score - (score % 10) + 9;
-      scoreDisplay.textContent = `Score: ${score}`;
+      scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
       showBrickScore(cx, targetBrick.y, smitePts);
 
       // Chain-detonate adjacent bricks in proximity!
@@ -5358,6 +5362,7 @@ function triggerDivinePaddleSmite(hitX, hitY) {
 
       neighbors.slice(0, 2).forEach(nb => {
         nb.isBroken = true;
+        totalBricksBrokenInRun++;
         nb.element.classList.add("broken");
         const nbx = nb.x + nb.width / 2;
         const nby = nb.y + nb.height / 2;
@@ -5371,7 +5376,7 @@ function triggerDivinePaddleSmite(hitX, hitY) {
         const chainPts = isCatMode ? 499 : 500;
         score += chainPts;
         if (isCatMode) score = score - (score % 10) + 9;
-        scoreDisplay.textContent = `Score: ${score}`;
+        scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
         showBrickScore(nbx, nb.y, chainPts);
 
         if (typeof nb.row === "number" && !nb.isExtraSpawn) {
@@ -5429,6 +5434,7 @@ function triggerOverdriveChainBlast(originBrick) {
   const chainTargets = neighbors.slice(0, 2);
   chainTargets.forEach(nb => {
     nb.isBroken = true;
+    totalBricksBrokenInRun++;
     nb.element.classList.add("broken");
     const nbx = nb.x + nb.width / 2;
     const nby = nb.y;
@@ -5436,7 +5442,7 @@ function triggerOverdriveChainBlast(originBrick) {
     if (isCatMode) chainPts = chainPts - (chainPts % 10) + 9;
     score += chainPts;
     if (isCatMode) score = score - (score % 10) + 9;
-    scoreDisplay.textContent = `Score: ${score}`;
+    scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
     showBrickScore(nbx, nby, chainPts);
     if (typeof nb.row === "number" && !nb.isExtraSpawn) {
       evaluateRowClear(nb.row);
@@ -5828,7 +5834,7 @@ function startPoopPhysicsLoop() {
           const pts = isCatMode ? 9 : 5;
           score += pts;
           if (isCatMode) score = score - (score % 10) + 9;
-          scoreDisplay.textContent = `Score: ${score}`;
+          scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
           showBrickScore(d.x + POO_SIZE / 2, padTop - 8, pts);
         }
       }
@@ -5846,6 +5852,7 @@ function startPoopPhysicsLoop() {
             d.y + POO_SIZE * 0.15 < b.y + b.height
           ) {
             b.isBroken = true;
+            totalBricksBrokenInRun++;
             b.element.classList.add("broken");
 
             const bx = b.x + b.width / 2;
@@ -5856,7 +5863,7 @@ function startPoopPhysicsLoop() {
             const brickPts = isCatMode ? 29 : 25;
             score += brickPts;
             if (isCatMode) score = score - (score % 10) + 9;
-            scoreDisplay.textContent = `Score: ${score}`;
+            scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
             showBrickScore(bx, b.y, brickPts);
 
             if (typeof b.row === "number" && !b.isExtraSpawn) {
