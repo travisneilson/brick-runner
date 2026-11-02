@@ -4244,6 +4244,303 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   font-weight: 600;
 }
 
+/* ─── BRICK RUNNER 2.0: Callsign Safehouse, Bound Class & Loadout Deck ─── */
+.runner-class-btn.class-locked-other {
+  opacity: 0.42;
+  filter: grayscale(0.65);
+  cursor: not-allowed !important;
+}
+
+.bound-class-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.respec-mini-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 5px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.respec-mini-btn:hover {
+  background: rgba(255, 215, 0, 0.25);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.45);
+}
+
+.safehouse-upgrade-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.48rem;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #9cb8d8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.safehouse-upgrade-btn.can-afford {
+  color: #051408;
+  background: linear-gradient(90deg, #39ff14, #00ffaa);
+  border-color: #ffffff;
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.75);
+}
+
+.safehouse-upgrade-btn.can-afford:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.95);
+}
+
+.safehouse-loadout-bar {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(6, 12, 26, 0.75);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+.safehouse-loadout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.safehouse-loadout-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  color: #00e5ff;
+  letter-spacing: 0.5px;
+}
+
+.safehouse-loadout-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  color: #a8c7fa;
+}
+
+.loadout-mod-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.loadout-mod-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(14, 20, 38, 0.85);
+  color: #dbe9ff;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.loadout-mod-chip.mod-equipped {
+  border-color: var(--mod-color, #39ff14);
+  background: color-mix(in srgb, var(--mod-color, #39ff14) 18%, rgba(8, 16, 28, 0.92));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mod-color, #39ff14) 35%, transparent);
+}
+
+.loadout-mod-chip.mod-unequipped {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.loadout-mod-chip.mod-locked {
+  border-color: rgba(255, 215, 0, 0.35);
+  color: #b0c4de;
+}
+
+.loadout-mod-chip.mod-affordable {
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.45);
+}
+
+.mod-chip-state {
+  font-size: 0.5rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffd700;
+}
+
+.loadout-mod-chip.mod-equipped .mod-chip-state {
+  color: #39ff14;
+}
+
+/* ─── Skill Rally LASER FRENZY HUD & Arena Overdrive ─── */
+#rogue-xp-fill.frenzy-active-fill {
+  background: linear-gradient(90deg, #ff0055, #ffd700, #00ffff, #ff00ff) !important;
+  box-shadow: 0 0 16px #ffd700, 0 0 28px #ff0055 !important;
+}
+
+#game-area.laser-frenzy-arena {
+  box-shadow:
+    0 0 32px rgba(255, 0, 85, 0.8),
+    0 0 64px rgba(255, 215, 0, 0.55),
+    inset 0 0 28px rgba(255, 0, 85, 0.35) !important;
+}
+
+.hud-tier-pill.tier-locked {
+  opacity: 0.38;
+  border-style: dashed;
+}
+
+.contract-active-pill {
+  border-color: #ff0055 !important;
+  color: #ffd700 !important;
+  background: rgba(255, 0, 85, 0.18) !important;
+}
+
+/* ─── Sector Breach & Extraction Decision Terminal ─── */
+.extraction-intermission-card {
+  width: min(650px, 95vw) !important;
+  padding: 16px 20px !important;
+}
+
+.intermission-extract-btn {
+  margin-bottom: 12px;
+  padding: 11px 16px !important;
+  font-size: 0.68rem !important;
+}
+
+.breach-contracts-section {
+  background: rgba(10, 6, 22, 0.78);
+  border: 1.5px solid rgba(255, 0, 85, 0.55);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.breach-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.breach-warning-pill {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.54rem;
+  color: #ff4466;
+  text-shadow: 0 0 10px rgba(255, 68, 102, 0.65);
+}
+
+.breach-warning-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.breach-contracts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.breach-contract-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 9px 9px;
+  border-radius: 9px;
+  background: linear-gradient(165deg, rgba(16, 12, 34, 0.96) 0%, rgba(28, 10, 32, 0.96) 100%);
+  border: 1.5px solid var(--contract-color, #ff00ff);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--contract-color, #ff00ff) 30%, transparent);
+}
+
+.breach-contract-card:hover:not(.btn-arming-guard) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--contract-color, #ff00ff) 65%, transparent);
+}
+
+.bc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bc-key {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.bc-emoji {
+  font-size: 1.25rem;
+}
+
+.bc-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  color: var(--contract-color, #00ffff);
+  line-height: 1.3;
+}
+
+.bc-buff,
+.bc-nerf {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.bc-buff {
+  color: #55ff99;
+}
+
+.bc-nerf {
+  color: #ff7799;
+}
+
+.bc-sign-cta {
+  margin-top: 3px;
+  text-align: center;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.44rem;
+  padding: 5px 4px;
+  border-radius: 5px;
+  color: #071018;
+  background: var(--contract-color, #00ffff);
+}
+
+.penalty-box {
+  border-color: rgba(255, 85, 119, 0.65) !important;
+  background: rgba(50, 10, 24, 0.78) !important;
+}
+
+
 
 
 

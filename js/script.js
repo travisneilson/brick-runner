@@ -171,8 +171,20 @@ let highRollerBustShrink = false;
 let highRollerBankCurveActive = false;
 let highRollerMayhemCounter = 0;
 let guardianAegisBeamCounter = 0;
+let demolisherNovaArmed = false;
 let totalBricksBrokenInRun = 0;
 let isLevelIntermissionOpen = false;
+let frenzyMeter = 0;
+let frenzyTimerLeft = 0;
+let frenzyMaxDuration = 4.5;
+let rallyBounceCount = 0;
+let runUnbankedCreds = 0;
+let lastRunRawScoreBeforePenalty = 0;
+let lastRunPenaltyAmount = 0;
+let lastRunCredsEarned = 0;
+let lastRunCredsLost = 0;
+let activeBreachContracts = [];
+let currentContractOffers = [];
 
 const POWER_UP_TYPES = {
   'wide-paddle': {
@@ -216,7 +228,7 @@ const POWER_UP_TYPES = {
   }
 };
 
-const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'laser-blast', 'one-up'];
+const POWER_UP_SPAWN_CHANCES = ['wide-paddle', 'wide-paddle', 'slow-mo', 'slow-mo', 'sticky-paddle', 'one-up'];
 const soundsToLoad = { 
   'bounce':      { url: "./sounds/paddle-and-wall.mp3" }, 
   'multihit':    { url: "./sounds/multi-hit.mp3" }, 
@@ -804,44 +816,44 @@ const RUNNER_CLASSES = {
     emoji: "⚡",
     name: "STRIKER",
     color: "#00ffff",
-    tagline: "Tesla Arcs & Twin Auto-Turrets",
+    tagline: "Bounce Tesla Arcs & Sweet-Spot Rail Shots",
     paddleStyleName: "Twin-Coil Cyan Rail Deck",
-    buff: "Velocity Streak: Up to ×1.40 Precision PTS + +10/+8 PTS on Arc/Turret Kills",
+    buff: "Every bounce zaps bricks with Cyan Tesla Lightning + Center Sweet-Spot fires Twin Rail Bolts + ×1.12–×1.40 Velocity Streak!",
     handicap: "-12% Narrower Precision Paddle & +10% Faster Ball",
     tiers: [
       {
         level: 1,
         label: "Tesla Arc I",
-        short: "Paddle bounces zap 1 brick",
+        short: "Every bounce zaps 1 brick",
         detail: "Every paddle bounce fires 1 homing chain-lightning bolt into the nearest brick (+10 base PTS) + builds Velocity Streak (up to ×1.40 PTS)!",
         augments: { tesla: 1 }
       },
       {
         level: 2,
-        label: "Wing Turrets I",
-        short: "Auto-fires twin needle bolts",
-        detail: "Bolts autonomous cyan needle-turrets to your paddle wings that auto-fire every 1.7s (+8 base PTS/hit)!",
+        label: "Sweet-Spot Rail I",
+        short: "Center bounce fires Twin Rail Bolts",
+        detail: "Catching the ball on the center of your paddle fires Twin Cyan Rail Bolts straight up (+8 base PTS/hit)!",
         augments: { tesla: 1, turret: 1 }
       },
       {
         level: 3,
         label: "Tesla Arc II",
-        short: "Paddle bounces zap 2 bricks",
-        detail: "Upgrades paddle bounce discharge to 2 simultaneous homing lightning bolts!",
+        short: "Every bounce zaps 2 bricks",
+        detail: "Upgrades every paddle bounce discharge to 2 simultaneous homing lightning bolts!",
         augments: { tesla: 2, turret: 1 }
       },
       {
         level: 4,
-        label: "Wing Turrets II",
-        short: "Faster 1.15s twin auto-turrets",
-        detail: "Overclocks autonomous wing turrets to fire every 1.15s!",
+        label: "Rail Barrage II",
+        short: "Every bounce fires Twin Rail Bolts",
+        detail: "Every paddle bounce now launches Twin Cyan Rail Bolts alongside your 2× Homing Tesla Arcs!",
         augments: { tesla: 2, turret: 2 }
       },
       {
         level: 5,
         label: "Storm Core MAX",
-        short: "Zaps 3 bricks + 0.72s hyper turrets",
-        detail: "MAX OVERLOAD: 3× Homing Tesla Bolts on every bounce + 0.72s Hyper-Speed Wing Turrets!",
+        short: "3× Tesla Arcs + Overcharged Rails",
+        detail: "MAX OVERLOAD: Every paddle bounce zaps 3 bricks with Homing Tesla Lightning AND fires Overcharged Twin Rail Bolts!",
         augments: { tesla: 3, turret: 3 }
       }
     ]
@@ -851,10 +863,10 @@ const RUNNER_CLASSES = {
     emoji: "🛡️",
     name: "GUARDIAN",
     color: "#39ff14",
-    tagline: "Bastion Mortar, Perfect Parry & Aegis Beam",
+    tagline: "Bastion Mortar, Perfect Parry & Aegis Shield",
     paddleStyleName: "Armored Emerald Bastion Deck",
     buff: "Every bounce fires Emerald Mortar Bolts! Center Sweet-Spot catches trigger a PERFECT PARRY (2× Armor Dmg + Emerald Splash) + ×1.20–×1.40 Fortress Intact PTS!",
-    handicap: "-10% Slower Ball Velocity (Fortress Bonus & Aegis Beam pause while shield recharges)",
+    handicap: "-10% Slower Ball Velocity (Fortress Bonus pauses while shield recharges)",
     tiers: [
       {
         level: 1,
@@ -866,8 +878,8 @@ const RUNNER_CLASSES = {
       {
         level: 2,
         label: "Aegis Shield I",
-        short: "Floor shield + Homing Aegis Beam (5th brick)",
-        detail: "Deploys a bottom Floor Forcefield (16s recharge, ×1.30 PTS while charged) that Counter-Zaps 2 bricks on rebound AND fires a Homing Emerald Aegis Beam every 5th brick broken!",
+        short: "Floor shield + Counter-Zap Save",
+        detail: "Deploys a bottom Floor Forcefield (16s recharge, ×1.30 PTS while charged) that rebounds missed balls and Counter-Zaps 2 bricks!",
         augments: { titan: 1, aegis: 1 }
       },
       {
@@ -880,15 +892,15 @@ const RUNNER_CLASSES = {
       {
         level: 4,
         label: "Aegis Beam II",
-        short: "10s shield + Aegis Beam every 4th brick",
-        detail: "Cuts Aegis Floor Forcefield recharge to 10s (×1.35 PTS) and fires a Homing Emerald Aegis Beam from the bottom shield every 4th brick broken!",
+        short: "10s shield + Parry fires Homing Beam",
+        detail: "Cuts Aegis Floor Forcefield recharge to 10s (×1.35 PTS) AND every Perfect Parry fires a Homing Emerald Aegis Beam from the floor shield!",
         augments: { titan: 2, aegis: 2 }
       },
       {
         level: 5,
         label: "Citadel Overlord MAX",
         short: "+66% deck + 3× Mortar + Shockwave Parry!",
-        detail: "CITADEL OVERLORD: +66% colossal paddle, 7s Aegis recharge (×1.40 PTS), 3-Bolt Bastion Mortar Volley on every bounce, and Perfect Parries unleash a huge Emerald Shockwave!",
+        detail: "CITADEL OVERLORD: +66% colossal paddle, 7s Aegis recharge (×1.40 PTS), 3-Bolt Bastion Mortar Volley on every bounce, and Perfect Parries unleash a huge Emerald Shockwave + Homing Aegis Beam!",
         augments: { titan: 3, aegis: 3 }
       }
     ]
@@ -898,44 +910,44 @@ const RUNNER_CLASSES = {
     emoji: "💥",
     name: "DEMOLISHER",
     color: "#ff7b00",
-    tagline: "Piercing Ball & Plasma Nova",
+    tagline: "Siege Pierce & Bounce-Primed Plasma Nova",
     paddleStyleName: "Hazard-Orange Siege Ram",
-    buff: "Siege Breaker: ×1.20 Base + ×1.35 Armored/Vault PTS & +14 Multi-Kill PTS",
+    buff: "Every bounce primes Piercing Siege Charges (2× Armor Dmg) & arms a Plasma Nova detonation on the next brick hit! (×1.15–×1.25 Base + ×1.35 Armored/Vault PTS)",
     handicap: "-15% Shorter Timed Power-Up Durations",
     tiers: [
       {
         level: 1,
         label: "Armor Pierce I",
-        short: "2× hit damage & pierces 1 brick",
+        short: "Bounce charges 1× Siege Pierce (2× Dmg)",
         detail: "Paddle & ceiling bounces supercharge the ball to deal 2× armor damage and plow straight through 1 brick (+14 Pierce PTS)!",
         augments: { pierce: 1 }
       },
       {
         level: 2,
         label: "Plasma Nova I",
-        short: "Shockwave ring every 5th brick",
-        detail: "Every 5th brick you shatter detonates an orange Plasma Ring, blasting adjacent bricks for +14 bonus PTS!",
+        short: "Bounce arms a Plasma Nova on next hit",
+        detail: "Every paddle bounce arms a Plasma Nova charge on the ball — the first brick you hit detonates an orange Plasma Ring blasting adjacent bricks!",
         augments: { pierce: 1, nova: 1 }
       },
       {
         level: 3,
         label: "Armor Pierce II",
-        short: "Pierces 2 bricks on bounce",
+        short: "Bounce charges 2× Siege Pierce",
         detail: "Upgrades supercharged ball to plow straight through 2 consecutive bricks without deflecting!",
         augments: { pierce: 2, nova: 1 }
       },
       {
         level: 4,
         label: "Plasma Nova II",
-        short: "Larger blast every 4th brick",
-        detail: "Detonates a wider Plasma Nova shockwave on every 4th brick broken!",
+        short: "Wider 150px Bounce-Primed Nova Ring",
+        detail: "Expands your bounce-primed Plasma Nova shockwave blast radius to 150px!",
         augments: { pierce: 2, nova: 2 }
       },
       {
         level: 5,
         label: "Supernova MAX",
-        short: "Pierces 3 + Nova every 3rd",
-        detail: "MAX CATACLYSM: Plows through 3 bricks per bounce + massive Supernova explosion every 3rd brick!",
+        short: "Pierces 3 bricks + Huge Supernova Ring",
+        detail: "MAX CATACLYSM: Every paddle bounce charges 3× Piercing Hits AND primes a colossal 180px Supernova explosion!",
         augments: { pierce: 3, nova: 3 }
       }
     ]
@@ -945,44 +957,44 @@ const RUNNER_CLASSES = {
     emoji: "🎲",
     name: "HIGH-ROLLER",
     color: "#ffd700",
-    tagline: "Mystery Dice, Wild Cards & Chaos",
+    tagline: "1D6 Bounce Dice, Wild Cards & Piñata Bricks",
     paddleStyleName: "Gold Casino Marquee Deck",
-    buff: "1D6 Bounce Chaos (Ricochet Sparks, Pierce, Frenzy), Wild Card Roulette & Piñata Wheel",
+    buff: "Every bounce rolls 1D6 Gameplay Chaos (Ricochet Sparks, Pierce, Piñata Bricks & +45% Frenzy Jackpots) + Wild Card Capsule Roulette!",
     handicap: "Snake Eyes Bust (Roll 1): -20% Paddle Shrink, ×0.75 PTS & Joker Brick Curses",
     tiers: [
       {
         level: 1,
         label: "Mystery Die I",
         short: "1D6 bounce: Sparks, Pierce or Bust",
-        detail: "Every paddle bounce rolls 1D6 Gameplay Chaos: [1] Snake Eyes Bust (-20% paddle & ×0.75 PTS), [2–3] Bank Curve (+6 bank PTS & ×1.05), [4–5] Ricochet Spark Bolt (×1.18), [6] Hot Hand (1 Pierce + ×1.30 PTS)!",
+        detail: "Every paddle bounce rolls 1D6 Gameplay Chaos: [1] Snake Eyes Bust (-20% paddle & ×0.75 PTS), [2–3] Bank Curve (+6 bank PTS & ×1.08), [4–5] Ricochet Spark Bolt (×1.18), [6] Hot Hand (1 Pierce + ×1.30 PTS + +35% Frenzy Charge)!",
         augments: { magnet: 1, greed: 1 }
       },
       {
         level: 2,
         label: "Wild Card Roulette",
         short: "Capsules draw Holo-Cards (2x or Curse)",
-        detail: "Gravity Magnet pulls capsules! Catching any capsule draws a Holo-Card: 50% bonus random power-up burst (4s), 30% Double-Stack upgrade, or 20% Joker Curse (+2 extra bricks to clear)!",
+        detail: "Gravity Magnet pulls capsules! Catching any capsule draws a Holo-Card: 50% bonus random power-up burst (4s), 30% Double-Stack upgrade, or 20% Joker Curse (+2 extra bricks)!",
         augments: { magnet: 2, greed: 1 }
       },
       {
         level: 3,
-        label: "Wheel of Mayhem",
-        short: "Every 8th brick spins a Chaos Proc",
-        detail: "Every 8th brick broken spins the Wheel of Mayhem: triggers a Chain-Lightning Zap, a Mini Plasma Pop, or mutates an intact brick into a 🎁 Power-Up Piñata!",
+        label: "Piñata Jackpot",
+        short: "Rolling 4–6 mutates a 🎁 Piñata Brick!",
+        detail: "Rolling 4, 5, or 6 on your paddle bounce mutates an intact brick into a glowing 🎁 Golden Piñata Brick (guaranteed capsule + +15¢)!",
         augments: { magnet: 2, greed: 2 }
       },
       {
         level: 4,
-        label: "777 Pinball Frenzy",
-        short: "Roll 6 ignites 4.5s Blaster Frenzy",
-        detail: "Rolling a 6 (Hot Hand) on your paddle bounce ignites 4.5s of 🎰 777 Pinball Frenzy: temporary auto-fire blasters + Mag-Lock Slingshot Overcharge!",
+        label: "777 Frenzy Surge",
+        short: "Roll 6 ignites instant 🚨 Laser Frenzy!",
+        detail: "Rolling a 6 (777 Jackpot) on your paddle bounce immediately ignites a 3.5s 🚨 LASER FRENZY Overdrive + Mag-Lock Slingshot!",
         augments: { magnet: 3, greed: 2 }
       },
       {
         level: 5,
         label: "All-In Chaos MAX",
-        short: "Wheel every 5th + 3-Way Spark Fan",
-        detail: "MAX HIGH-ROLLER: Spins Wheel of Mayhem every 5th brick, upgrades Roll 6 to a 3-Way Ricochet Spark Fan (×1.35 PTS), and maximizes Capsule Magnet!",
+        short: "Loaded Die (No Roll 1!) + 3-Way Sparks",
+        detail: "MAX HIGH-ROLLER: Loaded Cyber-Die never rolls Snake Eyes [1], upgrades Roll 4–6 to a 3-Way Ricochet Spark Fan (×1.35 PTS), and maximizes Capsule Magnet!",
         augments: { magnet: 3, greed: 3 }
       }
     ]
@@ -990,6 +1002,198 @@ const RUNNER_CLASSES = {
 };
 
 const RUNNER_CLASS_ORDER = ["striker", "guardian", "demolisher", "highroller"];
+
+// ─── Persistent Callsign RPG Profiles (1 Callsign = 1 Bound Class, Permanent Rank & Loadout) ───
+const CALLSIGN_PROFILES_STORAGE_KEY = "brickRunnerCallsignProfilesV1";
+let memoryCallsignProfiles = {};
+
+const CLASS_RANK_UPGRADE_COSTS = {
+  2: 80,
+  3: 180,
+  4: 320,
+  5: 500
+};
+
+const LOADOUT_CAPSULE_SHOP = [
+  { id: "wide-paddle",   emoji: "🪴", name: "EXPANDO",     cost: 0,   short: "+35% Width & ×2–×4 PTS" },
+  { id: "slow-mo",       emoji: "🐌", name: "SLOW-MO",     cost: 0,   short: "Bullet-Time & ×1.5–×2 PTS" },
+  { id: "sticky-paddle", emoji: "🧲", name: "MAG-LOCK",    cost: 90,  short: "Catch & Flick ×1.5 Slingshot" },
+  { id: "one-up",        emoji: "🧱", name: "BRICKED UP!", cost: 130, short: "+5 Bricks & +150×PTS Bonus" }
+];
+
+// ─── Infinite Sector Breach Contracts (1 Explicit Buff + 1 Explicit Nerf) ───
+const BREACH_CONTRACTS = [
+  {
+    id: "overclock_servos",
+    emoji: "⚡",
+    name: "OVERCLOCKED SERVOS",
+    color: "#00ffff",
+    buffText: "×1.35 All Brick Score & +20% Paddle Thruster Speed",
+    nerfText: "+15% Faster Ball Velocity",
+    scoreMult: 1.35,
+    paddleSpeedBonus: 0.20,
+    ballSpeedMod: 0.15
+  },
+  {
+    id: "vault_heist",
+    emoji: "🏦",
+    name: "BLACKWALL VAULT HEIST",
+    color: "#ffd700",
+    buffText: "+18% Gold Vault Bricks (×3.0 PTS & +12¢ each) & ×1.25 Score",
+    nerfText: "+22% More 2-Hit Armored Bricks",
+    scoreMult: 1.25,
+    vaultChanceBonus: 0.18,
+    armorChanceBonus: 0.22
+  },
+  {
+    id: "glass_cannon",
+    emoji: "🔨",
+    name: "GLASS CANNON PROTOCOL",
+    color: "#ff5577",
+    buffText: "Ball & Bolts deal +1 Bonus Armor Damage & ×1.30 Score",
+    nerfText: "-16% Narrower Paddle Width",
+    scoreMult: 1.30,
+    bonusHitDamage: 1,
+    paddleWidthMod: -0.16
+  },
+  {
+    id: "hyper_frenzy",
+    emoji: "🚨",
+    name: "HYPER-FRENZY CAPACITOR",
+    color: "#ff2a55",
+    buffText: "Skill Rally Frenzy charges +45% faster & lasts +1.5s longer",
+    nerfText: "+12% Faster Ball Velocity",
+    scoreMult: 1.20,
+    frenzyChargeMult: 1.45,
+    frenzyDurationBonus: 1.5,
+    ballSpeedMod: 0.12
+  },
+  {
+    id: "high_bounty",
+    emoji: "💎",
+    name: "HIGH-STAKES BOUNTY",
+    color: "#39ff14",
+    buffText: "+60% Cyber-Cred (¢) Drops & ×1.30 All Brick Score",
+    nerfText: "-10% Narrower Paddle & +10% Ball Velocity",
+    scoreMult: 1.30,
+    credMult: 1.60,
+    paddleWidthMod: -0.10,
+    ballSpeedMod: 0.10
+  },
+  {
+    id: "blood_pact",
+    emoji: "🔥",
+    name: "BLOOD PACT OVERDRIVE",
+    color: "#ff7b00",
+    buffText: "×1.50 All Brick Score & +25% Frenzy Charge Speed",
+    nerfText: "+18% Ball Velocity & +15% Armored Bricks",
+    scoreMult: 1.50,
+    frenzyChargeMult: 1.25,
+    ballSpeedMod: 0.18,
+    armorChanceBonus: 0.15
+  }
+];
+
+function loadAllCallsignProfiles() {
+  try {
+    const raw = localStorage.getItem(CALLSIGN_PROFILES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        memoryCallsignProfiles = parsed;
+        return parsed;
+      }
+    }
+  } catch (err) {
+    // Fallback to in-memory map
+  }
+  return memoryCallsignProfiles;
+}
+
+function saveAllCallsignProfiles(map) {
+  memoryCallsignProfiles = map || {};
+  try {
+    localStorage.setItem(CALLSIGN_PROFILES_STORAGE_KEY, JSON.stringify(memoryCallsignProfiles));
+  } catch (err) {
+    // Ignore storage errors in sandboxed iframes
+  }
+}
+
+function getCallsignProfile(code3) {
+  const clean = (code3 || "").toUpperCase().replace(/[^A-Z]/g, "");
+  if (clean.length !== 3) {
+    return {
+      boundClass: null,
+      classRank: 1,
+      credits: 0,
+      unlockedMods: ["wide-paddle", "slow-mo"],
+      equippedMods: ["wide-paddle", "slow-mo"],
+      bestSector: 0,
+      extractions: 0
+    };
+  }
+  const all = loadAllCallsignProfiles();
+  if (!all[clean]) {
+    all[clean] = {
+      boundClass: null,
+      classRank: 1,
+      credits: 0,
+      unlockedMods: ["wide-paddle", "slow-mo"],
+      equippedMods: ["wide-paddle", "slow-mo"],
+      bestSector: 0,
+      extractions: 0
+    };
+    saveAllCallsignProfiles(all);
+  }
+  const p = all[clean];
+  if (!Array.isArray(p.unlockedMods) || p.unlockedMods.length === 0) {
+    p.unlockedMods = ["wide-paddle", "slow-mo"];
+  }
+  if (!Array.isArray(p.equippedMods) || p.equippedMods.length === 0) {
+    p.equippedMods = [...p.unlockedMods];
+  }
+  if (typeof p.classRank !== "number" || p.classRank < 1) p.classRank = 1;
+  if (p.classRank > 5) p.classRank = 5;
+  if (typeof p.credits !== "number" || p.credits < 0) p.credits = 0;
+  return p;
+}
+
+function saveCallsignProfile(code3, profile) {
+  const clean = (code3 || "").toUpperCase().replace(/[^A-Z]/g, "");
+  if (clean.length !== 3) return;
+  const all = loadAllCallsignProfiles();
+  all[clean] = profile;
+  saveAllCallsignProfiles(all);
+}
+
+function bindCallsignToClass(code3, classId) {
+  const clean = (code3 || "").toUpperCase().replace(/[^A-Z]/g, "");
+  if (clean.length !== 3 || !RUNNER_CLASSES[classId]) return;
+  const profile = getCallsignProfile(clean);
+  if (!profile.boundClass) {
+    profile.boundClass = classId;
+    saveCallsignProfile(clean, profile);
+  }
+  selectedRunnerClass = profile.boundClass;
+  rogueLevel = profile.classRank || 1;
+}
+
+function syncActiveCallsignClassBinding() {
+  if (!isCallsignComplete()) return;
+  const code = getLastInitials();
+  const profile = getCallsignProfile(code);
+  if (profile.boundClass && RUNNER_CLASSES[profile.boundClass]) {
+    selectedRunnerClass = profile.boundClass;
+  }
+  rogueLevel = profile.classRank || 1;
+}
+
+function getEquippedLoadoutPool() {
+  if (!isCallsignComplete()) return ["wide-paddle", "slow-mo"];
+  const profile = getCallsignProfile(getLastInitials());
+  const valid = (profile.equippedMods || []).filter(id => POWER_UP_TYPES[id] && id !== "laser-blast");
+  return valid.length > 0 ? valid : ["wide-paddle", "slow-mo"];
+}
 
 function getSelectedClassDef() {
   return RUNNER_CLASSES[selectedRunnerClass] || RUNNER_CLASSES.striker;
@@ -1003,6 +1207,14 @@ function syncPaddleClassVisual() {
 
 function setRunnerClass(classId) {
   if (!RUNNER_CLASSES[classId]) return;
+  if (isCallsignComplete()) {
+    const code = getLastInitials();
+    const profile = getCallsignProfile(code);
+    if (profile.boundClass && profile.boundClass !== classId) {
+      soundManager.play("multihit", { pitch: 0.78, volume: 0.45 });
+      return;
+    }
+  }
   selectedRunnerClass = classId;
   syncPaddleClassVisual();
   soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
@@ -1058,18 +1270,20 @@ function hideCyberPopover() {
 
 function bindHoverPopoverEvents(rootEl) {
   if (!rootEl) return;
+  const profileRank = isCallsignComplete() ? (getCallsignProfile(getLastInitials()).classRank || 1) : 1;
+
   rootEl.querySelectorAll("[data-popover-tier]").forEach(el => {
     el.addEventListener("mouseenter", () => {
       const clsId = el.getAttribute("data-popover-class") || selectedRunnerClass;
       const lvl = parseInt(el.getAttribute("data-popover-tier"), 10) || 1;
       const cls = RUNNER_CLASSES[clsId] || getSelectedClassDef();
       const tier = cls.tiers.find(t => t.level === lvl) || cls.tiers[0];
-      const isUnlocked = !gameOver && lvl <= rogueLevel;
-      const statusBadge = gameOver
-        ? `<span class="pop-status-pill">UNLOCKS AT LEVEL ${lvl}</span>`
-        : (isUnlocked
-            ? `<span class="pop-status-pill pop-unlocked">✓ ACTIVE IN ARENA</span>`
-            : `<span class="pop-status-pill">LOCKED • EARN XP TO UNLOCK</span>`);
+      const activeRank = gameOver ? profileRank : rogueLevel;
+      const isUnlocked = lvl <= activeRank;
+      const cost = CLASS_RANK_UPGRADE_COSTS[lvl] || 0;
+      const statusBadge = isUnlocked
+        ? `<span class="pop-status-pill pop-unlocked">✓ PERMANENTLY UNLOCKED (L${lvl})</span>`
+        : `<span class="pop-status-pill">LOCKED • UPGRADE FOR ${cost}¢</span>`;
 
       const html = `
         <div class="pop-head">
@@ -1097,13 +1311,33 @@ function bindHoverPopoverEvents(rootEl) {
           <span class="pop-title">${cls.emoji} ${cls.name} CLASS</span>
           <span class="pop-status-pill">PADDLE: ${cls.paddleStyleName}</span>
         </div>
-        <div class="pop-body">${cls.tagline} — Hover over <strong>L1–L5</strong> below to inspect each level-up upgrade!</div>
+        <div class="pop-body">${cls.tagline} — Each Callsign binds permanently to <strong>1 Class</strong> and upgrades L1–L5 with banked Cyber-Creds (¢)!</div>
         <div class="pop-tradeoffs">
           <div class="pop-buff">▲ BUFF: ${cls.buff}</div>
           <div class="pop-nerf">▼ HANDICAP: ${cls.handicap}</div>
         </div>
       `;
       showCyberPopover(html, el, cls.color);
+    });
+    el.addEventListener("mouseleave", hideCyberPopover);
+  });
+
+  rootEl.querySelectorAll("[data-popover-contract]").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      const cId = el.getAttribute("data-popover-contract");
+      const c = BREACH_CONTRACTS.find(item => item.id === cId);
+      if (!c) return;
+      const html = `
+        <div class="pop-head">
+          <span class="pop-title">${c.emoji} CONTRACT // ${c.name}</span>
+          <span class="pop-status-pill pop-unlocked">ACTIVE RUN MUTATOR</span>
+        </div>
+        <div class="pop-tradeoffs" style="margin-top: 2px; border-top: none;">
+          <div class="pop-buff">▲ BUFF: ${c.buffText}</div>
+          <div class="pop-nerf">▼ NERF: ${c.nerfText}</div>
+        </div>
+      `;
+      showCyberPopover(html, el, c.color);
     });
     el.addEventListener("mouseleave", hideCyberPopover);
   });
@@ -1118,7 +1352,7 @@ function bindHoverPopoverEvents(rootEl) {
           <span class="pop-title">🕹️ CALLSIGN ARCHIVE // ${code}</span>
           <span class="pop-status-pill pop-unlocked">${lore.origin}</span>
         </div>
-        <div class="pop-body"><strong>${lore.title}</strong> — Click 🎲 to roll from ${CALLSIGN_PRESETS.length} iconic Sci-Fi &amp; Cyberpunk callsigns!</div>
+        <div class="pop-body"><strong>${lore.title}</strong> — Each Callsign saves its own bound Class, Rank (L1–L5), Cyber-Creds (¢), and Loadout!</div>
       `;
       showCyberPopover(html, el, "#ff00ff");
     });
@@ -1144,7 +1378,10 @@ function syncStartPlayButtonState() {
   }
   startPrompt.classList.remove("loading");
   if (isCallsignComplete()) {
-    startPrompt.textContent = `PLAY AS ${callsignSlots.join("")}`;
+    const code = callsignSlots.join("");
+    const profile = getCallsignProfile(code);
+    const cDef = getSelectedClassDef();
+    startPrompt.textContent = `▶ DEPLOY ${code} (${cDef.emoji} ${cDef.name} L${profile.classRank})`;
     startPrompt.classList.remove("callsign-locked");
   } else {
     startPrompt.textContent = "CREATE CALLSIGN TO PLAY";
@@ -1168,9 +1405,13 @@ function promptCallsignRequired() {
 function renderCallsignBuilder() {
   const container = document.getElementById("callsign-builder");
   if (!container) return;
+  syncActiveCallsignClassBinding();
   const chars = getCallsignChars();
   const complete = isCallsignComplete();
+  const codeStr = chars.join("");
+  const profile = complete ? getCallsignProfile(codeStr) : getCallsignProfile("");
   const activeClass = getSelectedClassDef();
+  const boundClassId = complete ? profile.boundClass : null;
   syncPaddleClassVisual();
 
   const slotsHTML = chars.map((ch, idx) => `
@@ -1187,22 +1428,53 @@ function renderCallsignBuilder() {
 
   const classesHTML = Object.values(RUNNER_CLASSES).map(cls => {
     const isSel = cls.id === activeClass.id;
+    const isLockedOther = Boolean(boundClassId && boundClassId !== cls.id);
     return `
-      <button type="button" class="class-select-btn ${isSel ? "active" : ""}" data-runner-class="${cls.id}" data-popover-class-card="${cls.id}" style="--cls-color: ${cls.color};">
-        <span class="cls-btn-emoji">${cls.emoji}</span>
+      <button type="button" class="class-select-btn ${isSel ? "active" : ""} ${isLockedOther ? "class-locked-other" : ""}" data-runner-class="${cls.id}" data-popover-class-card="${cls.id}" style="--cls-color: ${cls.color};" ${isLockedOther ? `title="Callsign ${codeStr} is bound to ${activeClass.name}. Click Re-Spec to change class."` : ""}>
+        <span class="cls-btn-emoji">${isLockedOther ? "🔒" : cls.emoji}</span>
         <span class="cls-btn-name">${cls.name}</span>
       </button>
     `;
   }).join("");
 
-  const pathStepsHTML = activeClass.tiers.map(t => `
-    <div class="class-path-step" data-popover-class="${activeClass.id}" data-popover-tier="${t.level}">
-      <span class="class-path-lvl">L${t.level}</span>
-      <span class="class-path-name">${t.label}</span>
-    </div>
-  `).join("");
+  const pathStepsHTML = activeClass.tiers.map(t => {
+    const isUnlocked = t.level <= profile.classRank;
+    const isCurrent = t.level === profile.classRank;
+    return `
+      <div class="class-path-step ${isUnlocked ? "step-unlocked" : "step-locked"} ${isCurrent ? "step-current" : ""}" data-popover-class="${activeClass.id}" data-popover-tier="${t.level}">
+        <span class="class-path-lvl">${isUnlocked ? "✓" : "🔒"} L${t.level}</span>
+        <span class="class-path-name">${t.label}</span>
+      </div>
+    `;
+  }).join("");
 
-  const codeStr = chars.join("");
+  const nextRank = profile.classRank + 1;
+  const upgradeCost = CLASS_RANK_UPGRADE_COSTS[nextRank] || 0;
+  const canAffordRank = complete && nextRank <= 5 && profile.credits >= upgradeCost;
+
+  const upgradeBtnHTML = !complete
+    ? `<span class="safehouse-hint-pill">ENTER 3 LETTERS TO LOAD PROFILE</span>`
+    : (profile.classRank >= 5
+        ? `<span class="safehouse-max-pill">👑 CLASS MASTERED (L5 MAX)</span>`
+        : `<button type="button" id="safehouse-upgrade-rank-btn" class="safehouse-upgrade-btn ${canAffordRank ? "can-afford" : "locked-afford"}">
+             ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢)
+           </button>`);
+
+  const loadoutCapsulesHTML = LOADOUT_CAPSULE_SHOP.map(mod => {
+    const isUnlocked = profile.unlockedMods.includes(mod.id);
+    const isEquipped = profile.equippedMods.includes(mod.id);
+    const canBuy = complete && !isUnlocked && profile.credits >= mod.cost;
+    const stateLabel = isUnlocked
+      ? (isEquipped ? "✓ EQUIPPED" : "OFF")
+      : `🔒 ${mod.cost}¢`;
+    return `
+      <button type="button" class="loadout-mod-chip ${isUnlocked ? (isEquipped ? "mod-equipped" : "mod-unequipped") : (canBuy ? "mod-can-buy" : "mod-locked")}" data-loadout-mod="${mod.id}" title="${mod.name}: ${mod.short}">
+        <span class="mod-chip-top">${mod.emoji} ${mod.name}</span>
+        <span class="mod-chip-status">${stateLabel}</span>
+      </button>
+    `;
+  }).join("");
+
   const lore = complete ? getCallsignLore(codeStr) : null;
   const loreOriginText = complete
     ? (lore ? `ARCHIVE // ${lore.origin.toUpperCase()}` : `CUSTOM RUNNER ID // ${codeStr}`)
@@ -1211,24 +1483,20 @@ function renderCallsignBuilder() {
     ? (lore ? lore.title : `Unregistered Grid Operator (${codeStr})`)
     : `Type A–Z or press 🎲 to roll a Sci-Fi Legend`;
 
-  const shortBuffMap = {
-    striker: "▲ +10% Speed & +8/+6 Arc PTS",
-    guardian: "▲ ×1.35–1.60 Shield Intact PTS",
-    demolisher: "▲ ×1.35 Armor/Vault Siege PTS",
-    highroller: "▲ 2D6 Dice (up to 3.8×) + 777s"
-  };
-  const shortNerfMap = {
-    striker: "▼ -12% Narrower Deck",
-    guardian: "▼ -10% Slower Heavy Ball",
-    demolisher: "▼ -15% Power-Up Timers",
-    highroller: "▼ Snake Eyes 0.85× & +12% Spd"
-  };
+  const boundStatusHTML = !complete
+    ? `<span class="deck-sec-badge badge-cyan">PICK CLASS FOR CALLSIGN</span>`
+    : (boundClassId
+        ? `<div class="bound-class-actions">
+             <span class="deck-sec-badge badge-bound">🔒 ${codeStr} = ${activeClass.emoji} ${activeClass.name} L${profile.classRank}</span>
+             <button type="button" id="respec-callsign-btn" class="respec-mini-btn" title="Reset Callsign Class Binding">♻️ RE-SPEC</button>
+           </div>`
+        : `<span class="deck-sec-badge badge-cyan">NEW CALLSIGN • BINDS ON LAUNCH!</span>`);
 
   container.innerHTML = `
     <div class="callsign-top-section">
       <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER IDENTITY</span>
-        <span class="deck-sec-badge">${CALLSIGN_PRESETS.length} SCI-FI ARCHIVES • [🎲]</span>
+        <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
+        <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST S${profile.bestSector}` : ""}</span>
       </div>
       <div class="callsign-identity-dock" data-popover-callsign="1">
         <div class="callsign-slots">${slotsHTML}</div>
@@ -1241,20 +1509,23 @@ function renderCallsignBuilder() {
     </div>
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
       <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">02</span> COMBAT CLASS</span>
-        <span class="deck-sec-badge badge-cyan">HOVER L1–L5 FOR SPECS</span>
+        <span class="deck-sec-title"><span class="sec-num">02</span> BOUND CLASS &amp; SAFEHOUSE</span>
+        ${boundStatusHTML}
       </div>
       <div class="class-picker-grid">${classesHTML}</div>
       <div class="class-linear-preview">
         <div class="class-spec-head" data-popover-class-card="${activeClass.id}">
-          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name}</strong> <span class="class-spec-sub">${activeClass.tagline}</span></span>
-          <span class="class-paddle-chip">${activeClass.paddleStyleName}</span>
-        </div>
-        <div class="class-tradeoff-bar" data-popover-class-card="${activeClass.id}">
-          <span class="tradeoff-pill buff-pill">${shortBuffMap[activeClass.id] || activeClass.buff}</span>
-          <span class="tradeoff-pill nerf-pill">${shortNerfMap[activeClass.id] || activeClass.handicap}</span>
+          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">${activeClass.tagline}</span></span>
+          ${upgradeBtnHTML}
         </div>
         <div class="class-path-track">${pathStepsHTML}</div>
+        <div class="safehouse-loadout-bar">
+          <div class="loadout-bar-header">
+            <span>🎒 EQUIPPED CAPSULE DECK (DROPS IN RUN)</span>
+            <span>🚨 RALLY METER = LASER FRENZY</span>
+          </div>
+          <div class="loadout-mod-grid">${loadoutCapsulesHTML}</div>
+        </div>
       </div>
     </div>
   `;
@@ -1289,12 +1560,86 @@ function renderCallsignBuilder() {
     clsBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
       const nextId = clsBtn.dataset.runnerClass;
-      if (RUNNER_CLASSES[nextId]) {
-        selectedRunnerClass = nextId;
-        syncPaddleClassVisual();
-        soundManager.play("powerUpSpawn", { pitch: 1.45, volume: 0.45 });
+      setRunnerClass(nextId);
+    });
+  });
+
+  const upgradeBtn = container.querySelector("#safehouse-upgrade-rank-btn");
+  if (upgradeBtn && complete) {
+    upgradeBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const p = getCallsignProfile(codeStr);
+      const nextLvl = p.classRank + 1;
+      const cost = CLASS_RANK_UPGRADE_COSTS[nextLvl] || 9999;
+      if (nextLvl <= 5 && p.credits >= cost) {
+        p.credits -= cost;
+        p.classRank = nextLvl;
+        if (!p.boundClass) p.boundClass = selectedRunnerClass;
+        saveCallsignProfile(codeStr, p);
+        rogueLevel = p.classRank;
+        soundManager.play("grow", { pitch: 1.45, volume: 0.85 });
         renderCallsignBuilder();
-        updateHighScoreDisplay();
+      } else {
+        soundManager.play("multihit", { pitch: 0.8, volume: 0.45 });
+      }
+    });
+  }
+
+  const respecBtn = container.querySelector("#respec-callsign-btn");
+  if (respecBtn && complete) {
+    respecBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (respecBtn.dataset.confirm === "1") {
+        const p = getCallsignProfile(codeStr);
+        p.boundClass = null;
+        p.classRank = 1;
+        saveCallsignProfile(codeStr, p);
+        soundManager.play("multihit", { pitch: 1.15, volume: 0.55 });
+        renderCallsignBuilder();
+      } else {
+        respecBtn.dataset.confirm = "1";
+        respecBtn.textContent = "CONFIRM RE-SPEC?";
+        soundManager.play("bounce", { pitch: 1.2, volume: 0.35 });
+      }
+    });
+  }
+
+  container.querySelectorAll("[data-loadout-mod]").forEach(modBtn => {
+    modBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (!complete) {
+        promptCallsignRequired();
+        return;
+      }
+      const modId = modBtn.dataset.loadoutMod;
+      const shopItem = LOADOUT_CAPSULE_SHOP.find(m => m.id === modId);
+      if (!shopItem) return;
+      const p = getCallsignProfile(codeStr);
+      if (p.unlockedMods.includes(modId)) {
+        // Toggle equipped state (keep at least 1 capsule equipped)
+        if (p.equippedMods.includes(modId)) {
+          if (p.equippedMods.length > 1) {
+            p.equippedMods = p.equippedMods.filter(id => id !== modId);
+            soundManager.play("bounce", { pitch: 0.95, volume: 0.4 });
+          } else {
+            soundManager.play("multihit", { pitch: 0.8, volume: 0.4 });
+          }
+        } else {
+          p.equippedMods.push(modId);
+          soundManager.play("powerUpSpawn", { pitch: 1.5, volume: 0.5 });
+        }
+        saveCallsignProfile(codeStr, p);
+        renderCallsignBuilder();
+      } else if (p.credits >= shopItem.cost) {
+        p.credits -= shopItem.cost;
+        p.unlockedMods.push(modId);
+        if (!p.equippedMods.includes(modId)) p.equippedMods.push(modId);
+        if (!p.boundClass) p.boundClass = selectedRunnerClass;
+        saveCallsignProfile(codeStr, p);
+        soundManager.play("grow", { pitch: 1.55, volume: 0.8 });
+        renderCallsignBuilder();
+      } else {
+        soundManager.play("multihit", { pitch: 0.78, volume: 0.45 });
       }
     });
   });
@@ -1568,19 +1913,100 @@ function getActiveAugmentIcons() {
   }).filter(Boolean);
 }
 
+function getContractScoreMultiplier() {
+  if (!activeBreachContracts.length) return 1.0;
+  let m = 1.0;
+  activeBreachContracts.forEach(c => {
+    if (c.scoreMult) m *= c.scoreMult;
+  });
+  return Math.round(m * 100) / 100;
+}
+
+function getContractBallSpeedMod() {
+  let mod = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.ballSpeedMod) mod += c.ballSpeedMod;
+  });
+  return mod;
+}
+
+function getContractPaddleWidthMod() {
+  let mod = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.paddleWidthMod) mod += c.paddleWidthMod;
+  });
+  return mod;
+}
+
+function getContractPaddleSpeedMod() {
+  let mod = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.paddleSpeedBonus) mod += c.paddleSpeedBonus;
+  });
+  return mod;
+}
+
+function getContractBonusDamage() {
+  let bonus = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.bonusHitDamage) bonus += c.bonusHitDamage;
+  });
+  return bonus;
+}
+
+function getContractCredMultiplier() {
+  let mult = 1.0;
+  activeBreachContracts.forEach(c => {
+    if (c.credMult) mult *= c.credMult;
+  });
+  return mult;
+}
+
+function getContractFrenzyChargeMult() {
+  let mult = 1.0;
+  activeBreachContracts.forEach(c => {
+    if (c.frenzyChargeMult) mult *= c.frenzyChargeMult;
+  });
+  return mult;
+}
+
+function getContractFrenzyBonusDuration() {
+  let bonus = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.frenzyDurationBonus) bonus += c.frenzyDurationBonus;
+  });
+  return bonus;
+}
+
+function getContractVaultChanceBonus() {
+  let bonus = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.vaultChanceBonus) bonus += c.vaultChanceBonus;
+  });
+  return bonus;
+}
+
+function getContractArmorChanceBonus() {
+  let bonus = 0;
+  activeBreachContracts.forEach(c => {
+    if (c.armorChanceBonus) bonus += c.armorChanceBonus;
+  });
+  return bonus;
+}
+
 function getSectorScoreMultiplier() {
-  return Math.max(1, currentSector);
+  return Math.round(Math.max(1, currentSector) * getContractScoreMultiplier() * 100) / 100;
 }
 
 function getBoardDifficultySpeedMultiplier() {
-  let mult = 1 + (Math.max(1, currentSector) - 1) * 0.14;
+  let mult = 1 + (Math.max(1, currentSector) - 1) * 0.12 + getContractBallSpeedMod();
   // Class speed buffs & handicaps:
   if (selectedRunnerClass === "striker") {
     mult *= 1.10; // Striker Buff: +10% faster aggressive ball
   } else if (selectedRunnerClass === "guardian") {
     mult *= 0.90; // Guardian Handicap: -10% slower ball velocity
   } else if (selectedRunnerClass === "highroller") {
-    mult *= 1.12; // High-Roller Handicap: +12% high-stakes speed
+    mult *= 1.10; // High-Roller Handicap: +10% high-stakes speed
   }
   if (isNeonLegend) {
     mult *= 1.08; // Neon Legend Overdrive: +8% overdrive speed
@@ -1661,6 +2087,61 @@ function updateMultiplierBadge() {
   }
 }
 
+// ─── Skill Rally Meter ➔ 🚨 LASER FRENZY! (4.5s Overdrive) ───
+function triggerLaserFrenzy(customDurationSec = 0) {
+  const baseDur = customDurationSec > 0 ? customDurationSec : (4.5 + getContractFrenzyBonusDuration());
+  frenzyMaxDuration = baseDur;
+  frenzyTimerLeft = Math.max(frenzyTimerLeft, baseDur);
+  frenzyMeter = 100;
+  isLaserActive = true;
+  paddle.classList.add("paddle-armed", "laser-tier-3");
+  if (gameArea) gameArea.classList.add("laser-frenzy-arena");
+
+  soundManager.play("laserFire", { pitch: 1.48, volume: 0.9 });
+  playVictoryFanfareSynth(false);
+
+  showNotification({
+    title: "🚨 SKILL RALLY 100% // OVERDRIVE! 🚨",
+    emoji: "🚨",
+    name: `LASER FRENZY! (${baseDur.toFixed(1)}S)`,
+    description: "TWIN RAPID-FIRE GATLING CANNONS UNLEASHED!",
+    color: "#ff2a55",
+    mode: "burst",
+    duration: 1450
+  }, { x: paddleX });
+
+  syncRogueHUD();
+}
+
+function addSkillRallyFrenzyCharge(baseAmount = 10, isPaddleBounce = false) {
+  if (gameOver || attractArenaActive) return;
+  if (isPaddleBounce) {
+    rallyBounceCount++;
+  }
+  if (frenzyTimerLeft > 0) {
+    syncRogueHUD();
+    return;
+  }
+  const gain = baseAmount * getContractFrenzyChargeMult();
+  frenzyMeter = Math.min(100, frenzyMeter + gain);
+  if (frenzyMeter >= 100) {
+    triggerLaserFrenzy();
+  } else {
+    syncRogueHUD();
+  }
+}
+
+function awardRunCredsForBrick(brick) {
+  if (gameOver || attractArenaActive) return;
+  let baseCreds = 2;
+  if (brick && brick.isPinataBrick) baseCreds = 15;
+  else if (brick && brick.isVaultBrick) baseCreds = 12;
+  else if (brick && brick.hitsRequired > 1) baseCreds = 5;
+  const gained = Math.max(1, Math.round(baseCreds * getContractCredMultiplier()));
+  runUnbankedCreds += gained;
+  syncRogueHUD();
+}
+
 function fireHighRollerSparkFan(boltCount = 1) {
   const boltWidth = 8;
   const boltHeight = 18;
@@ -1677,7 +2158,7 @@ function fireHighRollerSparkFan(boltCount = 1) {
       speed: LASER_SPEED * 1.08,
       width: boltWidth,
       height: boltHeight,
-      damage: 1,
+      damage: 1 + getContractBonusDamage(),
       bonusPts: 8,
       laserMult: 1.0,
       source: "highroller-spark"
@@ -1693,95 +2174,36 @@ function fireHighRollerSparkFan(boltCount = 1) {
   soundManager.play("laserFire", { pitch: boltCount >= 3 ? 1.65 : 1.42, volume: 0.55 });
 }
 
-function triggerWheelOfMayhem(originBrick) {
-  if (selectedRunnerClass !== "highroller" || rogueLevel < 3 || gameOver) return;
-  highRollerMayhemCounter++;
-  const threshold = rogueLevel >= 5 ? 5 : 8;
-  if (highRollerMayhemCounter < threshold) return;
-  highRollerMayhemCounter = 0;
-
-  const intact = bricks.filter(b => !b.isBroken && b !== originBrick);
-  if (intact.length === 0) return;
-
-  const spin = Math.random();
-  if (spin < 0.34) {
-    // 1) Chaos Chain-Lightning Zap
-    triggerTeslaArcBolts(rogueLevel >= 5 ? 2 : 1);
-    showNotification({
-      title: "🎡 WHEEL OF MAYHEM",
-      emoji: "⚡",
-      name: "CHAOS ARC ZAP!",
-      description: "WHEEL SPUN HOMING CHAIN LIGHTNING!",
-      color: "#00ffff",
-      mode: "burst"
-    }, { x: paddleX });
-  } else if (spin < 0.67 && originBrick) {
-    // 2) Mayhem Mini-Pop Ring
-    const cx = originBrick.x + originBrick.width / 2;
-    const cy = originBrick.y + originBrick.height / 2;
-    const blastRadius = 105;
-    const ring = document.createElement("div");
-    ring.className = "plasma-nova-ring";
-    ring.style.left = `${cx}px`;
-    ring.style.top = `${cy}px`;
-    ring.style.setProperty("--nova-size", `${blastRadius * 2}px`);
-    gameArea.appendChild(ring);
-    setTimeout(() => ring.remove(), 420);
-    soundManager.play("laserFire", { pitch: 0.85, volume: 0.7 });
-
-    let hitCount = 0;
-    for (let i = 0; i < intact.length && hitCount < 2; i++) {
-      const b = intact[i];
-      const bx = b.x + b.width / 2;
-      const by = b.y + b.height / 2;
-      if (Math.hypot(bx - cx, by - cy) <= blastRadius) {
-        hitCount++;
-        damageOrBreakBrickByAugment(b, 1, 8);
-      }
-    }
-    showNotification({
-      title: "🎡 WHEEL OF MAYHEM",
-      emoji: "💥",
-      name: "MAYHEM SHOCKWAVE!",
-      description: "WHEEL DETONATED CLUSTER POP!",
-      color: "#ff7b00",
-      mode: "burst"
-    }, { x: paddleX });
-  } else {
-    // 3) Mutate an intact brick into a Golden Power-Up Piñata Brick!
-    const candidates = intact.filter(b => !b.powerUpType);
-    const pool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"];
-    const pickMod = pool[Math.floor(Math.random() * pool.length)];
-    if (candidates.length > 0) {
-      const target = candidates[Math.floor(Math.random() * candidates.length)];
-      target.powerUpType = pickMod;
-      target.isPinataBrick = true;
-      if (target.element) {
-        target.element.classList.add("pinata-brick");
-      }
-    } else if (originBrick) {
-      spawnPowerUp(pickMod, originBrick);
-    }
-    soundManager.play("powerUpSpawn", { pitch: 1.75, volume: 0.65 });
-    showNotification({
-      title: "🎡 WHEEL OF MAYHEM",
-      emoji: "🎁",
-      name: "PIÑATA BRICK!",
-      description: "MUTATED BRICK GUARANTEES A CAPSULE!",
-      color: "#ffd700",
-      mode: "burst"
-    }, { x: paddleX });
+function mutateRandomBrickIntoPinata() {
+  const intact = bricks.filter(b => !b.isBroken && !b.isPinataBrick);
+  if (intact.length === 0) return false;
+  const pool = getEquippedLoadoutPool();
+  const pickMod = pool[Math.floor(Math.random() * pool.length)] || "wide-paddle";
+  const target = intact[Math.floor(Math.random() * intact.length)];
+  target.powerUpType = pickMod;
+  target.isPinataBrick = true;
+  if (target.element) {
+    target.element.classList.add("pinata-brick");
   }
+  return true;
+}
+
+function triggerWheelOfMayhem() {
+  // Legacy no-op: High-Roller Piñata mutations now trigger directly on paddle bounce rolls!
 }
 
 function rollHighRollerCyberDice() {
   if (selectedRunnerClass !== "highroller" || gameOver) return;
-  const d = Math.floor(Math.random() * 6) + 1;
+  let d = Math.floor(Math.random() * 6) + 1;
+  // L5 Loaded Die: Never rolls a 1!
+  if (rogueLevel >= 5 && d === 1) {
+    d = 6;
+  }
   highRollerLastRoll = d;
 
   if (d === 1) {
-    // [1] Snake Eyes Bust: -20% temporary paddle shrink & ×0.75 (or ×0.70 at L5) brick points!
-    highRollerDiceMultiplier = rogueLevel >= 5 ? 0.70 : 0.75;
+    // [1] Snake Eyes Bust: -20% temporary paddle shrink & ×0.75 brick points!
+    highRollerDiceMultiplier = 0.75;
     highRollerBustShrink = true;
     highRollerBankCurveActive = false;
     updatePaddleWidth();
@@ -1794,8 +2216,8 @@ function rollHighRollerCyberDice() {
       mode: "burst"
     }, { x: paddleX });
   } else if (d <= 3) {
-    // [2–3] Bank-Shot English: +6 bank bonus pts & ×1.05 brick points
-    highRollerDiceMultiplier = 1.05;
+    // [2–3] Bank-Shot English: +6 bank bonus pts & ×1.08 brick points
+    highRollerDiceMultiplier = 1.08;
     highRollerBustShrink = false;
     highRollerBankCurveActive = true;
     updatePaddleWidth();
@@ -1803,27 +2225,28 @@ function rollHighRollerCyberDice() {
       title: `🎲 CHAOS DIE: ROLLED [${d}]`,
       emoji: "🎱",
       name: "BANK-SHOT ENGLISH!",
-      description: "+6 BANK BONUS PTS • ×1.05 VOLLEY!",
+      description: "+6 BANK BONUS PTS • ×1.08 VOLLEY!",
       color: "#00ffff",
       mode: "burst"
     }, { x: paddleX });
   } else if (d <= 5) {
-    // [4–5] Trick-Shot Spark: Fires 1 ricochet spark bolt & ×1.18 brick points
+    // [4–5] Trick-Shot Spark (+ L3 Piñata Brick mutation!)
     highRollerDiceMultiplier = 1.18;
     highRollerBustShrink = false;
     highRollerBankCurveActive = false;
     updatePaddleWidth();
-    fireHighRollerSparkFan(1);
+    fireHighRollerSparkFan(rogueLevel >= 5 ? 3 : 1);
+    const madePinata = rogueLevel >= 3 ? mutateRandomBrickIntoPinata() : false;
     showNotification({
       title: `🎲 CHAOS DIE: ROLLED [${d}]`,
-      emoji: "✨",
-      name: "TRICK-SHOT SPARK!",
-      description: "RICOCHET SPARK BOLT • ×1.18 VOLLEY!",
+      emoji: madePinata ? "🎁" : "✨",
+      name: madePinata ? "SPARK + 🎁 PIÑATA BRICK!" : "TRICK-SHOT SPARK!",
+      description: madePinata ? "RICOCHET SPARK & MUTATED A +15¢ PIÑATA!" : "RICOCHET SPARK BOLT • ×1.18 VOLLEY!",
       color: "#ffd700",
       mode: "burst"
     }, { x: paddleX });
   } else {
-    // [6] Hot Hand / 777 Pinball Frenzy: 1 Pierce charge + Spark Fan (L5: 3-way) + L4+ 4.5s Blaster Frenzy!
+    // [6] 777 JACKPOT: 1 Pierce + Spark Fan + +35% Frenzy Charge (or instant 3.5s Laser Frenzy at L4+!)
     highRollerDiceMultiplier = rogueLevel >= 5 ? 1.35 : 1.30;
     highRollerBustShrink = false;
     highRollerBankCurveActive = true;
@@ -1832,36 +2255,20 @@ function rollHighRollerCyberDice() {
     pierceChargesLeft = Math.max(pierceChargesLeft, 1);
     ball.classList.add("ball-piercing");
     fireHighRollerSparkFan(rogueLevel >= 5 ? 3 : 1);
+    if (rogueLevel >= 3) mutateRandomBrickIntoPinata();
 
     if (rogueLevel >= 4) {
-      // L4+ 777 Pinball Frenzy: 4.5s temporary auto-blaster burst + 1 Slingshot charge (no free stalling points!)
-      const now = Date.now();
-      if (!activePowerUps["laser-blast"]) activePowerUps["laser-blast"] = [];
-      if (activePowerUps["laser-blast"].length === 0) {
-        activePowerUps["laser-blast"].push({ endTime: now + 4500 });
-      } else {
-        activePowerUps["laser-blast"][0].endTime = Math.max(activePowerUps["laser-blast"][0].endTime, now + 4500);
-      }
-      syncLaserPaddleVisuals();
-      createOrUpdateStatusIndicator("laser-blast");
       magSlingshotCharges = Math.max(magSlingshotCharges, 1);
       ball.classList.add("ball-slingshot");
-      soundManager.play("powerUpSpawn", { pitch: 1.85, volume: 0.7 });
-      showNotification({
-        title: "🎰 ROLLED [6] // 777 PINBALL FRENZY!",
-        emoji: "🎰",
-        name: `FRENZY OVERDRIVE ×${highRollerDiceMultiplier}!`,
-        description: "4.5S AUTO-BLASTERS + PIERCE + SPARKS!",
-        color: "#ffd700",
-        mode: "burst"
-      }, { x: paddleX });
+      triggerLaserFrenzy(3.5);
     } else {
+      addSkillRallyFrenzyCharge(35, false);
       soundManager.play("powerUpSpawn", { pitch: 1.65, volume: 0.65 });
       showNotification({
         title: "🎲 CHAOS DIE: ROLLED [6]!",
         emoji: "🔥",
         name: `HOT HAND ×${highRollerDiceMultiplier}!`,
-        description: "1× ARMOR PIERCE + SPARK BOLT!",
+        description: "1× PIERCE + SPARK + +35% FRENZY CHARGE!",
         color: "#ffd700",
         mode: "burst"
       }, { x: paddleX });
@@ -1870,9 +2277,11 @@ function rollHighRollerCyberDice() {
   syncRogueHUD();
 }
 
-function recordBrickBrokenStreak() {
+function recordBrickBrokenStreak(brick = null) {
   totalBricksBrokenInRun++;
   unbrokenBrickStreak++;
+  awardRunCredsForBrick(brick);
+  addSkillRallyFrenzyCharge(3.5, false);
   if (!isNeonLegend && (unbrokenBrickStreak >= 10 || score >= 5000)) {
     isNeonLegend = true;
     if (!isCatMode) {
@@ -1889,6 +2298,10 @@ function recordBrickBrokenStreak() {
 function resetBrickStreakOnMiss() {
   unbrokenBrickStreak = 0;
   catBounceCombo = 0;
+  rallyBounceCount = 0;
+  if (frenzyTimerLeft <= 0) {
+    frenzyMeter = 0;
+  }
   if (isNeonLegend) {
     isNeonLegend = false;
     ball.classList.remove("neon-legend-active");
@@ -1897,19 +2310,33 @@ function resetBrickStreakOnMiss() {
       ball.textContent = "😊";
     }
   }
+  syncRogueHUD();
   updateMultiplierBadge();
 }
 
 const BOARD_LEVEL_THEMES = {
-  1: { name: "NEON SECTOR",    emoji: "🌐", color: "#00ffff", sub: "STANDARD GRID ONLINE" },
-  2: { name: "DEEP ULTRAVIOLET", emoji: "🔮", color: "#b84dff", sub: "SYNTH GRID • ×2 MULTIPLIER • +14% SPEED" },
-  3: { name: "CRIMSON BREACH", emoji: "🔥", color: "#ff2a55", sub: "FIREWALL ALERT • ×3 MULTIPLIER • +28% SPEED" },
-  4: { name: "SOLAR OVERLOAD", emoji: "⚠️", color: "#ff9900", sub: "CORE MELTDOWN • ×4 MULTIPLIER • +42% SPEED" },
-  5: { name: "BLACKWALL ABYSS", emoji: "👑", color: "#ffd700", sub: "FINAL ECLIPSE • ×5 MULTIPLIER • +56% SPEED" }
+  1: { name: "NEON SECTOR",       emoji: "🌐", color: "#00ffff", sub: "STANDARD GRID ONLINE" },
+  2: { name: "DEEP ULTRAVIOLET",  emoji: "🔮", color: "#b84dff", sub: "SYNTH GRID • ESCALATING STAKES" },
+  3: { name: "CRIMSON BREACH",    emoji: "🔥", color: "#ff2a55", sub: "FIREWALL ALERT • HIGH VOLTAGE" },
+  4: { name: "SOLAR OVERLOAD",    emoji: "⚠️", color: "#ff9900", sub: "CORE MELTDOWN • HEAVY ARMOR" },
+  5: { name: "BLACKWALL ABYSS",   emoji: "👑", color: "#ffd700", sub: "DEEP NET CORE • EXTREME PAYOUT" },
+  6: { name: "QUANTUM SINGULARITY", emoji: "🌀", color: "#00ff88", sub: "OVERCLOCKED MATRIX • INFINITE TIER" },
+  7: { name: "NEURAL ECLIPSE",    emoji: "👁️", color: "#ff00ff", sub: "ROGUE AI TERRITORY • INFINITE TIER" },
+  8: { name: "OMEGA CITADEL",     emoji: "⚡", color: "#00e5ff", sub: "APEX GRID • INFINITE TIER" }
 };
 
+function getSectorTheme(sectorNum = 1) {
+  if (BOARD_LEVEL_THEMES[sectorNum]) return BOARD_LEVEL_THEMES[sectorNum];
+  const cycleIdx = ((sectorNum - 1) % 8) + 1;
+  const base = BOARD_LEVEL_THEMES[cycleIdx] || BOARD_LEVEL_THEMES[5];
+  return {
+    ...base,
+    name: `${base.name} MK-${Math.ceil(sectorNum / 8)}`
+  };
+}
+
 function syncBoardLevelAtmosphere() {
-  const lvl = Math.max(1, Math.min(MAX_LEVELS, currentSector || 1));
+  const lvl = (((Math.max(1, currentSector || 1) - 1) % 5) + 1);
   if (gameArea) {
     gameArea.setAttribute("data-board-level", String(lvl));
   }
@@ -1921,7 +2348,9 @@ function syncBoardLevelAtmosphere() {
 function initRogueProgression() {
   currentSector = 1;
   sectorsCleared = 0;
-  rogueLevel = 1;
+  syncActiveCallsignClassBinding();
+  const profile = isCallsignComplete() ? getCallsignProfile(getLastInitials()) : getCallsignProfile("");
+  rogueLevel = profile.classRank || 1;
   rogueXP = 0;
   rogueXPToNext = 12;
   activeAugments = {};
@@ -1945,18 +2374,32 @@ function initRogueProgression() {
   highRollerBankCurveActive = false;
   highRollerMayhemCounter = 0;
   guardianAegisBeamCounter = 0;
+  demolisherNovaArmed = false;
   totalBricksBrokenInRun = 0;
+  frenzyMeter = 0;
+  frenzyTimerLeft = 0;
+  frenzyMaxDuration = 4.5;
+  rallyBounceCount = 0;
+  runUnbankedCreds = 0;
+  lastRunRawScoreBeforePenalty = 0;
+  lastRunPenaltyAmount = 0;
+  lastRunCredsEarned = 0;
+  lastRunCredsLost = 0;
+  activeBreachContracts = [];
+  currentContractOffers = [];
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
   if (rogueHud) rogueHud.style.display = "none";
   const aegisBar = document.getElementById("aegis-barrier-bar");
   if (aegisBar) aegisBar.style.display = "none";
+  if (gameArea) gameArea.classList.remove("laser-frenzy-arena");
   ball.classList.remove("ball-piercing", "ball-slingshot", "neon-legend-active");
   syncPaddleClassVisual();
   syncBoardLevelAtmosphere();
 }
 
 function applyRunnerClassTier() {
+  syncActiveCallsignClassBinding();
   const cDef = getSelectedClassDef();
   const tierIndex = Math.max(0, Math.min(cDef.tiers.length - 1, rogueLevel - 1));
   const tier = cDef.tiers[tierIndex];
@@ -1991,37 +2434,43 @@ function syncRogueHUD() {
   const nextPerk = document.getElementById("rogue-next-perk");
 
   const cDef = getSelectedClassDef();
-  const maxLvl = cDef.tiers.length;
-  const isMax = rogueLevel >= maxLvl;
-
-  rogueHud.style.setProperty("--class-color", cDef.color);
+  rogueHud.style.setProperty("--class-color", frenzyTimerLeft > 0 ? "#ff2a55" : cDef.color);
 
   if (classBadge) {
     const boardMult = getSectorScoreMultiplier();
     const extraTag = selectedRunnerClass === "highroller" && highRollerLastRoll
       ? ` • 🎲[${highRollerLastRoll}]`
       : "";
-    classBadge.textContent = `${cDef.emoji} LEVEL ${currentSector}/${MAX_LEVELS} (×${boardMult}${extraTag})`;
+    classBadge.textContent = `${cDef.emoji} ${cDef.name} L${rogueLevel} • SECTOR ${currentSector} (×${boardMult}${extraTag}) • 💰 +${formatArcadeScore(runUnbankedCreds)}¢`;
   }
   syncBoardLevelAtmosphere();
   updateMultiplierBadge();
+
   if (xpFill) {
-    const pct = isMax ? 100 : Math.min(100, Math.round((rogueXP / Math.max(1, rogueXPToNext)) * 100));
-    xpFill.style.width = `${pct}%`;
+    if (frenzyTimerLeft > 0) {
+      const pct = Math.max(0, Math.min(100, Math.round((frenzyTimerLeft / Math.max(0.5, frenzyMaxDuration)) * 100)));
+      xpFill.style.width = `${pct}%`;
+      xpFill.classList.add("frenzy-active-fill");
+    } else {
+      const pct = Math.max(0, Math.min(100, Math.round(frenzyMeter)));
+      xpFill.style.width = `${pct}%`;
+      xpFill.classList.remove("frenzy-active-fill");
+    }
   }
   if (xpText) {
-    xpText.textContent = isMax ? `MAX • ${rogueXP}/${rogueXPToNext} XP` : `${rogueXP}/${rogueXPToNext} XP`;
+    if (frenzyTimerLeft > 0) {
+      xpText.textContent = `🚨 LASER FRENZY! ${frenzyTimerLeft.toFixed(1)}S`;
+    } else {
+      xpText.textContent = `🚨 FRENZY: ${Math.round(frenzyMeter)}% (RALLY ×${rallyBounceCount})`;
+    }
   }
   if (nextPerk) {
-    nextPerk.innerHTML = cDef.tiers.map(t => {
-      const isUnlocked = t.level <= rogueLevel;
-      const isCurrent = t.level === rogueLevel;
-      const isNext = t.level === rogueLevel + 1;
-      const stepClass = isCurrent
-        ? "hud-tier-pill tier-active"
-        : (isUnlocked ? "hud-tier-pill tier-unlocked" : (isNext ? "hud-tier-pill tier-next" : "hud-tier-pill tier-locked"));
-      return `<span class="${stepClass}" data-popover-class="${cDef.id}" data-popover-tier="${t.level}"><strong>L${t.level}</strong> ${t.label}</span>`;
-    }).join("");
+    const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)] || cDef.tiers[0];
+    const classPillHTML = `<span class="hud-tier-pill tier-active" data-popover-class="${cDef.id}" data-popover-tier="${activeTier.level}"><strong>L${rogueLevel}</strong> ${activeTier.label}</span>`;
+    const contractPillsHTML = activeBreachContracts.map(c =>
+      `<span class="hud-tier-pill contract-active-pill" data-popover-contract="${c.id}" style="--contract-color: ${c.color};">${c.emoji} ${c.name}</span>`
+    ).join("");
+    nextPerk.innerHTML = classPillHTML + (contractPillsHTML || `<span class="hud-tier-pill tier-unlocked">🛡️ EXTRACT AT CLEAR FOR 100%</span>`);
     bindHoverPopoverEvents(nextPerk);
   }
 
@@ -2035,9 +2484,8 @@ function syncRogueHUD() {
       aegisBar.style.display = "flex";
       const fortMult = getGuardianFortressMultiplier();
       if (aegisReady) {
-        const beamOrd = aegisRank >= 3 ? "3RD" : (aegisRank === 2 ? "4TH" : "5TH");
         aegisBar.className = "aegis-barrier-bar aegis-charged";
-        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} PTS • HOMING BEAM EVERY ${beamOrd} BRICK!) 🛡️</span>`;
+        aegisBar.innerHTML = `<span>🛡️ AEGIS FORCEFIELD READY (×${fortMult.toFixed(2).replace(/0$/, "")} FORTRESS PTS${aegisRank >= 2 ? " • PARRY FIRES HOMING AEGIS BEAM!" : " • REBOUNDS + 2× COUNTER-ZAP!"}) 🛡️</span>`;
       } else {
         aegisBar.className = "aegis-barrier-bar aegis-recharging";
         aegisBar.innerHTML = `<span>⏳ AEGIS FORCEFIELD RECHARGING (${Math.ceil(aegisCooldownLeft)}s)...</span>`;
@@ -2046,59 +2494,14 @@ function syncRogueHUD() {
   }
 }
 
-function awardRogueXP(amount) {
-  if (gameOver || attractArenaActive || amount <= 0) return;
-  const cDef = getSelectedClassDef();
-  const maxLvl = cDef.tiers.length;
-  rogueXP += amount;
-
-  let leveledUpTier = null;
-  let overclockBonuses = 0;
-
-  while (rogueXP >= rogueXPToNext) {
-    rogueXP -= rogueXPToNext;
-    if (rogueLevel < maxLvl) {
-      rogueLevel++;
-      rogueXPToNext = Math.round(rogueXPToNext * 1.45 + 6);
-      leveledUpTier = applyRunnerClassTier();
-    } else {
-      overclockBonuses++;
-      rogueXPToNext = Math.round(rogueXPToNext * 1.25 + 6);
-    }
-  }
-
-  if (leveledUpTier) {
-    soundManager.play("grow", { pitch: 1.4, volume: 0.85 });
-    showNotification({
-      title: `${cDef.name} LEVEL ${rogueLevel}!`,
-      emoji: cDef.emoji,
-      name: leveledUpTier.label,
-      description: leveledUpTier.short.toUpperCase(),
-      color: cDef.color,
-      mode: "burst"
-    }, { x: paddleX });
-  } else if (overclockBonuses > 0) {
-    const bonusPts = 250 * currentSector * overclockBonuses;
-    score += bonusPts;
-    if (isCatMode) score = score - (score % 10) + 9;
-    scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
-    soundManager.play("powerUpSpawn", { pitch: 1.75, volume: 0.75 });
-    showNotification({
-      title: `${cDef.name} OVERCLOCK`,
-      emoji: "👑",
-      name: `+${bonusPts} PTS`,
-      description: "MAX-LEVEL XP OVERCLOCK BONUS!",
-      color: "#ffd700",
-      mode: "burst"
-    }, { x: paddleX });
-  }
-
+function awardRogueXP() {
+  // Permanent Class Progression is now upgraded with Cyber-Creds (¢) in your Callsign Safehouse!
   syncRogueHUD();
 }
 
 function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 10) {
   if (!brick || brick.isBroken) return;
-  brick.hitsTaken += damageHits;
+  brick.hitsTaken += (damageHits + getContractBonusDamage());
 
   if (brick.hitsTaken >= brick.hitsRequired) {
     const soundName = destroySounds[destroySoundIndex];
@@ -2145,8 +2548,7 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 10) {
     if (brick.powerUpType) {
       spawnPowerUp(brick.powerUpType, brick);
     }
-    recordBrickBrokenStreak();
-    awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
+    recordBrickBrokenStreak(brick);
   } else {
     soundManager.play("multihit", { pitch: 1.2, volume: 0.65 });
     brick.element.classList.add("damaged");
@@ -2163,7 +2565,6 @@ function triggerTeslaArcBolts(overrideCount = 0) {
   if (intact.length === 0) return;
 
   const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
-  // Sort by distance to paddle center
   const sorted = [...intact].sort((a, b) => {
     const da = Math.hypot((a.x + a.width / 2) - paddleX, (a.y + a.height / 2) - padTop);
     const db = Math.hypot((b.x + b.width / 2) - paddleX, (b.y + b.height / 2) - padTop);
@@ -2197,15 +2598,12 @@ function triggerTeslaArcBolts(overrideCount = 0) {
 
 function triggerPlasmaNova(originBrick) {
   const rank = getAugmentRank("nova");
-  if (rank <= 0 || !originBrick) return;
-  novaBrickCounter++;
-  const threshold = [5, 4, 3][Math.min(rank, 3) - 1] || 3;
-  if (novaBrickCounter < threshold) return;
-  novaBrickCounter = 0;
+  if (rank <= 0 || !originBrick || !demolisherNovaArmed) return;
+  demolisherNovaArmed = false;
 
   const cx = originBrick.x + originBrick.width / 2;
   const cy = originBrick.y + originBrick.height / 2;
-  const blastRadius = 112 + rank * 14;
+  const blastRadius = 115 + rank * 22;
 
   const ring = document.createElement("div");
   ring.className = "plasma-nova-ring";
@@ -2259,7 +2657,7 @@ function fireGuardianBastionMortar(absImpactPos = 0.5) {
       y: paddleTop - h,
       width: w,
       height: h,
-      damage: isPerfectParry ? 2 : 1,
+      damage: (isPerfectParry ? 2 : 1) + getContractBonusDamage(),
       bonusPts: isPerfectParry ? 10 : 5,
       laserMult: 1.0,
       speed: LASER_SPEED * (isPerfectParry ? 1.12 : 0.96),
@@ -2273,6 +2671,12 @@ function fireGuardianBastionMortar(absImpactPos = 0.5) {
     void paddle.offsetWidth;
     paddle.classList.add("guardian-parry-flash");
     soundManager.play("laserFire", { pitch: 1.32, volume: 0.52 });
+
+    // At Guardian L4+ (aegisRank >= 2), every Perfect Parry also fires a Homing Emerald Aegis Beam from the floor shield!
+    if (getAugmentRank("aegis") >= 2 && aegisReady) {
+      triggerGuardianAegisBeamFromParry();
+    }
+
     showNotification({
       title: "🛡️ PERFECT PARRY!",
       emoji: "🛡️",
@@ -2287,26 +2691,20 @@ function fireGuardianBastionMortar(absImpactPos = 0.5) {
   }
 }
 
-function triggerGuardianAegisBeam(originBrick) {
+function triggerGuardianAegisBeamFromParry() {
   if (selectedRunnerClass !== "guardian") return;
   const aegisRank = getAugmentRank("aegis");
-  if (aegisRank <= 0 || !aegisReady || !originBrick) return;
+  if (aegisRank <= 0 || !aegisReady) return;
 
-  guardianAegisBeamCounter++;
-  const threshold = aegisRank >= 3 ? 3 : (aegisRank === 2 ? 4 : 5);
-  if (guardianAegisBeamCounter < threshold) return;
-  guardianAegisBeamCounter = 0;
-
-  // Target the lowest intact brick on the board (closest to the bottom Aegis Forcefield!)
   const candidates = bricks
-    .filter(b => !b.isBroken && b !== originBrick)
+    .filter(b => !b.isBroken)
     .sort((a, b) => (b.y - a.y) || (Math.abs((a.x + a.width / 2) - paddleX) - Math.abs((b.x + b.width / 2) - paddleX)));
   if (candidates.length === 0) return;
 
   const target = candidates[0];
   const tx = target.x + target.width / 2;
   const ty = target.y + target.height / 2;
-  const startX = Math.max(40, Math.min(GAME_WIDTH - 40, tx + (paddleX - tx) * 0.25));
+  const startX = Math.max(40, Math.min(GAME_WIDTH - 40, paddleX));
   const startY = GAME_HEIGHT - 10;
 
   const dx = tx - startX;
@@ -2327,6 +2725,10 @@ function triggerGuardianAegisBeam(originBrick) {
   damageOrBreakBrickByAugment(target, aegisRank >= 3 ? 2 : 1, 10);
 }
 
+function triggerGuardianAegisBeam() {
+  // Replaced by paddle-bounce Perfect Parry Aegis Beam for 1-to-1 player cause & effect!
+}
+
 function handleAegisFloorSave() {
   const rank = getAugmentRank("aegis");
   if (rank <= 0 || !aegisReady) return false;
@@ -2338,7 +2740,6 @@ function handleAegisFloorSave() {
   ballSpeedY = -Math.max(Math.abs(ballSpeedY), INITIAL_BALL_SPEED * 1.15);
   soundManager.play("magActivate", { pitch: 1.25, volume: 0.9 });
 
-  // Counter-Zap up to 2 lowest intact bricks when Aegis rebounds the ball!
   const counterTargets = bricks
     .filter(b => !b.isBroken)
     .sort((a, b) => b.y - a.y)
@@ -2377,8 +2778,9 @@ function handleAegisFloorSave() {
 }
 
 function fireAutoTurretVolley() {
-  const boltWidth = 5;
-  const boltHeight = 18;
+  const turretRank = Math.max(1, getAugmentRank("turret"));
+  const boltWidth = turretRank >= 3 ? 7 : 5;
+  const boltHeight = turretRank >= 3 ? 22 : 18;
   const paddleTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
   const wingOffset = Math.max(16, paddleWidth * 0.34);
   [paddleX - wingOffset - boltWidth / 2, paddleX + wingOffset - boltWidth / 2].forEach(bx => {
@@ -2388,7 +2790,7 @@ function fireAutoTurretVolley() {
       y: paddleTop - boltHeight,
       width: boltWidth,
       height: boltHeight,
-      damage: 1,
+      damage: (turretRank >= 3 ? 2 : 1) + getContractBonusDamage(),
       bonusPts: 8,
       laserMult: 1.0,
       source: "turret"
@@ -2401,7 +2803,7 @@ function fireAutoTurretVolley() {
     bolt.element = el;
     lasers.push(bolt);
   });
-  soundManager.play("laserFire", { pitch: 1.55, volume: 0.34 });
+  soundManager.play("laserFire", { pitch: 1.55, volume: 0.38 });
 }
 
 function updateRogueProgressionFrame(dt) {
@@ -2423,25 +2825,28 @@ function updateRogueProgressionFrame(dt) {
     }
   }
 
-  // Auto-Pulse Striker Wing Turrets
-  const turretRank = getAugmentRank("turret");
-  if (turretRank > 0 && !ballIsStuck) {
-    const interval = [1.7, 1.15, 0.72][Math.min(turretRank, 3) - 1] || 0.72;
-    turretFireAccum += dt;
-    if (turretFireAccum >= interval) {
-      turretFireAccum = 0;
-      fireAutoTurretVolley();
-    }
-  }
-
-  // Auto-Fire Laser Blast Power-Up Cannons (Tier 1: 0.38s, Tier 2: 0.24s, Tier 3: 0.17s)
-  const laserStacks = activePowerUps["laser-blast"]?.length || 0;
-  if (laserStacks > 0 && isLaserActive && !ballIsStuck) {
-    const laserInterval = [0.38, 0.24, 0.17][Math.min(laserStacks, 3) - 1] || 0.17;
+  // 🚨 LASER FRENZY Overdrive Countdown & Rapid Dual-Cannon Auto-Fire!
+  if (frenzyTimerLeft > 0 && !ballIsStuck) {
+    frenzyTimerLeft = Math.max(0, frenzyTimerLeft - dt);
     laserAutoFireAccum += dt;
-    if (laserAutoFireAccum >= laserInterval) {
+    if (laserAutoFireAccum >= 0.18) {
       laserAutoFireAccum = 0;
-      spawnLaserVolley(laserStacks, true);
+      spawnLaserVolley(2, true);
+    }
+    if (frenzyTimerLeft <= 0) {
+      frenzyMeter = 0;
+      if (gameArea) gameArea.classList.remove("laser-frenzy-arena");
+      if (!(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
+        isLaserActive = false;
+        paddle.classList.remove("paddle-armed", "laser-tier-1", "laser-tier-2", "laser-tier-3");
+      }
+    }
+    syncRogueHUD();
+  } else if (typeof isHackModeActive === "function" && isHackModeActive("juice") && !ballIsStuck) {
+    laserAutoFireAccum += dt;
+    if (laserAutoFireAccum >= 0.22) {
+      laserAutoFireAccum = 0;
+      spawnLaserVolley(2, true);
     }
   }
 }
@@ -2454,7 +2859,7 @@ let spaceReleasedSinceModalOpen = true;
 let isFinalLevelIntermission = false;
 let modalGuardTimer = null;
 
-function armModalInputGuard(lockMs = 1150, btnId = "intermission-continue-btn") {
+function armModalInputGuard(lockMs = 1150, btnId = "intermission-extract-btn") {
   modalInputUnlockTime = performance.now() + lockMs;
   spaceReleasedSinceModalOpen = !isSpaceHeldDown;
   if (modalGuardTimer) clearTimeout(modalGuardTimer);
@@ -2546,6 +2951,7 @@ function resetStageForNewLevel() {
   lasers.forEach(l => l.element.remove());
   lasers = [];
   if (gameArea) {
+    gameArea.classList.remove("laser-frenzy-arena");
     gameArea.querySelectorAll(".brick.extra, .onion-skin, .tesla-bolt-line, .plasma-nova-ring").forEach(el => el.remove());
   }
 
@@ -2556,6 +2962,7 @@ function resetStageForNewLevel() {
   paddleSizeLevel = 0;
   isStickyPaddle = false;
   isLaserActive = false;
+  frenzyTimerLeft = 0;
   canFire = true;
   paddle.classList.remove("paddle-sticky", "paddle-armed", "laser-tier-1", "laser-tier-2", "laser-tier-3");
 
@@ -2568,6 +2975,7 @@ function resetStageForNewLevel() {
   turretFireAccum = 0;
   novaBrickCounter = 0;
   guardianAegisBeamCounter = 0;
+  demolisherNovaArmed = getAugmentRank("nova") > 0;
   highRollerBustShrink = false;
   highRollerBankCurveActive = false;
   highRollerDiceMultiplier = 1.10;
@@ -2608,127 +3016,33 @@ function resetStageForNewLevel() {
   renderGame();
 }
 
-function resumeFromLevelIntermission(fromKeyboard = false) {
+function dealBreachContractOffers(count = 3) {
+  const pool = [...BREACH_CONTRACTS];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+function extractFromSector(fromKeyboard = false) {
+  if (!isLevelIntermissionOpen) return;
+  if (!isModalInputReady(fromKeyboard)) return;
+  isLevelIntermissionOpen = false;
+  isFinalLevelIntermission = false;
+  endGame(true);
+}
+
+function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
   if (!isLevelIntermissionOpen) return;
   if (!isModalInputReady(fromKeyboard)) return;
 
-  // If this was the Level 5 Complete screen, transition into the Grand Finale Victory Screen!
-  if (isFinalLevelIntermission) {
-    isFinalLevelIntermission = false;
-    isLevelIntermissionOpen = false;
-    endGame(true);
-    return;
+  const chosen = currentContractOffers.find(c => c.id === contractId) || currentContractOffers[0];
+  if (chosen) {
+    activeBreachContracts.push(chosen);
   }
 
-  if (gameOver) return;
   isLevelIntermissionOpen = false;
-
-  gameMessage.classList.remove("level-intermission-mode");
-  gameMessage.style.display = "none";
-  gameArea.classList.add("hide-cursor");
-
-  // Ensure the stage is 100% clean and the ball is docked on the centered paddle for player serve!
-  resetStageForNewLevel();
-  levelStartLaunchGuardUntil = performance.now() + 220;
-
-  const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[1];
-  showNotification({
-    title: `${theme.emoji} LEVEL ${currentSector}: ${theme.name}`,
-    emoji: "🚀",
-    name: `LEVEL ${currentSector} READY!`,
-    description: "AIM PADDLE • CLICK OR SPACE TO LAUNCH!",
-    color: theme.color,
-    mode: "burst"
-  }, { x: paddleX });
-
-  gameRunning = true;
-  lastTime = 0;
-  requestAnimationFrame(gameLoop);
-}
-
-function advanceToNextSector() {
-  sectorsCleared++;
-  const clearedSectorNum = currentSector;
-  const clearedTheme = BOARD_LEVEL_THEMES[clearedSectorNum] || BOARD_LEVEL_THEMES[1];
-  const sectorBonus = 500 * clearedSectorNum;
-  score += sectorBonus;
-  if (isCatMode) score = score - (score % 10) + 9;
-  scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
-
-  // Pause gameplay & clear all falling/active power-ups and projectiles immediately!
-  clearTimeout(autoLaunchTimeout);
-  isLevelIntermissionOpen = true;
-  gameRunning = false;
-  gameArea.classList.remove("hide-cursor");
-  resetStageForNewLevel();
-
-  // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
-  awardRogueXP(8);
-  syncRogueHUD();
-
-  const cDef = getSelectedClassDef();
-  const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)];
-
-  // Check if the player just cleared the final Board Level (Level 5)!
-  if (clearedSectorNum >= MAX_LEVELS) {
-    isFinalLevelIntermission = true;
-    soundManager.play("winSong");
-    playVictoryFanfareSynth(true);
-    spawnVictoryDOMConfetti(36);
-    if (typeof spawnConfettiShards === "function") {
-      spawnConfettiShards(170);
-    }
-    if (typeof triggerCollisionSparklers === "function") {
-      triggerCollisionSparklers(180, 200, "brick");
-      triggerCollisionSparklers(GAME_WIDTH - 180, 200, "brick");
-    }
-
-    gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
-    gameMessage.classList.add("level-intermission-mode");
-    gameMessage.style.setProperty("--sector-accent", "#ffd700");
-    gameMessage.innerHTML = `
-      <div class="level-intermission-card finale-intermission-card" style="--sector-accent: #ffd700;">
-        <div class="intermission-kicker finale-kicker">👑 FINAL SECTOR ${clearedSectorNum} OF ${MAX_LEVELS} CLEARED // ${clearedTheme.name} SHATTERED! 👑</div>
-        <h2 class="intermission-title finale-title">LEVEL ${clearedSectorNum} COMPLETE!</h2>
-        <div class="intermission-reward-grid">
-          <div class="intermission-reward-box">
-            <span class="reward-lbl">FINAL CLEAR BONUS</span>
-            <strong class="reward-val">+${formatArcadeScore(sectorBonus)} PTS</strong>
-          </div>
-          <div class="intermission-reward-box">
-            <span class="reward-lbl">CLASS MASTERED</span>
-            <strong class="reward-val">${cDef.emoji} ${cDef.name} L${rogueLevel}</strong>
-          </div>
-          <div class="intermission-reward-box">
-            <span class="reward-lbl">FINAL CAMPAIGN SCORE</span>
-            <strong class="reward-val">${formatArcadeScore(score)}</strong>
-          </div>
-        </div>
-        <div class="intermission-next-box finale-next-box">
-          <div class="intermission-next-label">🏆 ALL ${MAX_LEVELS} CYBER-SECTORS CONQUERED! 🏆</div>
-          <div class="intermission-next-name" style="color: #ffd700;">${formatArcadeScore(totalBricksBrokenInRun || 250)} BRICKS OBLITERATED${totalBricksBrokenInRun > 250 ? ` (+${formatArcadeScore(totalBricksBrokenInRun - 250)} BRICKED UP!)` : ""}</div>
-          <div class="intermission-finale-desc">
-            You survived every escalating sector from the Neon Grid to the Blackwall Core! Step into the Hall of Fame to claim your final Cyber-Runner Rank.
-          </div>
-        </div>
-        <button type="button" id="intermission-continue-btn" class="intermission-continue-btn finale-continue-btn">
-          🏆 CLAIM GRAND VICTORY &amp; RANK
-        </button>
-      </div>
-    `;
-    gameMessage.style.display = "block";
-    armModalInputGuard(1250, "intermission-continue-btn");
-
-    const continueBtn = document.getElementById("intermission-continue-btn");
-    if (continueBtn) {
-      continueBtn.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        resumeFromLevelIntermission(false);
-      });
-    }
-    return;
-  }
-
   isFinalLevelIntermission = false;
   currentSector++;
   clearedRows.clear();
@@ -2738,67 +3052,133 @@ function advanceToNextSector() {
   createBricks();
   resetStageForNewLevel();
 
+  gameMessage.classList.remove("level-intermission-mode");
+  gameMessage.style.display = "none";
+  gameArea.classList.add("hide-cursor");
+  levelStartLaunchGuardUntil = performance.now() + 220;
+
+  const theme = getSectorTheme(currentSector);
+  showNotification({
+    title: `${chosen ? `${chosen.emoji} ${chosen.name} SIGNED!` : `${theme.emoji} SECTOR ${currentSector}`}`,
+    emoji: "🚀",
+    name: `SECTOR ${currentSector}: ${theme.name}`,
+    description: "65% AT RISK ON FLATLINE • CLICK OR SPACE TO SERVE!",
+    color: chosen ? chosen.color : theme.color,
+    mode: "burst"
+  }, { x: paddleX });
+
+  gameRunning = true;
+  lastTime = 0;
+  requestAnimationFrame(gameLoop);
+}
+
+function resumeFromLevelIntermission(fromKeyboard = false) {
+  if (!isLevelIntermissionOpen) return;
+  if (currentContractOffers.length > 0) {
+    signBreachContractAndAdvance(currentContractOffers[0].id, fromKeyboard);
+  } else {
+    extractFromSector(fromKeyboard);
+  }
+}
+
+function advanceToNextSector() {
+  sectorsCleared++;
+  const clearedSectorNum = currentSector;
+  const clearedTheme = getSectorTheme(clearedSectorNum);
+  const sectorBonus = 500 * clearedSectorNum;
+  const sectorCredBonus = Math.round(35 * clearedSectorNum * getContractCredMultiplier());
+  score += sectorBonus;
+  if (isCatMode) score = score - (score % 10) + 9;
+  runUnbankedCreds += sectorCredBonus;
+  scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
+
+  // Pause gameplay & clear all falling/active power-ups and projectiles immediately!
+  clearTimeout(autoLaunchTimeout);
+  isLevelIntermissionOpen = true;
+  gameRunning = false;
+  gameArea.classList.remove("hide-cursor");
+  resetStageForNewLevel();
+  syncRogueHUD();
+
   soundManager.play("winSong");
-  playVictoryFanfareSynth(false);
-  spawnVictoryDOMConfetti(22);
+  playVictoryFanfareSynth(clearedSectorNum >= 5);
+  spawnVictoryDOMConfetti(26);
   if (typeof spawnConfettiShards === "function") {
-    spawnConfettiShards(120);
+    spawnConfettiShards(130);
   }
   if (typeof triggerCollisionSparklers === "function") {
     triggerCollisionSparklers(GAME_WIDTH / 2, 220, "brick");
   }
 
-  const newMult = getSectorScoreMultiplier();
-  const spdPct = Math.round(((1 + (currentSector - 1) * 0.14) - 1) * 100);
-  const theme = BOARD_LEVEL_THEMES[currentSector] || BOARD_LEVEL_THEMES[5];
+  const nextSectorNum = clearedSectorNum + 1;
+  const nextTheme = getSectorTheme(nextSectorNum);
+  currentContractOffers = dealBreachContractOffers(3);
+  const flatlinePenaltyScore = Math.round(score * 0.65);
 
-  syncBoardLevelAtmosphere();
+  const contractsHTML = currentContractOffers.map((c, idx) => `
+    <button type="button" class="breach-contract-card" data-contract-id="${c.id}" style="--contract-accent: ${c.color};">
+      <div class="contract-card-top">
+        <span class="contract-card-name">${c.emoji} ${c.name}</span>
+        <span class="contract-card-key">[${idx + 1}]</span>
+      </div>
+      <div class="contract-buff-line">▲ ${c.buffText}</div>
+      <div class="contract-nerf-line">▼ ${c.nerfText}</div>
+      <div class="contract-cta-pill">🔴 SIGN &amp; BREACH SECTOR ${nextSectorNum}</div>
+    </button>
+  `).join("");
 
   gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
   gameMessage.classList.add("level-intermission-mode");
-  gameMessage.style.setProperty("--sector-accent", theme.color);
+  gameMessage.style.setProperty("--sector-accent", nextTheme.color);
   gameMessage.innerHTML = `
-    <div class="level-intermission-card" style="--sector-accent: ${theme.color};">
-      <div class="intermission-kicker">🎉 SECTOR 0${clearedSectorNum} OF 0${MAX_LEVELS} CLEARED // ${clearedTheme.name} 🎉</div>
-      <h2 class="intermission-title">LEVEL ${clearedSectorNum} COMPLETE!</h2>
+    <div class="level-intermission-card extraction-intermission-card" style="--sector-accent: ${nextTheme.color};">
+      <div class="intermission-kicker">🎉 SECTOR ${clearedSectorNum} CLEARED // ${clearedTheme.name} (+${formatArcadeScore(sectorBonus)} PTS &amp; +${sectorCredBonus}¢) 🎉</div>
+      <h2 class="intermission-title">SECTOR ${clearedSectorNum} COMPLETE!</h2>
       <div class="intermission-reward-grid">
         <div class="intermission-reward-box">
-          <span class="reward-lbl">CLEAR BONUS</span>
-          <strong class="reward-val">+${formatArcadeScore(sectorBonus)} PTS</strong>
-        </div>
-        <div class="intermission-reward-box">
-          <span class="reward-lbl">CLASS UPGRADE</span>
-          <strong class="reward-val">+8 XP &bull; L${rogueLevel} ${activeTier ? activeTier.label : ""}</strong>
-        </div>
-        <div class="intermission-reward-box">
-          <span class="reward-lbl">CURRENT SCORE</span>
+          <span class="reward-lbl">CURRENT RUN SCORE</span>
           <strong class="reward-val">${formatArcadeScore(score)}</strong>
         </div>
-      </div>
-      <div class="intermission-next-box" style="--sector-accent: ${theme.color};">
-        <div class="intermission-next-label">NEXT DESTINATION // SECTOR 0${currentSector} OF 0${MAX_LEVELS}</div>
-        <div class="intermission-next-name" style="color: ${theme.color};">${theme.emoji} LEVEL ${currentSector}: ${theme.name}</div>
-        <div class="intermission-stats-grid">
-          <div>BOARD MULTIPLIER<strong>×${newMult} ALL POINTS</strong></div>
-          <div>BALL VELOCITY<strong>+${spdPct}% SPEED</strong></div>
-          <div>GRID DEFENSE<strong>ARMOR &amp; GOLD VAULTS</strong></div>
+        <div class="intermission-reward-box">
+          <span class="reward-lbl">UNBANKED CYBER-CREDS</span>
+          <strong class="reward-val" style="color: #39ff14;">💰 +${formatArcadeScore(runUnbankedCreds)}¢</strong>
+        </div>
+        <div class="intermission-reward-box">
+          <span class="reward-lbl">65% FLATLINE RISK</span>
+          <strong class="reward-val" style="color: #ff5577;">-${formatArcadeScore(flatlinePenaltyScore)} PTS IF LOST</strong>
         </div>
       </div>
-      <button type="button" id="intermission-continue-btn" class="intermission-continue-btn">
-        ▶ ENTER LEVEL ${currentSector}
+
+      <button type="button" id="intermission-extract-btn" class="intermission-extract-btn">
+        🟢 JACK OUT &amp; EXTRACT NOW — BANK 100% (${formatArcadeScore(score)} PTS &amp; +${formatArcadeScore(runUnbankedCreds)}¢) [E]
       </button>
+
+      <div class="breach-contracts-section">
+        <div class="breach-section-header">
+          <span>🔴 OR RISK 65% TO BREACH ${nextTheme.emoji} SECTOR ${nextSectorNum}: PICK 1 BUFF/NERF CONTRACT</span>
+          <span>KEYS [1] [2] [3]</span>
+        </div>
+        <div class="breach-contracts-grid">${contractsHTML}</div>
+      </div>
     </div>
   `;
   gameMessage.style.display = "block";
-  armModalInputGuard(1150, "intermission-continue-btn");
+  armModalInputGuard(950, "intermission-extract-btn");
 
-  const continueBtn = document.getElementById("intermission-continue-btn");
-  if (continueBtn) {
-    continueBtn.addEventListener("click", (ev) => {
+  const extractBtn = document.getElementById("intermission-extract-btn");
+  if (extractBtn) {
+    extractBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      resumeFromLevelIntermission(false);
+      extractFromSector(false);
     });
   }
+
+  gameMessage.querySelectorAll("[data-contract-id]").forEach(cardBtn => {
+    cardBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      signBreachContractAndAdvance(cardBtn.dataset.contractId, false);
+    });
+  });
 }
 
 function initGame() {
@@ -2871,7 +3251,7 @@ function initGame() {
     }
     resetButton.style.display = 'none';
     
-    gameArea.classList.remove('hide-cursor');
+    gameArea.classList.remove('hide-cursor', 'laser-frenzy-arena');
     lastTime = 0;
     soundManager.stopAll();
     clearTimeout(autoLaunchTimeout);
@@ -2890,10 +3270,11 @@ function createBricks() {
   bricks = [];
 
   // Always spawn all 5 classic brick rows (Pink, Red, Orange, Green, Cyan)!
-  // Each time the board replenishes (currentSector 1..MAX_LEVELS), difficulty scales up with more Armored & Gold Vault bricks!
+  // Each time the board replenishes (Sector 1..∞), difficulty scales up with more Armored & Gold Vault bricks (+ Breach Contract modifiers)!
   const totalRows = BRICK_ROWS;
-  const armorChance = Math.min(0.62, 0.20 + (currentSector - 1) * 0.12);
-  const vaultChance = currentSector >= 2 ? Math.min(0.32, 0.12 + (currentSector - 2) * 0.07) : 0;
+  const armorChance = Math.min(0.75, 0.20 + (currentSector - 1) * 0.10 + getContractArmorChanceBonus());
+  const vaultChance = Math.min(0.45, (currentSector >= 2 ? 0.12 + (currentSector - 2) * 0.06 : 0) + getContractVaultChanceBonus());
+  const equippedPool = getEquippedLoadoutPool();
 
   for (let row = 0; row < totalRows; row++) {
     for (let col = 0; col < BRICK_COLS; col++) {
@@ -2915,16 +3296,18 @@ function createBricks() {
         el.classList.add('multihit');
       }
 
-      // 3) maybe assign a power-up (Vault bricks always carry a power-up!)
+      // 3) maybe assign a power-up from the Runner's equipped Loadout Deck (Vault bricks always carry a capsule!)
       let powerUpType = null;
-      if (isVaultBrick || Math.random() < POWER_UP_CHANCE) {
-        powerUpType = POWER_UP_SPAWN_CHANCES[
-          Math.floor(Math.random() * POWER_UP_SPAWN_CHANCES.length)
+      if ((isVaultBrick || Math.random() < POWER_UP_CHANCE) && equippedPool.length > 0) {
+        powerUpType = equippedPool[
+          Math.floor(Math.random() * equippedPool.length)
         ];
-        const indicator = document.createElement('span');
-        indicator.className = 'power-up-indicator';
-        indicator.textContent = POWER_UP_TYPES[powerUpType].emoji;
-        el.appendChild(indicator);
+        if (POWER_UP_TYPES[powerUpType]) {
+          const indicator = document.createElement('span');
+          indicator.className = 'power-up-indicator';
+          indicator.textContent = POWER_UP_TYPES[powerUpType].emoji;
+          el.appendChild(indicator);
+        }
       }
 
       // 4) position & size it
@@ -3182,6 +3565,8 @@ function startGame() {
             promptCallsignRequired();
             return;
         }
+        // Permanently bind this Callsign to its selected Class if not yet bound!
+        bindCallsignToClass(getLastInitials(), selectedRunnerClass);
         initGame(); 
         score = 0;
         lives = 1;
@@ -3362,7 +3747,8 @@ function updatePaddlePosition(dt) {
   const halfPaddle = paddleWidth / 2;
   const titanRank = getAugmentRank("titan");
   const titanSpeedMult = 1 + titanRank * 0.14;
-  const speedMult = ((typeof isHackModeActive === "function" && isHackModeActive("juice")) ? 1.45 : 1) * titanSpeedMult;
+  const contractSpeedMult = Math.max(0.55, 1 + getContractPaddleSpeedMod());
+  const speedMult = ((typeof isHackModeActive === "function" && isHackModeActive("juice")) ? 1.45 : 1) * titanSpeedMult * contractSpeedMult;
   if (leftPressed) {
     paddleX = Math.max(halfPaddle, paddleX - PADDLE_SPEED * speedMult * dt);
   }
@@ -3406,14 +3792,15 @@ function isColliding(e,t){return!(e.bottom<t.top||e.top>t.bottom||e.right<t.left
 
 
 function updatePaddleWidth() {
-  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment - Striker precision handicap - High-Roller Bust Shrink - slight difficulty tightening per board clear)
+  // Calculate how big the paddle _should_ be logically (Expando stacks + Titan Deck Augment + Breach Contracts - Striker precision handicap - High-Roller Bust Shrink - slight difficulty tightening per board clear)
   const titanBonus = getAugmentRank("titan") * 0.22;
   let classWidthMod = selectedRunnerClass === "striker" ? -0.12 : 0;
   if (selectedRunnerClass === "highroller" && highRollerBustShrink) {
     classWidthMod -= 0.20;
   }
-  const boardPressure = Math.max(0, (currentSector - 1) * 0.04);
-  const scaleFactor = Math.max(0.68, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod - boardPressure);
+  const contractWidthMod = getContractPaddleWidthMod();
+  const boardPressure = Math.max(0, Math.min(0.22, (currentSector - 1) * 0.03));
+  const scaleFactor = Math.max(0.60, 1 + paddleSizeLevel * 0.35 + titanBonus + classWidthMod + contractWidthMod - boardPressure);
   paddleWidth = PADDLE_DEFAULT_WIDTH * scaleFactor;
 
   // Clamp paddleX immediately so growing near a wall never pushes the paddle past the edge
@@ -3558,8 +3945,8 @@ function updatePowerUps(dt) {
           if (selectedRunnerClass === "highroller" && rogueLevel >= 2) {
             const cardRoll = Math.random();
             if (cardRoll < 0.50) {
-              const wildPool = ["wide-paddle", "laser-blast", "slow-mo", "sticky-paddle"].filter(k => k !== pu.type);
-              const bonusMod = wildPool[Math.floor(Math.random() * wildPool.length)] || "laser-blast";
+              const wildPool = ["wide-paddle", "slow-mo", "sticky-paddle"].filter(k => k !== pu.type);
+              const bonusMod = wildPool[Math.floor(Math.random() * wildPool.length)] || "wide-paddle";
               const now = Date.now();
               if (!activePowerUps[bonusMod]) activePowerUps[bonusMod] = [];
               if (activePowerUps[bonusMod].length < MAX_PADDLE_LEVEL) {
@@ -3572,8 +3959,6 @@ function updatePowerUps(dt) {
               } else if (bonusMod === "sticky-paddle") {
                 isStickyPaddle = true;
                 paddle.classList.add("paddle-sticky");
-              } else if (bonusMod === "laser-blast") {
-                syncLaserPaddleVisuals();
               }
               createOrUpdateStatusIndicator(bonusMod);
               updateMultiplierBadge();
@@ -3634,7 +4019,10 @@ function updatePowerUps(dt) {
 function syncLaserPaddleVisuals() {
   const stacks = activePowerUps["laser-blast"]?.length || 0;
   paddle.classList.remove("laser-tier-1", "laser-tier-2", "laser-tier-3");
-  if (stacks > 0) {
+  if (frenzyTimerLeft > 0) {
+    isLaserActive = true;
+    paddle.classList.add("paddle-armed", "laser-tier-3");
+  } else if (stacks > 0) {
     isLaserActive = true;
     paddle.classList.add("paddle-armed", `laser-tier-${Math.min(stacks, 3)}`);
   } else if (!(typeof isHackModeActive === "function" && isHackModeActive("juice"))) {
@@ -3939,7 +4327,7 @@ function updateLasers(dt) {
           triggerPlasmaNova(b);
           triggerWheelOfMayhem(b);
           triggerGuardianAegisBeam(b);
-          recordBrickBrokenStreak();
+          recordBrickBrokenStreak(b);
           awardRogueXP(b.isVaultBrick ? 3 : (b.hitsRequired > 1 ? 2 : 1));
         } else {
           // Armored / Vault brick took partial laser damage!
@@ -4053,13 +4441,21 @@ function checkCollisions() {
     const halfPaddle   = Math.max(1, padWidth / 2);
     const paddleCenter = padRect.left + halfPaddle;
     const impactPos    = (ballX + BALL_SIZE / 2 - paddleCenter) / halfPaddle;
+    const absImpact    = Math.abs(impactPos);
 
     soundManager.play("bounce");
+    // Charge the Skill Rally Frenzy Meter on every paddle return (+24% on Sweet-Spot center hit, +15% on wing return)!
+    addSkillRallyFrenzyCharge(absImpact <= 0.40 ? 24 : 15, true);
+
     if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
       triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
     }
     if (typeof isHackModeActive === "function" && isHackModeActive("god") && typeof triggerDivinePaddleSmite === "function") {
       triggerDivinePaddleSmite(ballX + BALL_SIZE / 2, padRect.top);
+    }
+    // Striker 1-to-1 Paddle Bounce Trigger: Sweet-Spot Rail Bolts (or all bounces at L4+) + Tesla Arc Lightning!
+    if (getAugmentRank("turret") > 0 && (rogueLevel >= 4 || absImpact <= 0.44)) {
+      fireAutoTurretVolley();
     }
     if (getAugmentRank("tesla") > 0) {
       triggerTeslaArcBolts();
@@ -4069,8 +4465,11 @@ function checkCollisions() {
       ball.classList.add("ball-piercing");
       syncRogueHUD();
     }
+    if (getAugmentRank("nova") > 0) {
+      demolisherNovaArmed = true;
+    }
     if (selectedRunnerClass === "guardian") {
-      fireGuardianBastionMortar(Math.abs(impactPos));
+      fireGuardianBastionMortar(absImpact);
     }
     if (selectedRunnerClass === "highroller") {
       rollHighRollerCyberDice();
@@ -4162,7 +4561,7 @@ function checkCollisions() {
         points *= (expandoStacks + 1);
       }
 
-      brick.hitsTaken += (isPiercingHit ? 2 : 1);
+      brick.hitsTaken += (isPiercingHit ? 2 : 1) + getContractBonusDamage();
       if (isPiercingHit) {
         pierceChargesLeft = Math.max(0, pierceChargesLeft - 1);
         if (pierceChargesLeft <= 0) {
@@ -4248,7 +4647,7 @@ function checkCollisions() {
         triggerPlasmaNova(brick);
         triggerWheelOfMayhem(brick);
         triggerGuardianAegisBeam(brick);
-        recordBrickBrokenStreak();
+        recordBrickBrokenStreak(brick);
         awardRogueXP(brick.isVaultBrick ? 3 : (brick.hitsRequired > 1 ? 2 : 1));
 
       } else {
@@ -4406,10 +4805,35 @@ function endGame(won) {
   const boardMode = isHackedRun ? "hacked" : "legit";
   activeLeaderboardTab = boardMode;
 
+  // Apply 65% Flatline Penalty on Loss (!won) vs 100% Extraction Payout on Win (won)!
+  lastRunRawScoreBeforePenalty = score;
+  if (won) {
+    lastRunPenaltyAmount = 0;
+    lastRunCredsEarned = runUnbankedCreds;
+    lastRunCredsLost = 0;
+  } else {
+    lastRunPenaltyAmount = Math.round(score * 0.65);
+    score = Math.max(0, score - lastRunPenaltyAmount);
+    lastRunCredsEarned = Math.round(runUnbankedCreds * 0.35);
+    lastRunCredsLost = Math.max(0, runUnbankedCreds - lastRunCredsEarned);
+  }
+  scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
+
+  const runnerCallsign = getLastInitials();
+  // Persist banked Cyber-Creds & Best Extraction Sector to this Callsign's profile!
+  const csProfile = getCallsignProfile(runnerCallsign);
+  if (csProfile) {
+    csProfile.creds = (csProfile.creds || 0) + lastRunCredsEarned;
+    csProfile.runs = (csProfile.runs || 0) + 1;
+    if (won && sectorsCleared > (csProfile.bestSector || 0)) {
+      csProfile.bestSector = sectorsCleared;
+    }
+    saveCallsignProfile(runnerCallsign, csProfile);
+  }
+
   const prevLegitHigh = getHighScore();
   const isNewLegitHigh = !isHackedRun && score > prevLegitHigh && score > 0;
 
-  const runnerCallsign = getLastInitials();
   const lore = typeof getCallsignLore === "function" ? getCallsignLore(runnerCallsign) : null;
   const cDef = getSelectedClassDef();
   const hacksUsed = isHackedRun ? getRunHackEmojis() : [];
@@ -4419,10 +4843,8 @@ function endGame(won) {
 
   const rating = getRating(score, won);
   const titleText = won
-    ? `🏆 GRAND FINALE VICTORY // ALL ${MAX_LEVELS} SECTORS CONQUERED! 🏆`
-    : (sectorsCleared > 0
-        ? `💀 SYSTEM FAILURE // ENDED ON LEVEL ${currentSector} (${sectorsCleared}/${MAX_LEVELS} CLEARED)`
-        : `💀 SYSTEM FAILURE // ENDED ON LEVEL 1`);
+    ? `🟢 EXTRACTION SUCCESSFUL // SECTOR ${sectorsCleared} SECURED! 🟢`
+    : `💀 FLATLINED IN SECTOR ${currentSector} // -65% BREACH PENALTY APPLIED`;
   const augSummary = getActiveAugmentIcons().join(" ");
 
   let savedBannerHTML = "";
@@ -4447,30 +4869,48 @@ function endGame(won) {
 
   const summaryBlockHTML = won
     ? `
-      <div class="victory-rank-pill">👑 FINAL CYBER-RUNNER RANK ACHIEVED 👑</div>
+      <div class="victory-rank-pill">🟢 100% SCORE &amp; CYBER-CREDS BANKED TO ${runnerCallsign} SAFEHOUSE 🟢</div>
       <span class="name rating win-rating">${rating}</span>
       <div class="victory-summary-grid">
         <div class="victory-stat-box">
-          <span class="v-stat-lbl">FINAL SCORE</span>
+          <span class="v-stat-lbl">EXTRACTED SCORE</span>
           <strong class="v-stat-val v-gold">${formatArcadeScore(score)}</strong>
         </div>
         <div class="victory-stat-box">
-          <span class="v-stat-lbl">CHAMPION RUNNER</span>
-          <strong class="v-stat-val">${runnerCallsign} <span class="v-sub">${lore ? `• ${lore.origin}` : ""}</span></strong>
+          <span class="v-stat-lbl">CYBER-CREDS BANKED</span>
+          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(TOTAL ${formatArcadeScore(csProfile?.creds || 0)}¢)</span></strong>
         </div>
         <div class="victory-stat-box">
-          <span class="v-stat-lbl">AUGMENT TIER</span>
-          <strong class="v-stat-val">${cDef.emoji} L${rogueLevel}/${cDef.tiers.length} ${augSummary}</strong>
+          <span class="v-stat-lbl">BOUND CLASS</span>
+          <strong class="v-stat-val">${cDef.emoji} ${cDef.name} L${rogueLevel} ${augSummary}</strong>
         </div>
         <div class="victory-stat-box">
-          <span class="v-stat-lbl">CAMPAIGN</span>
-          <strong class="v-stat-val v-green">${MAX_LEVELS}/${MAX_LEVELS} CLEARED</strong>
+          <span class="v-stat-lbl">SECTORS EXTRACTED</span>
+          <strong class="v-stat-val v-green">${sectorsCleared} CLEARED</strong>
         </div>
       </div>
     `
     : `
       <span class="name rating">${rating}</span>
-      <span class="description">Runner: ${runnerCallsign} &bull; Level ${currentSector}/${MAX_LEVELS} &bull; ${cDef.emoji} L${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
+      <div class="victory-summary-grid loss-penalty-grid">
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">RAW RUN SCORE</span>
+          <strong class="v-stat-val">${formatArcadeScore(lastRunRawScoreBeforePenalty)}</strong>
+        </div>
+        <div class="victory-stat-box penalty-box">
+          <span class="v-stat-lbl">65% FLATLINE PENALTY</span>
+          <strong class="v-stat-val" style="color:#ff5577;">-${formatArcadeScore(lastRunPenaltyAmount)} PTS</strong>
+        </div>
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">35% SALVAGED SCORE</span>
+          <strong class="v-stat-val v-gold">${formatArcadeScore(score)}</strong>
+        </div>
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">35% SALVAGED CREDS</span>
+          <strong class="v-stat-val v-green">+${formatArcadeScore(lastRunCredsEarned)}¢ <span class="v-sub">(-${formatArcadeScore(lastRunCredsLost)}¢ LOST)</span></strong>
+        </div>
+      </div>
+      <span class="description">Runner: ${runnerCallsign} &bull; Flatlined in Sector ${currentSector} &bull; ${cDef.emoji} L${rogueLevel}${augSummary ? ` (${augSummary})` : ""}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
     `;
 
   gameMessage.classList.remove("level-intermission-mode");
@@ -4486,7 +4926,8 @@ function endGame(won) {
       </div>
     </div>
     <div class="end-game-actions">
-      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🏆 PLAY NEW CAMPAIGN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
+      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🚀 BREACH AGAIN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
+      <button type="button" id="end-safehouse-btn" class="end-action-btn end-switch-btn">🛠️ UPGRADE IN SAFEHOUSE [U]</button>
       <button type="button" id="end-switch-runner-btn" class="end-action-btn end-switch-btn">🕹️ SWITCH RUNNER [C]</button>
     </div>
   `;
@@ -4504,6 +4945,14 @@ function endGame(won) {
       ev.stopPropagation();
       if (!isModalInputReady(false)) return;
       if (gameOver && assetsReady) startGame();
+    });
+  }
+  const safehouseBtn = document.getElementById("end-safehouse-btn");
+  if (safehouseBtn) {
+    safehouseBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (!isModalInputReady(false)) return;
+      initGame();
     });
   }
   const switchRunnerBtn = document.getElementById("end-switch-runner-btn");
@@ -4673,7 +5122,7 @@ function spawnLaserVolley(tier = 1, isAuto = false) {
 function fireLaser() {
   if (!canFire || !isLaserActive) return;
   canFire = false;
-  const laserTier = Math.min(Math.max(activePowerUps["laser-blast"]?.length || 1, 1), 3);
+  const laserTier = frenzyTimerLeft > 0 ? 3 : Math.min(Math.max(activePowerUps["laser-blast"]?.length || 1, 1), 3);
   spawnLaserVolley(laserTier, false);
   const cooldown = [260, 190, 140][laserTier - 1] || 220;
   setTimeout(() => { canFire = true; }, cooldown);
@@ -4774,12 +5223,20 @@ document.addEventListener("keydown", e => {
     isSpaceHeldDown = true;
   }
 
-  // Between-Level Intermission Screen (Levels 1-5): SPACE or ENTER continues only after anti-mash lock & key release!
+  // Between-Sector Extraction / Breach Terminal: E/SPACE/ENTER extracts; 1/2/3 signs a Breach Contract!
   if (isLevelIntermissionOpen) {
-    if (" " === t || "enter" === t) {
+    if ("e" === t || " " === t || "enter" === t) {
       e.preventDefault();
       if (!e.repeat && isModalInputReady(true)) {
-        resumeFromLevelIntermission(true);
+        extractFromSector(true);
+      }
+      return;
+    }
+    if (["1", "2", "3"].includes(t)) {
+      e.preventDefault();
+      const idx = parseInt(t, 10) - 1;
+      if (!e.repeat && isModalInputReady(false) && currentContractOffers[idx]) {
+        signBreachContractAndAdvance(currentContractOffers[idx].id, true);
       }
       return;
     }
@@ -4824,10 +5281,10 @@ document.addEventListener("keydown", e => {
     }
   }
 
-  if (gameOver && gameMessage.style.display === "block" && "c" === t) {
+  if (gameOver && gameMessage.style.display === "block" && ("c" === t || "u" === t)) {
     e.preventDefault();
     if (!e.repeat && isModalInputReady(false)) {
-      clearCallsignSlots();
+      if ("c" === t) clearCallsignSlots();
       initGame();
     }
     return;
