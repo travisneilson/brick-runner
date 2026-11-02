@@ -1628,11 +1628,11 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   background: linear-gradient(180deg, rgba(6, 10, 20, 0.96) 0%, rgba(10, 14, 28, 0.96) 100%);
   border: 1.5px solid color-mix(in srgb, var(--cls-color, #00ffff) 55%, transparent);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 7px 9px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 6px;
   overflow: hidden;
 }
 
@@ -1643,12 +1643,13 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   gap: 6px;
   height: 22px;
   min-height: 22px;
+  flex-shrink: 0;
   cursor: help;
 }
 
 .class-spec-main {
   font-family: 'Chakra Petch', 'Roboto', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
@@ -1660,7 +1661,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .class-spec-main strong {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.44rem;
+  font-size: 0.46rem;
   color: var(--cls-color, #00ffff);
   letter-spacing: 0.3px;
   margin-right: 4px;
@@ -1684,62 +1685,85 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   flex-shrink: 0;
 }
 
-.class-tradeoff-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  height: 22px;
-  min-height: 22px;
+.class-tradeoff-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
   cursor: help;
 }
 
-.tradeoff-pill {
+.tradeoff-row {
   display: flex;
   align-items: center;
+  gap: 6px;
+  height: 21px;
+  min-height: 21px;
   padding: 0 7px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.52rem;
+  font-size: 0.54rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
+.tradeoff-tag {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.36rem;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.tradeoff-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.tradeoff-row.buff-pill,
 .tradeoff-pill.buff-pill {
   color: #6bff95;
   background: rgba(57, 255, 20, 0.1);
-  border: 1px solid rgba(57, 255, 20, 0.32);
+  border: 1px solid rgba(57, 255, 20, 0.34);
 }
 
+.tradeoff-row.nerf-pill,
 .tradeoff-pill.nerf-pill {
   color: #ff7a99;
   background: rgba(255, 68, 119, 0.1);
-  border: 1px solid rgba(255, 68, 119, 0.32);
+  border: 1px solid rgba(255, 68, 119, 0.34);
 }
 
 /* 5-Column Horizontal Skill Tree (L1 -> L5) */
 .class-path-track {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: 52px;
   gap: 4px;
-  height: 52px;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 82px;
+  align-items: stretch;
 }
 
 .class-path-step {
-  height: 52px;
+  height: 100%;
+  min-height: 80px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  padding: 4px 5px;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 5px 5px;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
   overflow: hidden;
 }
@@ -1753,7 +1777,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .class-path-lvl {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.38rem;
+  font-size: 0.36rem;
   color: #061018;
   background: var(--cls-color, #00ffff);
   padding: 2px 4px;
@@ -1770,10 +1794,11 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   color: #eef6ff;
   width: 100%;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
+  flex-shrink: 0;
 }
 
 /* --- Right Panel: Top 5 Runners Leaderboard Dossier --- */
@@ -4894,16 +4919,18 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .class-path-cost {
-  display: none;
+  display: inline-block;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.48rem;
+  font-size: 0.44rem;
   font-weight: 800;
   color: #ffd700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 .class-path-step.step-unlocked .class-path-cost {
@@ -4911,32 +4938,32 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .class-path-desc {
-  display: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   font-family: 'Roboto', sans-serif;
-  font-size: 0.62rem;
-  line-height: 1.25;
+  font-size: 0.54rem;
+  line-height: 1.22;
   color: #bfd6ee;
   width: 100%;
   overflow: hidden;
-  display: none;
 }
 
 /* In Single-Column Safehouse Mode, expand the L1-L5 Class Progression Cards! */
 .start-deck.deck-single-col .class-path-track {
-  grid-template-rows: 96px;
-  height: 96px;
+  min-height: 96px;
   gap: 8px;
 }
 
 .start-deck.deck-single-col .class-path-step {
-  height: 96px;
+  min-height: 96px;
   padding: 7px 8px;
   justify-content: flex-start;
   gap: 4px;
 }
 
 .start-deck.deck-single-col .class-path-cost {
-  display: inline-block;
+  font-size: 0.5rem;
 }
 
 .start-deck.deck-single-col .class-path-name {
@@ -4945,9 +4972,308 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .start-deck.deck-single-col .class-path-desc {
-  display: -webkit-box;
+  font-size: 0.62rem;
   -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+}
+
+/* ─── Saved Characters Roster Strip, Compact 14x2 Keypad & Resume Banner ─── */
+.saved-runners-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: rgba(6, 10, 20, 0.88);
+  border: 1px solid rgba(0, 255, 255, 0.24);
+  box-sizing: border-box;
+}
+
+.saved-runners-lbl {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.36rem;
+  color: #7ea8cc;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.saved-runners-scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: none;
+}
+
+.saved-runners-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.runner-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #dce8ff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+
+.runner-roster-chip strong {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.runner-roster-chip:hover {
+  border-color: var(--chip-color, #00ffff);
+  background: color-mix(in srgb, var(--chip-color, #00ffff) 18%, rgba(10, 16, 28, 0.95));
+  transform: translateY(-1px);
+}
+
+.runner-roster-chip.active {
+  border-color: var(--chip-color, #39ff14);
+  background: color-mix(in srgb, var(--chip-color, #39ff14) 24%, rgba(8, 16, 24, 0.96));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--chip-color, #39ff14) 45%, transparent);
+}
+
+.runner-roster-chip.active strong {
+  color: var(--chip-color, #39ff14);
+}
+
+.runner-roster-chip.has-saved-run {
+  border-color: #39ff14;
+}
+
+.runner-chip-stage {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.34rem;
+  color: #051408;
+  background: #39ff14;
+  padding: 2px 4px 1px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.runner-chip-creds {
+  font-size: 0.48rem;
+  color: #ffd700;
+}
+
+.runner-roster-chip.runner-chip-new {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.36rem;
+  color: #00ffff;
+  border-style: dashed;
+  border-color: rgba(0, 255, 255, 0.45);
+}
+
+.no-saved-runners-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
+  color: #8ab4f8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callsign-quick-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.identity-tool-btn {
+  width: 26px;
+  height: 18px;
+  padding: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(0, 255, 255, 0.32);
+  color: #eaf6ff;
+  font-size: 0.62rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.identity-tool-btn:hover,
+.identity-tool-btn.active {
+  background: rgba(0, 255, 255, 0.22);
+  border-color: #00ffff;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.45);
+}
+
+.keypad-grid.keypad-14col {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  grid-auto-rows: 21px;
+  gap: 2.5px;
+}
+
+.keypad-grid.keypad-14col .keypad-key {
+  height: 21px;
+  font-size: 0.44rem;
+}
+
+.keypad-grid.keypad-collapsed {
+  display: none !important;
+}
+
+.saved-run-resume-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(57, 255, 20, 0.16) 0%, rgba(0, 255, 255, 0.1) 100%);
+  border: 1px solid rgba(57, 255, 20, 0.55);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  color: #d8ffe2;
+}
+
+.saved-run-info strong {
+  color: #39ff14;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.42rem;
+}
+
+/* ─── Between-Stage Jump Out & Switch Character Bar ─── */
+.intermission-between-stage-bar,
+.intermission-Checkpoint-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.intermission-between-stage-bar .intermission-safehouse-locked-pill,
+.intermission-Checkpoint-actions .intermission-extract-btn {
+  margin-bottom: 0;
+}
+
+.intermission-jump-out-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  line-height: 1.35;
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1.5px solid rgba(0, 255, 255, 0.55);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.intermission-jump-out-btn:hover {
+  background: rgba(0, 255, 255, 0.24);
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.55);
+  transform: translateY(-1px);
+}
+
+/* ─── Persistent Arcade Volume Control Widget ─── */
+.volume-control-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: rgba(10, 14, 26, 0.92);
+  border: 1.5px solid rgba(0, 255, 255, 0.42);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.volume-control-widget.is-muted {
+  border-color: rgba(255, 68, 119, 0.55);
+  background: rgba(28, 10, 20, 0.92);
+}
+
+.vol-mute-btn {
+  background: transparent;
+  border: none;
+  padding: 0 2px;
+  font-size: 0.82rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #ffffff;
+  transition: transform 0.12s ease;
+}
+
+.vol-mute-btn:hover {
+  transform: scale(1.15);
+}
+
+.vol-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  padding: 0 2px;
+}
+
+.vol-bar-btn {
+  width: 6px;
+  padding: 0;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.vol-bar-btn[data-vol="0.25"] { height: 6px; }
+.vol-bar-btn[data-vol="0.5"]  { height: 9px; }
+.vol-bar-btn[data-vol="0.75"] { height: 12px; }
+.vol-bar-btn[data-vol="1"]    { height: 15px; }
+
+.vol-bar-btn.active {
+  background: #39ff14;
+  border-color: #39ff14;
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.75);
+}
+
+.vol-bar-btn:hover {
+  background: #00ffff;
+  border-color: #ffffff;
+}
+
+.vol-pct-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
+  color: #b8d4f2;
+  min-width: 28px;
+  text-align: right;
+  cursor: pointer;
+}
+
+.volume-control-widget.is-muted .vol-pct-label {
+  color: #ff7799;
 }
 
 .class-path-step.step-locked {

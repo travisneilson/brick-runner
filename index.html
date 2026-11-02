@@ -86,6 +86,16 @@
             <button id="reset-button" class="tip-next-btn tip-control-btn tip-restart-btn" type="button" style="display: none;">↻ RESTART</button>
             <button id="tip-console-btn" class="tip-next-btn tip-console-btn" type="button">💻 [~] HACK CONSOLE</button>
             <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn" type="button">🕹️ [G] ARCADE MANUAL</button>
+            <div id="volume-control-widget" class="volume-control-widget" title="Audio Volume ([M] to Mute, Click bars to adjust)">
+                <button id="volume-mute-btn" class="vol-mute-btn" type="button" aria-label="Toggle Mute [M]">🔊</button>
+                <div class="vol-bars" role="group" aria-label="Volume Level">
+                    <button type="button" class="vol-bar-btn" data-vol-step="0.25" title="25% Volume"><span class="vol-bar-fill"></span></button>
+                    <button type="button" class="vol-bar-btn" data-vol-step="0.50" title="50% Volume"><span class="vol-bar-fill"></span></button>
+                    <button type="button" class="vol-bar-btn" data-vol-step="0.75" title="75% Volume"><span class="vol-bar-fill"></span></button>
+                    <button type="button" class="vol-bar-btn" data-vol-step="1.00" title="100% Volume"><span class="vol-bar-fill"></span></button>
+                </div>
+                <button id="volume-pct-label" class="vol-pct-label" type="button" title="Click to cycle volume">75%</button>
+            </div>
         </div>
     </div>
     

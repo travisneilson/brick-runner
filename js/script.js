@@ -72,13 +72,81 @@ function showBrickScore(x, y, pts) {
 
 
 // --- Sound Manager ---
+const VOLUME_STORAGE_KEY = "brickRunnerMasterVolume_v1";
+const MUTE_STORAGE_KEY   = "brickRunnerMuted_v1";
+
 const soundManager = {
     context: null,
+    masterGain: null,
+    masterVolume: 0.75,
+    isMuted: false,
     sounds: {},
     nowPlaying: {},
+    loadSettings() {
+        try {
+            const savedVol = localStorage.getItem(VOLUME_STORAGE_KEY);
+            if (savedVol !== null) {
+                const parsed = parseFloat(savedVol);
+                if (!Number.isNaN(parsed)) {
+                    this.masterVolume = Math.max(0, Math.min(1, parsed));
+                }
+            }
+            const savedMute = localStorage.getItem(MUTE_STORAGE_KEY);
+            if (savedMute !== null) {
+                this.isMuted = savedMute === "1" || savedMute === "true";
+            }
+        } catch (err) {
+            // Ignore storage errors in sandboxed iframes
+        }
+    },
+    saveSettings() {
+        try {
+            localStorage.setItem(VOLUME_STORAGE_KEY, String(this.masterVolume));
+            localStorage.setItem(MUTE_STORAGE_KEY, this.isMuted ? "1" : "0");
+        } catch (err) {
+            // Ignore storage errors
+        }
+    },
     init() {
-        if (this.context) return;
+        this.loadSettings();
+        if (this.context) {
+            this.applyMasterGain();
+            return;
+        }
         this.context = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.context.createGain();
+        this.masterGain.connect(this.context.destination);
+        this.applyMasterGain();
+    },
+    getDestination() {
+        if (!this.context) this.init();
+        return this.masterGain || this.context.destination;
+    },
+    applyMasterGain() {
+        if (!this.masterGain || !this.context) return;
+        const effective = this.isMuted ? 0 : this.masterVolume;
+        this.masterGain.gain.setValueAtTime(effective, this.context.currentTime);
+    },
+    setVolume(vol) {
+        this.masterVolume = Math.max(0, Math.min(1, Number(vol) || 0));
+        if (this.masterVolume > 0 && this.isMuted) {
+            this.isMuted = false;
+        }
+        if (this.masterVolume === 0) {
+            this.isMuted = true;
+        }
+        this.saveSettings();
+        this.applyMasterGain();
+        syncVolumeControlUI();
+    },
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (!this.isMuted && this.masterVolume === 0) {
+            this.masterVolume = 0.5;
+        }
+        this.saveSettings();
+        this.applyMasterGain();
+        syncVolumeControlUI();
     },
     async loadSound(name, url, reversable = false) {
         if (!this.context) return;
@@ -120,6 +188,7 @@ const soundManager = {
         return Promise.all(promises);
     },
     play(name, options = {}) {
+        if (this.isMuted) return;
         if (isCatMode && typeof playCuteCatSound === 'function' && name !== 'winSong' && name !== 'loseSong') {
             playCuteCatSound(name, options);
             return;
@@ -136,7 +205,7 @@ const soundManager = {
         const globalPitchMultiplier = (slowMoLevel > 0) ? 0.25 : 1.0;
         source.playbackRate.value = (options.pitch || 1.0) * globalPitchMultiplier;
         source.loop = options.loop || false;
-        source.connect(gainNode).connect(this.context.destination);
+        source.connect(gainNode).connect(this.getDestination());
         source.start(0);
         if (source.loop) {
             this.nowPlaying[name] = source;
@@ -154,6 +223,37 @@ const soundManager = {
         }
     }
 };
+
+function syncVolumeControlUI() {
+    const muteBtn = document.getElementById("volume-mute-btn");
+    const pctLabel = document.getElementById("volume-pct-label");
+    const widget = document.getElementById("volume-control-widget");
+    const effective = soundManager.isMuted ? 0 : soundManager.masterVolume;
+    const pct = Math.round(effective * 100);
+
+    if (widget) {
+        widget.classList.toggle("is-muted", soundManager.isMuted || pct === 0);
+    }
+    if (muteBtn) {
+        if (soundManager.isMuted || pct === 0) {
+            muteBtn.textContent = "🔇";
+        } else if (pct <= 35) {
+            muteBtn.textContent = "🔈";
+        } else if (pct <= 75) {
+            muteBtn.textContent = "🔉";
+        } else {
+            muteBtn.textContent = "🔊";
+        }
+    }
+    if (pctLabel) {
+        pctLabel.textContent = soundManager.isMuted ? "MUTE" : `${pct}%`;
+    }
+    document.querySelectorAll(".vol-bar-btn").forEach(btn => {
+        const barVol = parseFloat(btn.dataset.vol || "0");
+        const isActive = !soundManager.isMuted && effective >= barVol - 0.05;
+        btn.classList.toggle("active", isActive);
+    });
+}
 
 // --- Game State Variables ---
 let score = 0, gameOver = true, gameRunning = false, animationFrameId, emojiSwapTimeout = null, powerUps = [], activePowerUps = {}, paddleSizeLevel = 0, MAX_PADDLE_LEVEL = 3, isStickyPaddle = false, ballIsStuck = false, isLaserActive = false, canFire = true, lasers = [], assetsReady = !1, isRoofBonusActive = false, isNeonLegend = false, autoLaunchTimeout = null, emojiCycleInterval = null;
@@ -1139,7 +1239,9 @@ function getCallsignProfile(code3) {
       unlockedMods: [...allPowerUps],
       equippedMods: [...allPowerUps],
       bestSector: 0,
-      extractions: 0
+      extractions: 0,
+      savedRun: null,
+      lastPlayedAt: 0
     };
   }
   const all = loadAllCallsignProfiles();
@@ -1151,7 +1253,9 @@ function getCallsignProfile(code3) {
       unlockedMods: [...allPowerUps],
       equippedMods: [...allPowerUps],
       bestSector: 0,
-      extractions: 0
+      extractions: 0,
+      savedRun: null,
+      lastPlayedAt: 0
     };
     saveAllCallsignProfiles(all);
   }
@@ -1166,7 +1270,63 @@ function getCallsignProfile(code3) {
     saveAllCallsignProfiles(all);
   }
   if (typeof p.credits !== "number" || p.credits < 0) p.credits = 0;
+  if (!p.savedRun || typeof p.savedRun !== "object" || typeof p.savedRun.stage !== "number" || p.savedRun.stage < 1) {
+    p.savedRun = null;
+  }
   return p;
+}
+
+function getSavedRunnerList() {
+  const all = loadAllCallsignProfiles();
+  // Also backfill any callsigns from the local leaderboards so past characters always show up
+  try {
+    const lbEntries = [...(typeof getLeaderboard === "function" ? getLeaderboard("legit") : []), ...(typeof getLeaderboard === "function" ? getLeaderboard("hacked") : [])];
+    lbEntries.forEach(item => {
+      const code = (item && item.initials ? String(item.initials) : "").toUpperCase().replace(/[^A-Z]/g, "");
+      if (code.length === 3 && !all[code]) {
+        all[code] = {
+          boundClass: item.runnerClass && RUNNER_CLASSES[item.runnerClass] ? item.runnerClass : "striker",
+          classRank: typeof item.classRank === "number" ? Math.min(5, Math.max(1, item.classRank)) : 1,
+          credits: 0,
+          bestSector: typeof item.sector === "number" ? item.sector : 1,
+          extractions: item.won ? 1 : 0,
+          savedRun: null,
+          lastPlayedAt: 1
+        };
+      }
+    });
+  } catch (err) {
+    // Ignore leaderboard backfill errors
+  }
+
+  const activeCode = isCallsignComplete() ? callsignSlots.join("") : "";
+  const entries = [];
+  for (const code of Object.keys(all)) {
+    if (!/^[A-Z]{3}$/.test(code)) continue;
+    const p = all[code];
+    if (!p) continue;
+    if (p.boundClass || (p.credits && p.credits > 0) || (p.bestSector && p.bestSector > 0) || p.savedRun || code === activeCode) {
+      entries.push({
+        code,
+        boundClass: p.boundClass || (code === activeCode ? selectedRunnerClass : null),
+        classRank: p.classRank || 1,
+        credits: p.credits || 0,
+        bestSector: p.bestSector || 0,
+        savedRun: p.savedRun || null,
+        lastPlayedAt: p.lastPlayedAt || 0
+      });
+    }
+  }
+  entries.sort((a, b) => {
+    const aHasRun = a.savedRun && a.savedRun.stage > 1 ? 1 : 0;
+    const bHasRun = b.savedRun && b.savedRun.stage > 1 ? 1 : 0;
+    if (aHasRun !== bHasRun) return bHasRun - aHasRun;
+    if ((b.lastPlayedAt || 0) !== (a.lastPlayedAt || 0)) return (b.lastPlayedAt || 0) - (a.lastPlayedAt || 0);
+    if (b.classRank !== a.classRank) return b.classRank - a.classRank;
+    if (b.credits !== a.credits) return b.credits - a.credits;
+    return a.code.localeCompare(b.code);
+  });
+  return entries.slice(0, 8);
 }
 
 function saveCallsignProfile(code3, profile) {
@@ -1380,6 +1540,7 @@ function getCallsignChars() {
 let isSafehouseMode = false;
 let safehouseLeaderboardOpen = false;
 let safehouseUpgradesRemaining = 0;
+let isCallsignKeypadOpen = true;
 
 function syncSafehouseAndStartScreenUI() {
   const startDeck = startScreen ? startScreen.querySelector(".start-deck") : null;
@@ -1449,8 +1610,27 @@ function renderCallsignBuilder() {
   const boundClassId = complete ? profile.boundClass : null;
   syncPaddleClassVisual();
 
+  const savedRunners = getSavedRunnerList();
+  const savedRunnersHTML = savedRunners.length > 0
+    ? savedRunners.map(r => {
+        const isCurrentRunner = complete && r.code === codeStr;
+        const rCls = r.boundClass && RUNNER_CLASSES[r.boundClass] ? RUNNER_CLASSES[r.boundClass] : null;
+        const clsEmoji = rCls ? rCls.emoji : "🕹️";
+        const rankStr = rCls ? `L${r.classRank}` : "NEW";
+        const stageTag = (r.savedRun && r.savedRun.stage > 1)
+          ? `<span class="runner-chip-stage">▶STG ${r.savedRun.stage}</span>`
+          : (r.credits > 0 ? `<span class="runner-chip-creds">${r.credits}¢</span>` : (r.bestSector > 0 ? `<span class="runner-chip-creds">STG ${r.bestSector}</span>` : ""));
+        return `
+          <button type="button" class="runner-roster-chip ${isCurrentRunner ? "active" : ""} ${r.savedRun && r.savedRun.stage > 1 ? "has-saved-run" : ""}" data-select-runner="${r.code}" style="--chip-color: ${rCls ? rCls.color : "#00ffff"};" title="Switch to ${r.code}${rCls ? ` (${rCls.name} L${r.classRank})` : ""}${r.savedRun && r.savedRun.stage > 1 ? ` — Resume Stage ${r.savedRun.stage}` : ""}">
+            <span class="runner-chip-main">${clsEmoji} <strong>${r.code}</strong> ${rankStr}</span>
+            ${stageTag}
+          </button>
+        `;
+      }).join("") + `<button type="button" class="runner-roster-chip runner-chip-new ${!complete ? "active" : ""}" id="new-runner-chip-btn" title="Create New 3-Letter Callsign">＋ NEW</button>`
+    : `<span class="no-saved-runners-hint">Type A–Z or click 🎲 to create your first Runner — characters save automatically!</span>`;
+
   const slotsHTML = chars.map((ch, idx) => `
-    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}" data-popover-callsign="1">
+    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}" data-popover-callsign="1" title="Click to edit Callsign letters">
       ${ch || `<span class="slot-placeholder">_</span>`}
     </div>
   `).join("");
@@ -1476,7 +1656,7 @@ function renderCallsignBuilder() {
     const isUnlocked = t.level <= profile.classRank;
     const isCurrent = t.level === profile.classRank;
     const tierCost = CLASS_RANK_UPGRADE_COSTS[t.level] || 0;
-    const statusTag = isCurrent ? "ACTIVE" : (isUnlocked ? "UNLOCKED" : `${tierCost}¢`);
+    const statusTag = isCurrent ? "ACTIVE" : (isUnlocked ? "OWNED" : `${tierCost}¢`);
     return `
       <div class="class-path-step ${isUnlocked ? "step-unlocked" : "step-locked"} ${isCurrent ? "step-current" : ""}" data-popover-class="${activeClass.id}" data-popover-tier="${t.level}">
         <div class="class-path-top">
@@ -1499,7 +1679,7 @@ function renderCallsignBuilder() {
   } else if (profile.classRank >= 5) {
     upgradeBtnHTML = `<span class="safehouse-max-pill">👑 L5 MAX</span>`;
   } else if (!isSafehouseMode) {
-    upgradeBtnHTML = `<span class="safehouse-hint-pill">🔒 STG 5 UPGRADE • L${nextRank}: ${upgradeCost}¢</span>`;
+    upgradeBtnHTML = `<span class="safehouse-hint-pill">🔒 STG 5 SAFEHOUSE • L${nextRank}: ${upgradeCost}¢</span>`;
   } else if (safehouseUpgradesRemaining <= 0) {
     upgradeBtnHTML = `<span class="safehouse-used-pill">✅ 1/1 UPGRADE DONE</span>`;
   } else {
@@ -1525,12 +1705,28 @@ function renderCallsignBuilder() {
            </div>`
         : `<span class="deck-sec-badge badge-cyan">BINDS ON START</span>`);
 
+  const hasSavedCheckpoint = Boolean(complete && profile.savedRun && profile.savedRun.stage > 1);
+  const savedRunBannerHTML = hasSavedCheckpoint
+    ? `
+      <div class="saved-run-resume-strip">
+        <span class="saved-run-info">🟢 <strong>STAGE ${profile.savedRun.stage} READY</strong> • ${formatArcadeScore(profile.savedRun.score || 0)} PTS${profile.savedRun.unbankedCreds ? ` • +${formatArcadeScore(profile.savedRun.unbankedCreds)}¢ AT RISK` : ""}</span>
+        <button type="button" id="abandon-saved-run-btn" class="respec-mini-btn" title="Reset this character back to Stage 1">↺ RESET TO STG 1</button>
+      </div>
+    `
+    : "";
+
+  const showKeypad = !complete || isCallsignKeypadOpen;
+
   const topSectionHTML = isSafehouseMode
     ? `
       <div class="callsign-top-section safehouse-vault-section">
         <div class="deck-section-header">
           <span class="deck-sec-title"><span class="sec-num">01</span> SAFEHOUSE VAULT // ${codeStr}</span>
           <button type="button" id="safehouse-exit-start-btn" class="respec-mini-btn">🕹️ SWITCH RUNNER</button>
+        </div>
+        <div class="saved-runners-bar">
+          <span class="saved-runners-lbl">ROSTER:</span>
+          <div class="saved-runners-scroll">${savedRunnersHTML}</div>
         </div>
         <div class="callsign-identity-dock" data-popover-callsign="1">
           <div class="callsign-slots">${slotsHTML}</div>
@@ -1539,6 +1735,7 @@ function renderCallsignBuilder() {
             <span class="lore-char-title">${loreTitleText}</span>
           </div>
         </div>
+        ${savedRunBannerHTML}
         <div class="safehouse-vault-grid">
           <div class="safehouse-vault-card">
             <span class="sv-label">BANKED CYBER-CREDS</span>
@@ -1561,14 +1758,23 @@ function renderCallsignBuilder() {
           <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
           <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 STG ${profile.bestSector}` : ""}</span>
         </div>
+        <div class="saved-runners-bar">
+          <span class="saved-runners-lbl">SAVED:</span>
+          <div class="saved-runners-scroll">${savedRunnersHTML}</div>
+        </div>
         <div class="callsign-identity-dock" data-popover-callsign="1">
           <div class="callsign-slots">${slotsHTML}</div>
           <div class="callsign-lore-readout ${complete ? "is-complete" : "is-incomplete"}">
             <span class="lore-origin-tag">${loreOriginText}</span>
             <span class="lore-char-title">${loreTitleText}</span>
           </div>
+          <div class="callsign-quick-tools">
+            <button type="button" class="identity-tool-btn" id="quick-random-callsign-btn" title="Roll Random Sci-Fi Callsign">🎲</button>
+            <button type="button" class="identity-tool-btn ${showKeypad ? "active" : ""}" id="toggle-keypad-btn" title="${showKeypad ? "Hide A-Z Keypad" : "Show A-Z Keypad to Edit Letters"}">⌨️</button>
+          </div>
         </div>
-        <div class="keypad-grid">${keysHTML}</div>
+        ${savedRunBannerHTML}
+        <div class="keypad-grid keypad-14col ${showKeypad ? "" : "keypad-collapsed"}">${keysHTML}</div>
       </div>
     `;
 
@@ -1582,12 +1788,12 @@ function renderCallsignBuilder() {
       <div class="class-picker-grid">${classesHTML}</div>
       <div class="class-linear-preview">
         <div class="class-spec-head" data-popover-class-card="${activeClass.id}">
-          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">${activeClass.tagline}</span></span>
+          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">— ${activeClass.tagline}</span></span>
           ${upgradeBtnHTML}
         </div>
-        <div class="class-tradeoff-bar" data-popover-class-card="${activeClass.id}">
-          <span class="tradeoff-pill buff-pill">▲ ${activeClass.shortBuff || activeClass.buff}</span>
-          <span class="tradeoff-pill nerf-pill">▼ ${activeClass.shortHandicap || activeClass.handicap}</span>
+        <div class="class-tradeoff-stack" data-popover-class-card="${activeClass.id}">
+          <div class="tradeoff-row buff-pill"><span class="tradeoff-tag">▲ BUFF</span> <span class="tradeoff-text">${activeClass.buff}</span></div>
+          <div class="tradeoff-row nerf-pill"><span class="tradeoff-tag">▼ NERF</span> <span class="tradeoff-text">${activeClass.handicap}</span></div>
         </div>
         <div class="class-path-track">${pathStepsHTML}</div>
       </div>
@@ -1598,10 +1804,76 @@ function renderCallsignBuilder() {
   syncSafehouseAndStartScreenUI();
   bindHoverPopoverEvents(container);
 
+  container.querySelectorAll("[data-select-runner]").forEach(chipBtn => {
+    chipBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const targetCode = chipBtn.getAttribute("data-select-runner");
+      if (targetCode && /^[A-Z]{3}$/.test(targetCode)) {
+        saveLastInitials(targetCode);
+        activeCallsignSlot = 0;
+        isCallsignKeypadOpen = false;
+        const p = getCallsignProfile(targetCode);
+        if (p.boundClass && RUNNER_CLASSES[p.boundClass]) {
+          selectedRunnerClass = p.boundClass;
+        }
+        if (isSafehouseMode) {
+          safehouseUpgradesRemaining = (p.savedRun && p.savedRun.safehouseUpgradesLeft > 0) ? p.savedRun.safehouseUpgradesLeft : 0;
+        }
+        soundManager.play("powerUpSpawn", { pitch: 1.5, volume: 0.45 });
+        updateHighScoreDisplay();
+        renderCallsignBuilder();
+      }
+    });
+  });
+
+  const newRunnerBtn = container.querySelector("#new-runner-chip-btn");
+  if (newRunnerBtn) {
+    newRunnerBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      isSafehouseMode = false;
+      safehouseUpgradesRemaining = 0;
+      isCallsignKeypadOpen = true;
+      clearCallsignSlots();
+      soundManager.play("bounce", { pitch: 1.35, volume: 0.4 });
+      renderCallsignBuilder();
+    });
+  }
+
+  const quickRandBtn = container.querySelector("#quick-random-callsign-btn");
+  if (quickRandBtn) {
+    quickRandBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      randomizeCallsign();
+    });
+  }
+
+  const toggleKeypadBtn = container.querySelector("#toggle-keypad-btn");
+  if (toggleKeypadBtn) {
+    toggleKeypadBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      isCallsignKeypadOpen = !isCallsignKeypadOpen;
+      soundManager.play("bounce", { pitch: isCallsignKeypadOpen ? 1.35 : 1.05, volume: 0.35 });
+      renderCallsignBuilder();
+    });
+  }
+
+  const abandonRunBtn = container.querySelector("#abandon-saved-run-btn");
+  if (abandonRunBtn && complete) {
+    abandonRunBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const p = getCallsignProfile(codeStr);
+      p.savedRun = null;
+      saveCallsignProfile(codeStr, p);
+      soundManager.play("multihit", { pitch: 0.95, volume: 0.45 });
+      renderCallsignBuilder();
+    });
+  }
+
   container.querySelectorAll(".callsign-slot").forEach(slotEl => {
     slotEl.addEventListener("click", (ev) => {
       ev.stopPropagation();
       activeCallsignSlot = parseInt(slotEl.dataset.slot, 10) || 0;
+      isCallsignKeypadOpen = true;
       soundManager.play("bounce", { pitch: 1.25, volume: 0.3 });
       renderCallsignBuilder();
     });
@@ -1635,7 +1907,7 @@ function renderCallsignBuilder() {
       ev.stopPropagation();
       isSafehouseMode = false;
       safehouseUpgradesRemaining = 0;
-      clearCallsignSlots();
+      isCallsignKeypadOpen = false;
       soundManager.play("bounce", { pitch: 1.15, volume: 0.4 });
       renderCallsignBuilder();
     });
@@ -1657,6 +1929,9 @@ function renderCallsignBuilder() {
         p.classRank = nextLvl;
         if (!p.boundClass) p.boundClass = selectedRunnerClass;
         safehouseUpgradesRemaining = Math.max(0, safehouseUpgradesRemaining - 1);
+        if (p.savedRun) {
+          p.savedRun.safehouseUpgradesLeft = safehouseUpgradesRemaining;
+        }
         saveCallsignProfile(codeStr, p);
         rogueLevel = p.classRank;
         soundManager.play("grow", { pitch: 1.45, volume: 0.85 });
@@ -1675,6 +1950,7 @@ function renderCallsignBuilder() {
         const p = getCallsignProfile(codeStr);
         p.boundClass = null;
         p.classRank = 1;
+        p.savedRun = null;
         saveCallsignProfile(codeStr, p);
         soundManager.play("multihit", { pitch: 1.15, volume: 0.55 });
         renderCallsignBuilder();
@@ -2977,6 +3253,7 @@ function isModalInputReady(fromKeyboard = false) {
 }
 
 function playVictoryFanfareSynth(isGrandFinale = false) {
+  if (soundManager.isMuted) return;
   try {
     soundManager.init();
     const ctx = soundManager.context;
@@ -3009,7 +3286,7 @@ function playVictoryFanfareSynth(isGrandFinale = false) {
       gain.gain.setValueAtTime(0.0001, now + n.t);
       gain.gain.linearRampToValueAtTime(isGrandFinale ? 0.09 : 0.11, now + n.t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0008, now + n.t + n.d);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(soundManager.getDestination());
       osc.start(now + n.t);
       osc.stop(now + n.t + n.d + 0.02);
     });
@@ -3124,13 +3401,74 @@ function canExtractAtCurrentIntermission() {
   return sectorsCleared >= 5 && sectorsCleared % 5 === 0;
 }
 
+function jumpOutToRunnerRoster(fromKeyboard = false) {
+  if (!isLevelIntermissionOpen) return;
+  if (!isModalInputReady(fromKeyboard)) return;
+  const code = getLastInitials();
+  const nextStage = currentSector + 1;
+  if (code && code.length === 3) {
+    const prof = getCallsignProfile(code);
+    prof.savedRun = {
+      stage: nextStage,
+      sectorsCleared,
+      score,
+      unbankedCreds: runUnbankedCreds,
+      safehouseUpgradesLeft: canExtractAtCurrentIntermission() ? 1 : 0
+    };
+    prof.lastPlayedAt = Date.now();
+    if (sectorsCleared > (prof.bestSector || 0)) {
+      prof.bestSector = sectorsCleared;
+    }
+    saveCallsignProfile(code, prof);
+  }
+  isLevelIntermissionOpen = false;
+  isFinalLevelIntermission = false;
+  isCallsignKeypadOpen = false;
+  soundManager.play("bounce", { pitch: 1.2, volume: 0.5 });
+  initGame(false);
+}
+
 function extractFromSector(fromKeyboard = false) {
   if (!isLevelIntermissionOpen) return;
   if (!canExtractAtCurrentIntermission()) return;
   if (!isModalInputReady(fromKeyboard)) return;
   isLevelIntermissionOpen = false;
   isFinalLevelIntermission = false;
-  endGame(true);
+
+  const runnerCallsign = getLastInitials();
+  const isHackedRun = runUsedCheats || isAnyHackCurrentlyArmed();
+  const boardMode = isHackedRun ? "hacked" : "legit";
+  const hacksUsed = isHackedRun ? getRunHackEmojis() : [];
+
+  if (score > 0 && qualifiesForLeaderboard(score, boardMode)) {
+    addLeaderboardEntry(runnerCallsign, score, true, boardMode, hacksUsed);
+  }
+  if (!isHackedRun && score > getHighScore() && score > 0) {
+    saveHighScore(score);
+  }
+
+  const csProfile = getCallsignProfile(runnerCallsign);
+  if (csProfile) {
+    csProfile.credits = (csProfile.credits || 0) + runUnbankedCreds;
+    csProfile.extractions = (csProfile.extractions || 0) + 1;
+    if (sectorsCleared > (csProfile.bestSector || 0)) {
+      csProfile.bestSector = sectorsCleared;
+    }
+    csProfile.savedRun = {
+      stage: currentSector + 1,
+      sectorsCleared,
+      score,
+      unbankedCreds: 0,
+      safehouseUpgradesLeft: 1
+    };
+    csProfile.lastPlayedAt = Date.now();
+    saveCallsignProfile(runnerCallsign, csProfile);
+  }
+  runUnbankedCreds = 0;
+  safehouseUpgradesRemaining = 1;
+  isCallsignKeypadOpen = false;
+  soundManager.play("grow", { pitch: 1.35, volume: 0.85 });
+  initGame(true);
 }
 
 function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
@@ -3147,6 +3485,21 @@ function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
   clearedRows.clear();
   rowBonusCount = 0;
   rowBonusLevel = 0;
+
+  // Save checkpoint for the stage being entered
+  const code = getLastInitials();
+  if (code && code.length === 3) {
+    const prof = getCallsignProfile(code);
+    prof.savedRun = {
+      stage: currentSector,
+      sectorsCleared,
+      score,
+      unbankedCreds: runUnbankedCreds,
+      safehouseUpgradesLeft: 0
+    };
+    prof.lastPlayedAt = Date.now();
+    saveCallsignProfile(code, prof);
+  }
 
   createBricks();
   resetStageForNewLevel();
@@ -3217,6 +3570,24 @@ function advanceToNextSector() {
   const nextSafehouseStage = Math.ceil(clearedSectorNum / 5) * 5;
   const stagesLeftToSafehouse = nextSafehouseStage - clearedSectorNum;
 
+  // Auto-save character progress at the start of every between-stage intermission
+  const activeCode = getLastInitials();
+  if (activeCode && activeCode.length === 3) {
+    const prof = getCallsignProfile(activeCode);
+    prof.savedRun = {
+      stage: nextSectorNum,
+      sectorsCleared,
+      score,
+      unbankedCreds: runUnbankedCreds,
+      safehouseUpgradesLeft: isSafehouseCheckpoint ? 1 : 0
+    };
+    prof.lastPlayedAt = Date.now();
+    if (sectorsCleared > (prof.bestSector || 0)) {
+      prof.bestSector = sectorsCleared;
+    }
+    saveCallsignProfile(activeCode, prof);
+  }
+
   const contractsHTML = currentContractOffers.map((c, idx) => `
     <button type="button" class="breach-contract-card" data-contract-id="${c.id}" style="--contract-color: ${c.color};">
       <div class="contract-card-top">
@@ -3231,19 +3602,29 @@ function advanceToNextSector() {
 
   const safehouseActionHTML = isSafehouseCheckpoint
     ? `
-      <button type="button" id="intermission-extract-btn" class="intermission-continue-btn intermission-extract-btn">
-        🏠 RETURN TO SAFEHOUSE &amp; UPGRADE — BANK 100% (${formatArcadeScore(score)} PTS &amp; +${formatArcadeScore(runUnbankedCreds)}¢) [E]
-      </button>
+      <div class="intermission-Checkpoint-actions">
+        <button type="button" id="intermission-extract-btn" class="intermission-continue-btn intermission-extract-btn">
+          🏠 HEAD TO SAFEHOUSE — BANK 100% (+${formatArcadeScore(runUnbankedCreds)}¢) &amp; UNLOCK 1 UPGRADE [E]
+        </button>
+        <button type="button" id="intermission-jump-out-btn" class="intermission-jump-out-btn">
+          ⏸️ JUMP OUT &amp; SWITCH CHARACTER (SAVES STAGE ${nextSectorNum}) [J]
+        </button>
+      </div>
     `
     : `
-      <div class="intermission-safehouse-locked-pill">
-        🔒 SAFEHOUSE LOCKED (${clearedSectorNum % 5}/5 STAGES) — CLEAR ${stagesLeftToSafehouse} MORE STAGE${stagesLeftToSafehouse === 1 ? "" : "S"} (STAGE ${nextSafehouseStage}) TO EXTRACT &amp; UPGRADE
+      <div class="intermission-between-stage-bar">
+        <div class="intermission-safehouse-locked-pill">
+          🔒 SAFEHOUSE LOCKED (${clearedSectorNum % 5}/5 STAGES) — CLEAR ${stagesLeftToSafehouse} MORE (STAGE ${nextSafehouseStage}) TO UPGRADE
+        </div>
+        <button type="button" id="intermission-jump-out-btn" class="intermission-jump-out-btn">
+          ⏸️ JUMP OUT / SWITCH CHARACTER (SAVES STAGE ${nextSectorNum}) [J]
+        </button>
       </div>
     `;
 
   const modifierHeaderText = isSafehouseCheckpoint
-    ? `🔴 OR RISK 65% FOR ${nextTheme.emoji} STAGE ${nextSectorNum} (NEXT SAFEHOUSE AT STAGE ${clearedSectorNum + 5}): PICK 1 STAGE MODIFIER`
-    : `⚡ SELECT 1 STAGE MODIFIER FOR ${nextTheme.emoji} STAGE ${nextSectorNum} (SAFEHOUSE AT STAGE ${nextSafehouseStage})`;
+    ? `🔴 OR KEEP PLAYING INTO ${nextTheme.emoji} STAGE ${nextSectorNum} (65% AT RISK): PICK 1 STAGE MODIFIER`
+    : `⚡ CONTINUE TO ${nextTheme.emoji} STAGE ${nextSectorNum} (SAFEHOUSE AT STAGE ${nextSafehouseStage}): PICK 1 STAGE MODIFIER`;
 
   gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
   gameMessage.classList.add("level-intermission-mode");
@@ -3279,13 +3660,21 @@ function advanceToNextSector() {
     </div>
   `;
   gameMessage.style.display = "block";
-  armModalInputGuard(isSafehouseCheckpoint ? 950 : 650, "intermission-extract-btn");
+  armModalInputGuard(isSafehouseCheckpoint ? 850 : 550, "intermission-extract-btn");
 
   const extractBtn = document.getElementById("intermission-extract-btn");
   if (extractBtn && isSafehouseCheckpoint) {
     extractBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
       extractFromSector(false);
+    });
+  }
+
+  const jumpOutBtn = document.getElementById("intermission-jump-out-btn");
+  if (jumpOutBtn) {
+    jumpOutBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      jumpOutToRunnerRoster(false);
     });
   }
 
@@ -3394,34 +3783,94 @@ function createBricks() {
   bricksContainer.innerHTML = '';
   bricks = [];
 
-  // Always spawn all 5 classic brick rows (Pink, Red, Orange, Green, Cyan)!
-  // Each time the board replenishes (Sector 1..∞), difficulty scales up with more Armored & Gold Vault bricks (+ Breach Contract modifiers)!
-  const totalRows = BRICK_ROWS;
-  const armorChance = Math.min(0.75, 0.20 + (currentSector - 1) * 0.10 + getContractArmorChanceBonus());
-  const vaultChance = Math.min(0.45, (currentSector >= 2 ? 0.12 + (currentSector - 2) * 0.06 : 0) + getContractVaultChanceBonus());
+  // Stage 1 through 5 escalate in architectural formation, row depth (5 -> 6 rows), Armored Bastions, and Gold Cyber-Vaults!
+  const stageInCycle = ((Math.max(1, currentSector) - 1) % 5) + 1;
+  const cycleTier = Math.floor((Math.max(1, currentSector) - 1) / 5);
+  const totalRows = stageInCycle >= 3 ? 6 : 5;
+  const contractArmorBonus = getContractArmorChanceBonus();
+  const contractVaultBonus = getContractVaultChanceBonus();
   const equippedPool = getEquippedLoadoutPool();
 
   for (let row = 0; row < totalRows; row++) {
     for (let col = 0; col < BRICK_COLS; col++) {
+      // Deterministic Stage 1-5 Architectural Patterns + Stage Modifier escalation:
+      // tier: 0 = empty gap, 1 = standard (1-hit), 2 = armored (2-hit), 3 = gold cyber-vault (3-hit + guaranteed power-up)
+      let tier = 1;
+      const isEdgeCol = col === 0 || col === BRICK_COLS - 1;
+      const isCenterCol = col === 4 || col === 5;
+
+      if (stageInCycle === 1) {
+        // STAGE 1 (Neon Grid): Clean 5x10 Twin-Conduit Grid — Armored top row & center core, 2 vertical shot channels at cols 2 & 7 on row 3
+        if (row === 3 && (col === 2 || col === 7)) {
+          tier = 0;
+        } else if (row === 0 && (col >= 1 && col <= 8)) {
+          tier = 2;
+        } else if (row === 2 && isCenterCol) {
+          tier = 2;
+        }
+      } else if (stageInCycle === 2) {
+        // STAGE 2 (Ultraviolet Bastions): Twin Vault Citadels at (row 1, col 2 & 7) surrounded by Armored shields
+        if (row === 1 && (col === 2 || col === 7)) {
+          tier = 3;
+        } else if (row === 0 || (row === 2 && (col <= 3 || col >= 6)) || (row === 4 && isCenterCol)) {
+          tier = 2;
+        }
+      } else if (stageInCycle === 3) {
+        // STAGE 3 (Crimson Chevron Firewall): 6-Row V-Chevron Fortress with 4 Gold Vaults and Armored Chevron ribs
+        if (row === 5 && (col === 0 || col === 9)) {
+          tier = 0;
+        } else if ((row === 0 && (col === 3 || col === 6)) || (row === 2 && isCenterCol)) {
+          tier = 3;
+        } else if (row === 0 || row === 1 || Math.abs(col - 4.5) <= row + 0.5 && row <= 3) {
+          tier = 2;
+        }
+      } else if (stageInCycle === 4) {
+        // STAGE 4 (Solar Reactor Core): 6-Row Reactor Chamber with 6 Gold Vaults in the core & Armored blast walls
+        if (row === 3 && isCenterCol) {
+          tier = 0;
+        } else if ((row === 1 || row === 2) && (col === 3 || col === 4 || col === 5 || col === 6)) {
+          tier = (row === 1 || (col === 3 || col === 6)) ? 3 : 2;
+        } else if (row === 0 || row === 4 || isEdgeCol) {
+          tier = 2;
+        }
+      } else {
+        // STAGE 5 (Blackwall Fortress — Safehouse Boss Stage): 6-Row Citadel with 2 Piñata Breach Gates, 10 Gold Vaults, and heavy Armor!
+        if (row === 5 && (col === 2 || col === 7)) {
+          tier = 0; // Narrow breach gates into the upper chamber
+        } else if ((row === 0 && col >= 2 && col <= 7) || (row === 2 && (col === 1 || col === 4 || col === 5 || col === 8))) {
+          tier = 3;
+        } else if (row <= 4) {
+          tier = 2;
+        }
+      }
+
+      if (tier === 0) continue;
+
+      // Apply Stage Modifier (Breach Contract) & Endless Cycle (Stage 6+) upgrades
+      const extraRoll = Math.random();
+      if (tier === 1 && (contractVaultBonus > 0 || cycleTier > 0) && extraRoll < (contractVaultBonus + cycleTier * 0.08)) {
+        tier = 3;
+      } else if (tier === 1 && (contractArmorBonus > 0 || cycleTier > 0) && extraRoll < (contractArmorBonus + cycleTier * 0.18)) {
+        tier = 2;
+      } else if (tier === 2 && contractVaultBonus > 0 && extraRoll < contractVaultBonus) {
+        tier = 3;
+      }
+
       // 1) create the DOM element
       const el = document.createElement('div');
       const colorRow = row % BRICK_ROWS;
       el.classList.add('brick', `brick-row-${colorRow}`);
 
-      // 2) decide brick tier: Standard (1-hit), Armored (2-hit), or Gold Cyber-Vault (3-hit in Sector 2+)
-      let hitsRequired = 1;
-      let isVaultBrick = false;
-      const roll = Math.random();
-      if (vaultChance > 0 && roll < vaultChance) {
-        hitsRequired = 3;
-        isVaultBrick = true;
+      // 2) set brick tier: Standard (1-hit), Armored (2-hit), or Gold Cyber-Vault (3-hit)
+      let hitsRequired = tier;
+      let isVaultBrick = tier === 3;
+      if (isVaultBrick) {
         el.classList.add('multihit', 'brick-vault');
-      } else if (roll < vaultChance + armorChance) {
-        hitsRequired = 2;
+      } else if (hitsRequired === 2) {
         el.classList.add('multihit');
       }
 
-      // 3) maybe assign a power-up from the Runner's equipped Loadout Deck (Vault bricks always carry a capsule!)
+      // 3) maybe assign a power-up (Vault bricks ALWAYS drop a falling power-up!)
       let powerUpType = null;
       if ((isVaultBrick || Math.random() < POWER_UP_CHANCE) && equippedPool.length > 0) {
         powerUpType = equippedPool[
@@ -3702,6 +4151,38 @@ function setupGame() {
             activateReadyLaserFrenzy();
         });
     }
+
+    // Initialize Volume Control UI and event listeners
+    soundManager.loadSettings();
+    syncVolumeControlUI();
+    const volMuteBtn = document.getElementById("volume-mute-btn");
+    if (volMuteBtn) {
+        volMuteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            soundManager.init();
+            soundManager.toggleMute();
+            if (!soundManager.isMuted) {
+                soundManager.play("bounce", { pitch: 1.35, volume: 0.45 });
+            }
+        });
+    }
+    document.querySelectorAll(".vol-bar-btn").forEach(barBtn => {
+        barBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const targetVol = parseFloat(barBtn.dataset.vol || "0.75");
+            soundManager.init();
+            soundManager.setVolume(targetVol);
+            soundManager.play("bounce", { pitch: 1.0 + targetVol * 0.45, volume: 0.45 });
+        });
+    });
+    const volPctLabel = document.getElementById("volume-pct-label");
+    if (volPctLabel) {
+        volPctLabel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            soundManager.init();
+            soundManager.toggleMute();
+        });
+    }
 }
 
 function startGame() {
@@ -3713,10 +4194,25 @@ function startGame() {
             promptCallsignRequired();
             return;
         }
+        const activeCode = getLastInitials();
         // Permanently bind this Callsign to its selected Class if not yet bound!
-        bindCallsignToClass(getLastInitials(), selectedRunnerClass);
+        bindCallsignToClass(activeCode, selectedRunnerClass);
+        const prof = getCallsignProfile(activeCode);
+        const resumeState = (prof.savedRun && prof.savedRun.stage > 1) ? { ...prof.savedRun } : null;
+        prof.lastPlayedAt = Date.now();
+        saveCallsignProfile(activeCode, prof);
+
         initGame(); 
-        score = 0;
+        if (resumeState) {
+            currentSector = resumeState.stage;
+            sectorsCleared = resumeState.sectorsCleared || (currentSector - 1);
+            score = resumeState.score || 0;
+            runUnbankedCreds = resumeState.unbankedCreds || 0;
+            scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
+            createBricks();
+        } else {
+            score = 0;
+        }
         lives = 1;
         gameOver = false;
         rowBonusLevel = 0;
@@ -3765,12 +4261,13 @@ function startGame() {
         if (typeof applyArmedHackModesOnStart === 'function') {
             applyArmedHackModesOnStart();
         }
+        const launchTheme = getSectorTheme(currentSector);
         showNotification({
-          title: "🌐 STAGE 1: NEON GRID",
+          title: `${launchTheme.emoji} STAGE ${currentSector}: ${launchTheme.name}`,
           emoji: "🚀",
-          name: "READY TO LAUNCH!",
+          name: resumeState ? `RESUMING STAGE ${currentSector}!` : "READY TO LAUNCH!",
           description: "AIM PADDLE • CLICK OR SPACE TO SERVE!",
-          color: "#00ffff",
+          color: launchTheme.color || "#00ffff",
           mode: "burst"
         }, { x: paddleX });
         requestAnimationFrame(gameLoop);
@@ -4980,6 +5477,18 @@ function endGame(won) {
     } else if (!won && currentSector > (csProfile.bestSector || 0)) {
       csProfile.bestSector = Math.max(csProfile.bestSector || 0, sectorsCleared);
     }
+    if (!won) {
+      csProfile.savedRun = null;
+    } else if (earnedSafehouseAccess) {
+      csProfile.savedRun = {
+        stage: currentSector + 1,
+        sectorsCleared,
+        score,
+        unbankedCreds: 0,
+        safehouseUpgradesLeft: 1
+      };
+    }
+    csProfile.lastPlayedAt = Date.now();
     saveCallsignProfile(runnerCallsign, csProfile);
   }
   renderCallsignBuilder();
@@ -5376,8 +5885,15 @@ document.addEventListener("keydown", e => {
     isSpaceHeldDown = true;
   }
 
-  // Between-Sector Extraction / Breach Terminal: E/SPACE/ENTER extracts ONLY at 5-stage checkpoints; 1/2/3 signs a Breach Contract!
+  // Between-Sector Extraction / Breach Terminal: E/SPACE/ENTER extracts ONLY at 5-stage checkpoints; J jumps out to character roster; 1/2/3 signs a Breach Contract!
   if (isLevelIntermissionOpen) {
+    if ("j" === t) {
+      e.preventDefault();
+      if (!e.repeat && isModalInputReady(false)) {
+        jumpOutToRunnerRoster(true);
+      }
+      return;
+    }
     if (("e" === t || " " === t || "enter" === t) && canExtractAtCurrentIntermission()) {
       e.preventDefault();
       if (!e.repeat && isModalInputReady(true)) {
@@ -5397,6 +5913,14 @@ document.addEventListener("keydown", e => {
       e.preventDefault();
       return;
     }
+  }
+
+  // Global [M] mute shortcut when not typing a Callsign on the Start Screen
+  if ("m" === t && !isStartScreenOpen() && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
+    e.preventDefault();
+    soundManager.init();
+    soundManager.toggleMute();
+    return;
   }
 
   // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad, or 1-4 to pick Class
@@ -5717,6 +6241,7 @@ function kickStandaloneSparkLoop() {
 const CAT_PITCH_STEPS = [0.94, 1.02, 1.10, 1.18, 1.26, 1.34];
 
 function playCuteCatSound(name, options = {}) {
+  if (soundManager.isMuted) return;
   try {
     soundManager.init();
     const ctx = soundManager.context;
@@ -5757,7 +6282,7 @@ function playCuteCatSound(name, options = {}) {
       gain.gain.exponentialRampToValueAtTime(0.01, now + playDur);
 
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(soundManager.getDestination());
       source.start(now, 0, playDur);
       return;
     }
@@ -5771,7 +6296,7 @@ function playCuteCatSound(name, options = {}) {
     osc.frequency.exponentialRampToValueAtTime(640 * pitchStep, now + 0.22);
     gain.gain.setValueAtTime(0.25, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(soundManager.getDestination());
     osc.start(now);
     osc.stop(now + 0.25);
   } catch (e) {
@@ -5826,7 +6351,7 @@ const GOD_CHORDS = [
 ];
 
 function playGodChoirMeasure() {
-  if (!activeHackModes.has("god")) return;
+  if (!activeHackModes.has("god") || soundManager.isMuted) return;
   try {
     soundManager.init();
     const ctx = soundManager.context;
@@ -5859,7 +6384,7 @@ function playGodChoirMeasure() {
       osc.connect(filter);
       osc2.connect(filter);
       filter.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(soundManager.getDestination());
 
       osc.start(now);
       osc2.start(now);
@@ -5875,7 +6400,7 @@ function playGodChoirMeasure() {
       harpGain.gain.setValueAtTime(0.0001, noteStart);
       harpGain.gain.linearRampToValueAtTime(0.038, noteStart + 0.02);
       harpGain.gain.exponentialRampToValueAtTime(0.0005, noteStart + 0.65);
-      harpOsc.connect(harpGain).connect(ctx.destination);
+      harpOsc.connect(harpGain).connect(soundManager.getDestination());
       harpOsc.start(noteStart);
       harpOsc.stop(noteStart + 0.7);
     });
