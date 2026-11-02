@@ -3967,9 +3967,11 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .intermission-continue-btn {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   padding: 14px 18px;
   color: #041208;
   background: linear-gradient(90deg, #39ff14 0%, #90ff5a 50%, #00ff88 100%);
@@ -3977,13 +3979,199 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 0 20px rgba(57, 255, 20, 0.75);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease;
 }
 
-.intermission-continue-btn:hover {
+.intermission-continue-btn:hover:not(.btn-arming-guard) {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 0 30px rgba(57, 255, 20, 1);
 }
+
+.finale-continue-btn {
+  background: linear-gradient(90deg, #ffd700 0%, #fff08a 50%, #39ff14 100%);
+  color: #160c00;
+  box-shadow: 0 0 26px rgba(255, 215, 0, 0.9), 0 0 44px rgba(57, 255, 20, 0.55);
+}
+
+/* Anti-Mash Input Guard Sweep Animation */
+@keyframes buttonArmSweep {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.btn-arming-guard {
+  pointer-events: none;
+  filter: saturate(0.75) brightness(0.88);
+  cursor: wait !important;
+}
+
+.btn-arming-guard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.48));
+  transform-origin: left center;
+  animation: buttonArmSweep 1.15s linear forwards;
+  pointer-events: none;
+}
+
+/* Reward Grid inside Level 1-5 Complete Cards */
+.intermission-reward-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.intermission-reward-box {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 8px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.reward-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
+  color: #b7d2f0;
+  letter-spacing: 0.5px;
+}
+
+.reward-val {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.62rem;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
+}
+
+/* Level 5 Finale Complete Card Accents */
+.finale-intermission-card {
+  width: min(540px, 94vw);
+  border-color: #ffd700 !important;
+  background: radial-gradient(circle at 50% 0%, rgba(56, 36, 10, 0.98) 0%, rgba(16, 10, 34, 0.98) 78%);
+  box-shadow:
+    0 20px 58px rgba(0, 0, 0, 0.92),
+    0 0 38px rgba(255, 215, 0, 0.8),
+    0 0 72px rgba(255, 0, 255, 0.45),
+    inset 0 0 28px rgba(255, 215, 0, 0.25);
+}
+
+.finale-kicker {
+  color: #ffd700 !important;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.85) !important;
+}
+
+.finale-title {
+  font-size: 1.28rem !important;
+  color: #ffffff;
+  text-shadow: 0 0 14px #ffd700, 0 0 28px #ff00ff !important;
+}
+
+.finale-next-box {
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.intermission-finale-desc {
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #eef6ff;
+  line-height: 1.4;
+}
+
+/* Grand Finale Victory Screen Summary & Rank Banner */
+#game-message.victory-celebration {
+  width: 590px;
+  max-width: 95%;
+}
+
+.end-modal-card.win-card {
+  padding: 14px 20px 12px;
+}
+
+.victory-rank-pill {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.14);
+  border: 1px solid rgba(255, 215, 0, 0.55);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.victory-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.victory-stat-box {
+  background: rgba(8, 14, 26, 0.82);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 7px;
+  padding: 6px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.v-stat-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #9cb8d8;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.v-stat-val {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.v-stat-val.v-gold {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.64rem;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.65);
+}
+
+.v-stat-val.v-green {
+  color: #39ff14;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.55);
+}
+
+.v-sub {
+  font-size: 0.62rem;
+  color: #8ab4f8;
+  font-weight: 600;
+}
+
 
 
 

@@ -2140,8 +2140,108 @@ function updateRogueProgressionFrame(dt) {
   }
 }
 
-function resumeFromLevelIntermission() {
-  if (!isLevelIntermissionOpen || gameOver) return;
+// ─── Anti-Mash Modal Input Lock & Victory Fanfare Synth ───
+let modalInputUnlockTime = 0;
+let isSpaceHeldDown = false;
+let spaceReleasedSinceModalOpen = true;
+let isFinalLevelIntermission = false;
+let modalGuardTimer = null;
+
+function armModalInputGuard(lockMs = 1150, btnId = "intermission-continue-btn") {
+  modalInputUnlockTime = performance.now() + lockMs;
+  spaceReleasedSinceModalOpen = !isSpaceHeldDown;
+  if (modalGuardTimer) clearTimeout(modalGuardTimer);
+
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.classList.add("btn-arming-guard");
+    btn.style.setProperty("--guard-ms", `${lockMs}ms`);
+  }
+  modalGuardTimer = setTimeout(() => {
+    const targetBtn = document.getElementById(btnId);
+    if (targetBtn) {
+      targetBtn.classList.remove("btn-arming-guard");
+    }
+  }, lockMs);
+}
+
+function isModalInputReady(fromKeyboard = false) {
+  if (performance.now() < modalInputUnlockTime) return false;
+  if (fromKeyboard && !spaceReleasedSinceModalOpen) return false;
+  return true;
+}
+
+function playVictoryFanfareSynth(isGrandFinale = false) {
+  try {
+    soundManager.init();
+    const ctx = soundManager.context;
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+
+    const now = ctx.currentTime;
+    const notes = isGrandFinale
+      ? [
+          { f: 523.25, t: 0.00, d: 0.16 }, // C5
+          { f: 659.25, t: 0.14, d: 0.16 }, // E5
+          { f: 783.99, t: 0.28, d: 0.16 }, // G5
+          { f: 1046.50, t: 0.42, d: 0.32 }, // C6
+          { f: 783.99, t: 0.76, d: 0.16 }, // G5
+          { f: 1046.50, t: 0.94, d: 0.65 }, // C6
+          { f: 1318.51, t: 0.94, d: 0.65 }  // E6 harmony
+        ]
+      : [
+          { f: 440.00, t: 0.00, d: 0.13 }, // A4
+          { f: 554.37, t: 0.12, d: 0.13 }, // C#5
+          { f: 659.25, t: 0.24, d: 0.15 }, // E5
+          { f: 880.00, t: 0.38, d: 0.45 }  // A5
+        ];
+
+    notes.forEach(n => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = isGrandFinale ? "sawtooth" : "triangle";
+      osc.frequency.setValueAtTime(n.f, now + n.t);
+      gain.gain.setValueAtTime(0.0001, now + n.t);
+      gain.gain.linearRampToValueAtTime(isGrandFinale ? 0.09 : 0.11, now + n.t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + n.t + n.d);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + n.t);
+      osc.stop(now + n.t + n.d + 0.02);
+    });
+  } catch (e) {
+    // Ignore audio context errors
+  }
+}
+
+function spawnVictoryDOMConfetti(count = 28) {
+  if (!gameArea) return;
+  const colors = ["#ffd700", "#00ffff", "#ff00ff", "#39ff14", "#ff8c00", "#ffffff"];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti";
+    piece.style.left = `${Math.round(24 + Math.random() * (GAME_WIDTH - 48))}px`;
+    piece.style.color = colors[i % colors.length];
+    piece.style.background = colors[i % colors.length];
+    piece.style.setProperty("--confetti-drift", `${Math.round((Math.random() - 0.5) * 140)}px`);
+    piece.style.animationDelay = `${(Math.random() * 0.45).toFixed(2)}s`;
+    gameArea.appendChild(piece);
+    setTimeout(() => piece.remove(), 2300);
+  }
+}
+
+function resumeFromLevelIntermission(fromKeyboard = false) {
+  if (!isLevelIntermissionOpen) return;
+  if (!isModalInputReady(fromKeyboard)) return;
+
+  // If this was the Level 5 Complete screen, transition into the Grand Finale Victory Screen!
+  if (isFinalLevelIntermission) {
+    isFinalLevelIntermission = false;
+    isLevelIntermissionOpen = false;
+    endGame(true);
+    return;
+  }
+
+  if (gameOver) return;
   isLevelIntermissionOpen = false;
   gameMessage.classList.remove("level-intermission-mode");
   gameMessage.style.display = "none";
@@ -2155,17 +2255,91 @@ function resumeFromLevelIntermission() {
 function advanceToNextSector() {
   sectorsCleared++;
   const clearedSectorNum = currentSector;
+  const clearedTheme = BOARD_LEVEL_THEMES[clearedSectorNum] || BOARD_LEVEL_THEMES[1];
   const sectorBonus = 500 * clearedSectorNum;
   score += sectorBonus;
   if (isCatMode) score = score - (score % 10) + 9;
   scoreDisplay.textContent = `Score: ${score}`;
 
-  // If the player just cleared the final Board Level (MAX_LEVELS = 5), they beat the game!
-  if (currentSector >= MAX_LEVELS) {
-    endGame(true);
+  // Pause gameplay first so standalone sparkler fireworks & confetti render cleanly!
+  clearTimeout(autoLaunchTimeout);
+  isLevelIntermissionOpen = true;
+  gameRunning = false;
+  gameArea.classList.remove("hide-cursor");
+
+  // Clear active lasers so no stray bolts remain in the air
+  lasers.forEach(l => l.element.remove());
+  lasers = [];
+  gameArea.querySelectorAll(".brick.extra").forEach(el => el.remove());
+
+  // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
+  awardRogueXP(8);
+  syncRogueHUD();
+
+  const cDef = getSelectedClassDef();
+  const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)];
+
+  // Check if the player just cleared the final Board Level (Level 5)!
+  if (clearedSectorNum >= MAX_LEVELS) {
+    isFinalLevelIntermission = true;
+    soundManager.play("winSong");
+    playVictoryFanfareSynth(true);
+    spawnVictoryDOMConfetti(36);
+    if (typeof spawnConfettiShards === "function") {
+      spawnConfettiShards(170);
+    }
+    if (typeof triggerCollisionSparklers === "function") {
+      triggerCollisionSparklers(180, 200, "brick");
+      triggerCollisionSparklers(GAME_WIDTH - 180, 200, "brick");
+    }
+
+    gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
+    gameMessage.classList.add("level-intermission-mode");
+    gameMessage.style.setProperty("--sector-accent", "#ffd700");
+    gameMessage.innerHTML = `
+      <div class="level-intermission-card finale-intermission-card" style="--sector-accent: #ffd700;">
+        <div class="intermission-kicker finale-kicker">👑 FINAL SECTOR ${clearedSectorNum} OF ${MAX_LEVELS} CLEARED // ${clearedTheme.name} SHATTERED! 👑</div>
+        <h2 class="intermission-title finale-title">LEVEL ${clearedSectorNum} COMPLETE!</h2>
+        <div class="intermission-reward-grid">
+          <div class="intermission-reward-box">
+            <span class="reward-lbl">FINAL CLEAR BONUS</span>
+            <strong class="reward-val">+${formatArcadeScore(sectorBonus)} PTS</strong>
+          </div>
+          <div class="intermission-reward-box">
+            <span class="reward-lbl">CLASS MASTERED</span>
+            <strong class="reward-val">${cDef.emoji} ${cDef.name} L${rogueLevel}</strong>
+          </div>
+          <div class="intermission-reward-box">
+            <span class="reward-lbl">FINAL CAMPAIGN SCORE</span>
+            <strong class="reward-val">${formatArcadeScore(score)}</strong>
+          </div>
+        </div>
+        <div class="intermission-next-box finale-next-box">
+          <div class="intermission-next-label">🏆 ALL ${MAX_LEVELS} CYBER-SECTORS CONQUERED! 🏆</div>
+          <div class="intermission-next-name" style="color: #ffd700;">250 / 250 BRICKS OBLITERATED</div>
+          <div class="intermission-finale-desc">
+            You survived every escalating sector from the Neon Grid to the Blackwall Core! Step into the Hall of Fame to claim your final Cyber-Runner Rank.
+          </div>
+        </div>
+        <button type="button" id="intermission-continue-btn" class="intermission-continue-btn finale-continue-btn">
+          🏆 CLAIM GRAND VICTORY &amp; RANK [SPACE / CLICK]
+        </button>
+      </div>
+    `;
+    gameMessage.style.display = "block";
+    armModalInputGuard(1250, "intermission-continue-btn");
+
+    const continueBtn = document.getElementById("intermission-continue-btn");
+    if (continueBtn) {
+      continueBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        resumeFromLevelIntermission(false);
+      });
+    }
     return;
   }
 
+  isFinalLevelIntermission = false;
   currentSector++;
   clearedRows.clear();
   rowBonusCount = 0;
@@ -2173,10 +2347,6 @@ function advanceToNextSector() {
   isRoofBonusActive = false;
   ball.classList.remove("bonus-active");
 
-  // Clear active lasers & leftover falling capsules before replenishing the board at higher difficulty
-  lasers.forEach(l => l.element.remove());
-  lasers = [];
-  gameArea.querySelectorAll(".brick.extra").forEach(el => el.remove());
   createBricks();
   updatePaddleWidth();
 
@@ -2193,8 +2363,13 @@ function advanceToNextSector() {
   }
 
   soundManager.play("winSong");
+  playVictoryFanfareSynth(false);
+  spawnVictoryDOMConfetti(22);
   if (typeof spawnConfettiShards === "function") {
-    spawnConfettiShards(110);
+    spawnConfettiShards(120);
+  }
+  if (typeof triggerCollisionSparklers === "function") {
+    triggerCollisionSparklers(GAME_WIDTH / 2, 220, "brick");
   }
 
   const newMult = getSectorScoreMultiplier();
@@ -2203,50 +2378,49 @@ function advanceToNextSector() {
 
   syncBoardLevelAtmosphere();
 
-  // Grant +8 XP bonus on clearing a board toward the player's 5-level Class Path
-  awardRogueXP(8);
-  syncRogueHUD();
-
-  // Pause and show the celebratory Between-Level Intermission Screen so the player can celebrate & click/press SPACE when ready!
-  clearTimeout(autoLaunchTimeout);
-  isLevelIntermissionOpen = true;
-  gameRunning = false;
-  gameArea.classList.remove("hide-cursor");
-
-  const cDef = getSelectedClassDef();
-  const activeTier = cDef.tiers[Math.min(cDef.tiers.length - 1, rogueLevel - 1)];
-
   gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
   gameMessage.classList.add("level-intermission-mode");
-  gameMessage.style.setProperty("--intermission-color", theme.color);
+  gameMessage.style.setProperty("--sector-accent", theme.color);
   gameMessage.innerHTML = `
-    <div class="level-intermission-card">
-      <div class="intermission-kicker">🎉 CONGRATULATIONS // BOARD ${clearedSectorNum} OF ${MAX_LEVELS} CLEARED! 🎉</div>
-      <div class="intermission-title">LEVEL ${clearedSectorNum} COMPLETE!</div>
-      <div class="intermission-bonus-pill">+${formatArcadeScore(sectorBonus)} PTS CLEAR BONUS &bull; +8 CLASS XP</div>
-      <div class="intermission-next-box" style="--next-color: ${theme.color};">
-        <div class="next-box-header">${theme.emoji} NEXT UP: LEVEL ${currentSector} // ${theme.name}</div>
-        <div class="next-box-stats">
-          <span>📈 <strong>×${newMult}</strong> BOARD MULTIPLIER</span>
-          <span>⚡ <strong>+${spdPct}%</strong> BALL SPEED</span>
-          <span>🛡️ MORE ARMOR &amp; GOLD VAULTS</span>
+    <div class="level-intermission-card" style="--sector-accent: ${theme.color};">
+      <div class="intermission-kicker">🎉 SECTOR 0${clearedSectorNum} OF 0${MAX_LEVELS} CLEARED // ${clearedTheme.name} 🎉</div>
+      <h2 class="intermission-title">LEVEL ${clearedSectorNum} COMPLETE!</h2>
+      <div class="intermission-reward-grid">
+        <div class="intermission-reward-box">
+          <span class="reward-lbl">CLEAR BONUS</span>
+          <strong class="reward-val">+${formatArcadeScore(sectorBonus)} PTS</strong>
+        </div>
+        <div class="intermission-reward-box">
+          <span class="reward-lbl">CLASS UPGRADE</span>
+          <strong class="reward-val">+8 XP &bull; L${rogueLevel} ${activeTier ? activeTier.label : ""}</strong>
+        </div>
+        <div class="intermission-reward-box">
+          <span class="reward-lbl">CURRENT SCORE</span>
+          <strong class="reward-val">${formatArcadeScore(score)}</strong>
         </div>
       </div>
-      <div class="intermission-runner-status">
-        ${cDef.emoji} <strong>${cDef.name}</strong> &bull; Tier L${rogueLevel}: ${activeTier ? activeTier.label : ""} &bull; Score: <strong>${formatArcadeScore(score)}</strong>
+      <div class="intermission-next-box" style="--sector-accent: ${theme.color};">
+        <div class="intermission-next-label">NEXT DESTINATION // SECTOR 0${currentSector} OF 0${MAX_LEVELS}</div>
+        <div class="intermission-next-name" style="color: ${theme.color};">${theme.emoji} LEVEL ${currentSector}: ${theme.name}</div>
+        <div class="intermission-stats-grid">
+          <div>BOARD MULTIPLIER<strong>×${newMult} ALL POINTS</strong></div>
+          <div>BALL VELOCITY<strong>+${spdPct}% SPEED</strong></div>
+          <div>GRID DEFENSE<strong>ARMOR &amp; GOLD VAULTS</strong></div>
+        </div>
       </div>
-      <button type="button" id="intermission-continue-btn" class="end-action-btn end-play-btn intermission-cta-btn">
-        ▶ START LEVEL ${currentSector} [SPACE / CLICK]
+      <button type="button" id="intermission-continue-btn" class="intermission-continue-btn">
+        ▶ LAUNCH LEVEL ${currentSector} [SPACE / CLICK]
       </button>
     </div>
   `;
   gameMessage.style.display = "block";
+  armModalInputGuard(1150, "intermission-continue-btn");
 
   const continueBtn = document.getElementById("intermission-continue-btn");
   if (continueBtn) {
     continueBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      resumeFromLevelIntermission();
+      resumeFromLevelIntermission(false);
     });
   }
 }
@@ -2268,6 +2442,7 @@ function initGame() {
     isRoofBonusActive = false;
     isNeonLegend = false;
     isLevelIntermissionOpen = false;
+    isFinalLevelIntermission = false;
     hideCyberPopover();
     ball.classList.remove('bonus-active', 'ball-piercing', 'ball-slingshot', 'neon-legend-active');
     lasers.forEach(l => l.element.remove());
@@ -2784,7 +2959,7 @@ function gameLoop(timestamp) {
     if (typeof isHackModeActive === "function" && isHackModeActive("cat") && typeof handleCatNineLivesSave === "function" && handleCatNineLivesSave()) {
       // Saved by one of the cat's 9 lives!
     } else {
-      endGame(sectorsCleared > 0);
+      endGame(false);
       return;
     }
   }
@@ -3708,6 +3883,7 @@ function startVictoryCelebrationShow() {
     gameArea.classList.add("victory-arena-glow");
   }
   spawnConfettiShards(180);
+  spawnVictoryDOMConfetti(38);
   if (typeof triggerCollisionSparklers === "function") {
     triggerCollisionSparklers(140, 180, "brick");
     triggerCollisionSparklers(GAME_WIDTH - 140, 180, "brick");
@@ -3717,7 +3893,8 @@ function startVictoryCelebrationShow() {
       stopVictoryCelebrationShow();
       return;
     }
-    spawnConfettiShards(75);
+    spawnConfettiShards(85);
+    spawnVictoryDOMConfetti(14);
     if (typeof triggerCollisionSparklers === "function") {
       const fxX = Math.random() < 0.5
         ? 60 + Math.random() * 140
@@ -3725,13 +3902,14 @@ function startVictoryCelebrationShow() {
       const fxY = 90 + Math.random() * 340;
       triggerCollisionSparklers(fxX, fxY, "brick");
     }
-  }, 900);
+  }, 850);
 }
 
 function endGame(won) {
   gameOver = true;
   gameRunning = false;
   isLevelIntermissionOpen = false;
+  isFinalLevelIntermission = false;
   pendingEndGameWon = !!won;
   awaitingInitials = false;
   cancelAnimationFrame(animationFrameId);
@@ -3740,6 +3918,7 @@ function endGame(won) {
   if (pauseButton) pauseButton.style.display = "none";
   if (won) {
     soundManager.play("winSong");
+    playVictoryFanfareSynth(true);
     startVictoryCelebrationShow();
   } else {
     stopVictoryCelebrationShow();
@@ -3754,6 +3933,8 @@ function endGame(won) {
   const isNewLegitHigh = !isHackedRun && score > prevLegitHigh && score > 0;
 
   const runnerCallsign = getLastInitials();
+  const lore = typeof getCallsignLore === "function" ? getCallsignLore(runnerCallsign) : null;
+  const cDef = getSelectedClassDef();
   const hacksUsed = isHackedRun ? getRunHackEmojis() : [];
   const qualifies = score > 0 && qualifiesForLeaderboard(score, boardMode);
   const savedEntry = qualifies ? addLeaderboardEntry(runnerCallsign, score, won, boardMode, hacksUsed) : null;
@@ -3761,10 +3942,10 @@ function endGame(won) {
 
   const rating = getRating(score, won);
   const titleText = won
-    ? (currentSector >= MAX_LEVELS
-        ? `🏆 VICTORY // ALL ${MAX_LEVELS} LEVELS CLEARED! 🏆`
-        : `🎉 LEVEL ${currentSector} CLEARED! 🎉`)
-    : "SYSTEM FAILURE!";
+    ? `🏆 GRAND FINALE VICTORY // ALL ${MAX_LEVELS} SECTORS CONQUERED! 🏆`
+    : (sectorsCleared > 0
+        ? `💀 SYSTEM FAILURE // ENDED ON LEVEL ${currentSector} (${sectorsCleared}/${MAX_LEVELS} CLEARED)`
+        : `💀 SYSTEM FAILURE // ENDED ON LEVEL 1`);
   const augSummary = getActiveAugmentIcons().join(" ");
 
   let savedBannerHTML = "";
@@ -3776,8 +3957,8 @@ function endGame(won) {
   } else if (savedEntry) {
     savedBannerHTML = `<div class="record-saved-banner">${
       isNewLegitHigh
-        ? `👑 NEW #1 HIGH SCORE FOR ${savedEntry.initials}!`
-        : `🏆 TOP 5 RECORD SAVED FOR ${savedEntry.initials}!`
+        ? `👑 NEW #1 ALL-TIME HIGH SCORE FOR ${savedEntry.initials}!`
+        : `🏆 TOP 5 HALL OF FAME RECORD SAVED FOR ${savedEntry.initials}!`
     }</div>`;
   } else {
     const legitBoard = getLeaderboard("legit");
@@ -3787,26 +3968,54 @@ function endGame(won) {
 
   const highlightId = savedEntry ? savedEntry.id : lastSavedEntryId;
 
+  const summaryBlockHTML = won
+    ? `
+      <div class="victory-rank-pill">👑 FINAL CYBER-RUNNER RANK ACHIEVED 👑</div>
+      <span class="name rating win-rating">${rating}</span>
+      <div class="victory-summary-grid">
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">FINAL SCORE</span>
+          <strong class="v-stat-val v-gold">${formatArcadeScore(score)}</strong>
+        </div>
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">CHAMPION RUNNER</span>
+          <strong class="v-stat-val">${runnerCallsign} <span class="v-sub">${lore ? `• ${lore.origin}` : ""}</span></strong>
+        </div>
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">AUGMENT TIER</span>
+          <strong class="v-stat-val">${cDef.emoji} L${rogueLevel}/${cDef.tiers.length} ${augSummary}</strong>
+        </div>
+        <div class="victory-stat-box">
+          <span class="v-stat-lbl">CAMPAIGN</span>
+          <strong class="v-stat-val v-green">${MAX_LEVELS}/${MAX_LEVELS} CLEARED</strong>
+        </div>
+      </div>
+    `
+    : `
+      <span class="name rating">${rating}</span>
+      <span class="description">Runner: ${runnerCallsign} &bull; Level ${currentSector}/${MAX_LEVELS} &bull; ${cDef.emoji} L${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
+    `;
+
   gameMessage.classList.remove("level-intermission-mode");
   gameMessage.classList.add("end-overlay-mode");
   gameMessage.classList.toggle("victory-celebration", !!won);
   gameMessage.innerHTML = `
     <div class="end-modal-card ${won ? "win-card" : "loss-card"}">
       <span class="title ${won ? "win-kicker" : ""}">${titleText}</span>
-      <span class="name rating ${won ? "win-rating" : ""}">${rating}</span>
-      <span class="description">Runner: ${runnerCallsign} &bull; Level ${currentSector}/${MAX_LEVELS} &bull; Tier L${rogueLevel}${augSummary ? ` (${augSummary})` : ""} &bull; Score: ${formatArcadeScore(score)}${isHackedRun ? ` <span class="end-run-hack-tag">(${hacksUsed.join("")} HACKED)</span>` : ""}</span>
+      ${summaryBlockHTML}
       ${savedBannerHTML}
       <div id="end-leaderboard" class="leaderboard-panel">
         ${renderLeaderboardHTML(highlightId, activeLeaderboardTab)}
       </div>
     </div>
     <div class="end-game-actions">
-      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">▶ PLAY AGAIN [SPACE]</button>
+      <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🏆 PLAY NEW CAMPAIGN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
       <button type="button" id="end-switch-runner-btn" class="end-action-btn end-switch-btn">🕹️ SWITCH RUNNER [C]</button>
     </div>
   `;
   gameMessage.style.display = "block";
   gameArea.classList.remove("hide-cursor");
+  armModalInputGuard(won ? 1450 : 950, "end-play-again-btn");
 
   const endLb = document.getElementById("end-leaderboard");
   if (endLb) {
@@ -3816,6 +4025,7 @@ function endGame(won) {
   if (playAgainBtn) {
     playAgainBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
+      if (!isModalInputReady(false)) return;
       if (gameOver && assetsReady) startGame();
     });
   }
@@ -3823,6 +4033,7 @@ function endGame(won) {
   if (switchRunnerBtn) {
     switchRunnerBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
+      if (!isModalInputReady(false)) return;
       clearCallsignSlots();
       initGame();
     });
@@ -4067,12 +4278,17 @@ document.addEventListener("keydown", e => {
   }
 
   const t = e.key.toLowerCase();
+  if (" " === t) {
+    isSpaceHeldDown = true;
+  }
 
-  // Between-Level Intermission Screen: SPACE or ENTER continues to the next level!
-  if (isLevelIntermissionOpen && !gameOver) {
+  // Between-Level Intermission Screen (Levels 1-5): SPACE or ENTER continues only after anti-mash lock & key release!
+  if (isLevelIntermissionOpen) {
     if (" " === t || "enter" === t) {
       e.preventDefault();
-      resumeFromLevelIntermission();
+      if (!e.repeat && isModalInputReady(true)) {
+        resumeFromLevelIntermission(true);
+      }
       return;
     }
   }
@@ -4081,7 +4297,7 @@ document.addEventListener("keydown", e => {
   if (isStartScreenOpen()) {
     if (" " === t || "enter" === t) {
       e.preventDefault();
-      assetsReady && startGame();
+      !e.repeat && assetsReady && startGame();
       return;
     }
     if (["1", "2", "3", "4"].includes(t)) {
@@ -4118,8 +4334,10 @@ document.addEventListener("keydown", e => {
 
   if (gameOver && gameMessage.style.display === "block" && "c" === t) {
     e.preventDefault();
-    clearCallsignSlots();
-    initGame();
+    if (!e.repeat && isModalInputReady(false)) {
+      clearCallsignSlots();
+      initGame();
+    }
     return;
   }
 
@@ -4130,11 +4348,15 @@ document.addEventListener("keydown", e => {
   } else if (" " === t) {
     e.preventDefault();
     if (gameOver) {
-      assetsReady && startGame();
+      if (!e.repeat && isModalInputReady(true) && assetsReady) {
+        startGame();
+      }
     } else if (isLevelIntermissionOpen) {
-      resumeFromLevelIntermission();
+      if (!e.repeat && isModalInputReady(true)) {
+        resumeFromLevelIntermission(true);
+      }
     } else if (!gameRunning) {
-      togglePause();
+      !e.repeat && togglePause();
     } else {
       if (ballIsStuck) launchStuckBall();
       if (isLaserActive) fireLaser();
@@ -4145,14 +4367,22 @@ document.addEventListener("keydown", e => {
     !gameOver && !isLevelIntermissionOpen && togglePause();
   }
 });
-document.addEventListener("keyup",e=>{const t=e.key.toLowerCase();"arrowleft"===t||"a"===t?leftPressed=!1:"arrowright"===t||"d"===t&&(rightPressed=!1)});
+document.addEventListener("keyup", e => {
+  const t = e.key.toLowerCase();
+  if (" " === t) {
+    isSpaceHeldDown = false;
+    spaceReleasedSinceModalOpen = true;
+  }
+  if ("arrowleft" === t || "a" === t) leftPressed = false;
+  else if ("arrowright" === t || "d" === t) rightPressed = false;
+});
 document.addEventListener("mousemove",e=>{if(gameRunning||isLevelIntermissionOpen){const t=gameArea.getBoundingClientRect();let o=e.clientX-t.left,r=paddleWidth/2;o<r?o=r:o>GAME_WIDTH-r&&(o=GAME_WIDTH-r),paddleX=o}});
 
-// Allow clicking on the playfield during gameplay to launch a Mag-Locked/stuck ball (with mouse flick velocity!) or fire lasers, or resume from intermission
+// Allow clicking on the playfield during active gameplay to launch a Mag-Locked/stuck ball (with mouse flick velocity!) or fire lasers
 gameArea.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
-  if (isLevelIntermissionOpen && !gameOver) {
-    resumeFromLevelIntermission();
+  if (isLevelIntermissionOpen) {
+    // Only the explicit #intermission-continue-btn handles clicks on the intermission screen so stray laser clicks never skip it!
     return;
   }
   if (gameRunning && !gameOver) {
@@ -4258,6 +4488,9 @@ function triggerCollisionSparklers(x, y, hitType = "brick") {
     const maxLife = 0.28 + Math.random() * 0.55;
     const size = kind === 1 ? (4 + Math.random() * 4) : (1.6 + Math.random() * 2.2);
     emitSparkParticle(x, y, vx, vy, color, maxLife, size, kind);
+  }
+  if (!gameRunning && typeof kickStandaloneSparkLoop === "function") {
+    kickStandaloneSparkLoop();
   }
 }
 
