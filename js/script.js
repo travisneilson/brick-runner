@@ -1371,12 +1371,12 @@ function getCallsignChars() {
 
 let isSafehouseMode = false;
 let safehouseLeaderboardOpen = false;
+let safehouseUpgradesRemaining = 0;
 
 function syncSafehouseAndStartScreenUI() {
   const startDeck = startScreen ? startScreen.querySelector(".start-deck") : null;
   const lbPanel = document.getElementById("start-leaderboard");
   const titleEl = document.getElementById("start-screen-title");
-  const modeBtn = document.getElementById("safehouse-mode-toggle-btn");
   const lbBtn = document.getElementById("safehouse-lb-toggle-btn");
   const code = isCallsignComplete() ? callsignSlots.join("") : "ARMORY";
 
@@ -1385,10 +1385,6 @@ function syncSafehouseAndStartScreenUI() {
   }
   if (titleEl) {
     titleEl.textContent = isSafehouseMode ? `🏠 SAFEHOUSE // ${code}` : "BRICK RUNNER";
-  }
-  if (modeBtn) {
-    modeBtn.textContent = isSafehouseMode ? "🕹️ START SCREEN" : "🏠 SAFEHOUSE";
-    modeBtn.classList.toggle("active-mode", isSafehouseMode);
   }
   if (lbBtn) {
     if (isSafehouseMode) {
@@ -1496,13 +1492,20 @@ function renderCallsignBuilder() {
   const upgradeCost = CLASS_RANK_UPGRADE_COSTS[nextRank] || 0;
   const canAffordRank = complete && nextRank <= 5 && profile.credits >= upgradeCost;
 
-  const upgradeBtnHTML = !complete
-    ? `<span class="safehouse-hint-pill">ENTER 3 LETTERS TO LOAD PROFILE</span>`
-    : (profile.classRank >= 5
-        ? `<span class="safehouse-max-pill">👑 CLASS MASTERED (L5 MAX)</span>`
-        : `<button type="button" id="safehouse-upgrade-rank-btn" class="safehouse-upgrade-btn ${canAffordRank ? "can-afford" : "locked-afford"}">
-             ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢)
-           </button>`);
+  let upgradeBtnHTML = "";
+  if (!complete) {
+    upgradeBtnHTML = `<span class="safehouse-hint-pill">ENTER 3 LETTERS TO LOAD PROFILE</span>`;
+  } else if (profile.classRank >= 5) {
+    upgradeBtnHTML = `<span class="safehouse-max-pill">👑 CLASS MASTERED (L5 MAX)</span>`;
+  } else if (!isSafehouseMode) {
+    upgradeBtnHTML = `<span class="safehouse-hint-pill">🔒 CLEAR 5 STAGES FOR SAFEHOUSE UPGRADE (L${nextRank}: ${upgradeCost}¢)</span>`;
+  } else if (safehouseUpgradesRemaining <= 0) {
+    upgradeBtnHTML = `<span class="safehouse-used-pill">✅ 1/1 UPGRADE COMPLETE — CLEAR 5 STAGES FOR NEXT UPGRADE</span>`;
+  } else {
+    upgradeBtnHTML = `<button type="button" id="safehouse-upgrade-rank-btn" class="safehouse-upgrade-btn ${canAffordRank ? "can-afford" : "locked-afford"}">
+      ⬆️ UPGRADE TO L${nextRank} (${upgradeCost}¢) • 1/1 ALLOWED
+    </button>`;
+  }
 
   const lore = complete ? getCallsignLore(codeStr) : null;
   const loreOriginText = complete
@@ -1521,24 +1524,58 @@ function renderCallsignBuilder() {
            </div>`
         : `<span class="deck-sec-badge badge-cyan">NEW CALLSIGN • BINDS ON LAUNCH!</span>`);
 
-  container.innerHTML = `
-    <div class="callsign-top-section">
-      <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
-        <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST STG ${profile.bestSector}` : ""}</span>
-      </div>
-      <div class="callsign-identity-dock" data-popover-callsign="1">
-        <div class="callsign-slots">${slotsHTML}</div>
-        <div class="callsign-lore-readout ${complete ? "is-complete" : "is-incomplete"}">
-          <span class="lore-origin-tag">${loreOriginText}</span>
-          <span class="lore-char-title">${loreTitleText}</span>
+  const topSectionHTML = isSafehouseMode
+    ? `
+      <div class="callsign-top-section safehouse-vault-section">
+        <div class="deck-section-header">
+          <span class="deck-sec-title"><span class="sec-num">01</span> SAFEHOUSE VAULT // ${codeStr}</span>
+          <button type="button" id="safehouse-exit-start-btn" class="respec-mini-btn">🕹️ SWITCH RUNNER</button>
+        </div>
+        <div class="callsign-identity-dock" data-popover-callsign="1">
+          <div class="callsign-slots">${slotsHTML}</div>
+          <div class="callsign-lore-readout is-complete">
+            <span class="lore-origin-tag">${loreOriginText}</span>
+            <span class="lore-char-title">${loreTitleText}</span>
+          </div>
+        </div>
+        <div class="safehouse-vault-grid">
+          <div class="safehouse-vault-card">
+            <span class="sv-label">BANKED CYBER-CREDS</span>
+            <strong class="sv-val sv-green">💰 ${formatArcadeScore(profile.credits)}¢</strong>
+          </div>
+          <div class="safehouse-vault-card">
+            <span class="sv-label">UPGRADE ALLOWANCE</span>
+            <strong class="sv-val ${safehouseUpgradesRemaining > 0 ? "sv-gold" : "sv-muted"}">${profile.classRank >= 5 ? "👑 L5 MAX" : (safehouseUpgradesRemaining > 0 ? "⚡ 1 / 1 READY" : "✅ 0 / 1 (USED)")}</strong>
+          </div>
+          <div class="safehouse-vault-card">
+            <span class="sv-label">EXTRACTION RECORD</span>
+            <strong class="sv-val sv-cyan">🏆 STG ${profile.bestSector || 5} (${profile.extractions || 1}×)</strong>
+          </div>
         </div>
       </div>
-      <div class="keypad-grid">${keysHTML}</div>
-    </div>
+    `
+    : `
+      <div class="callsign-top-section">
+        <div class="deck-section-header">
+          <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
+          <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 BEST STG ${profile.bestSector}` : ""}</span>
+        </div>
+        <div class="callsign-identity-dock" data-popover-callsign="1">
+          <div class="callsign-slots">${slotsHTML}</div>
+          <div class="callsign-lore-readout ${complete ? "is-complete" : "is-incomplete"}">
+            <span class="lore-origin-tag">${loreOriginText}</span>
+            <span class="lore-char-title">${loreTitleText}</span>
+          </div>
+        </div>
+        <div class="keypad-grid">${keysHTML}</div>
+      </div>
+    `;
+
+  container.innerHTML = `
+    ${topSectionHTML}
     <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
       <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">02</span> CLASS &amp; SAFEHOUSE</span>
+        <span class="deck-sec-title"><span class="sec-num">02</span> ${isSafehouseMode ? "SAFEHOUSE ARMORY (MAX 1 UPGRADE PER 5 STAGES)" : "CLASS &amp; PROGRESSION"}</span>
         ${boundStatusHTML}
       </div>
       <div class="class-picker-grid">${classesHTML}</div>
@@ -1591,10 +1628,26 @@ function renderCallsignBuilder() {
     });
   });
 
+  const exitStartBtn = container.querySelector("#safehouse-exit-start-btn");
+  if (exitStartBtn) {
+    exitStartBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      isSafehouseMode = false;
+      safehouseUpgradesRemaining = 0;
+      clearCallsignSlots();
+      soundManager.play("bounce", { pitch: 1.15, volume: 0.4 });
+      renderCallsignBuilder();
+    });
+  }
+
   const upgradeBtn = container.querySelector("#safehouse-upgrade-rank-btn");
   if (upgradeBtn && complete) {
     upgradeBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
+      if (!isSafehouseMode || safehouseUpgradesRemaining <= 0) {
+        soundManager.play("multihit", { pitch: 0.8, volume: 0.45 });
+        return;
+      }
       const p = getCallsignProfile(codeStr);
       const nextLvl = p.classRank + 1;
       const cost = CLASS_RANK_UPGRADE_COSTS[nextLvl] || 9999;
@@ -1602,6 +1655,7 @@ function renderCallsignBuilder() {
         p.credits -= cost;
         p.classRank = nextLvl;
         if (!p.boundClass) p.boundClass = selectedRunnerClass;
+        safehouseUpgradesRemaining = Math.max(0, safehouseUpgradesRemaining - 1);
         saveCallsignProfile(codeStr, p);
         rogueLevel = p.classRank;
         soundManager.play("grow", { pitch: 1.45, volume: 0.85 });
@@ -2505,7 +2559,9 @@ function syncRogueHUD() {
     const contractPillsHTML = activeBreachContracts.map(c =>
       `<span class="hud-tier-pill contract-active-pill" data-popover-contract="${c.id}" style="--contract-color: ${c.color};">${c.emoji} ${c.name}</span>`
     ).join("");
-    nextPerk.innerHTML = classPillHTML + (contractPillsHTML || `<span class="hud-tier-pill tier-unlocked">🛡️ EXTRACT AT STAGE CLEAR</span>`);
+    const nextSafehouseStg = Math.ceil(Math.max(1, currentSector) / 5) * 5;
+    const safehousePillHTML = `<span class="hud-tier-pill tier-unlocked">🏠 SAFEHOUSE: STG ${currentSector}/${nextSafehouseStg}</span>`;
+    nextPerk.innerHTML = classPillHTML + contractPillsHTML + safehousePillHTML;
     bindHoverPopoverEvents(nextPerk);
   }
 
@@ -3063,8 +3119,13 @@ function dealBreachContractOffers(count = 3) {
   return pool.slice(0, count);
 }
 
+function canExtractAtCurrentIntermission() {
+  return sectorsCleared >= 5 && sectorsCleared % 5 === 0;
+}
+
 function extractFromSector(fromKeyboard = false) {
   if (!isLevelIntermissionOpen) return;
+  if (!canExtractAtCurrentIntermission()) return;
   if (!isModalInputReady(fromKeyboard)) return;
   isLevelIntermissionOpen = false;
   isFinalLevelIntermission = false;
@@ -3111,10 +3172,10 @@ function signBreachContractAndAdvance(contractId, fromKeyboard = false) {
 
 function resumeFromLevelIntermission(fromKeyboard = false) {
   if (!isLevelIntermissionOpen) return;
-  if (currentContractOffers.length > 0) {
-    signBreachContractAndAdvance(currentContractOffers[0].id, fromKeyboard);
-  } else {
+  if (canExtractAtCurrentIntermission()) {
     extractFromSector(fromKeyboard);
+  } else if (currentContractOffers.length > 0) {
+    signBreachContractAndAdvance(currentContractOffers[0].id, fromKeyboard);
   }
 }
 
@@ -3138,7 +3199,7 @@ function advanceToNextSector() {
   syncRogueHUD();
 
   soundManager.play("winSong");
-  playVictoryFanfareSynth(clearedSectorNum >= 5);
+  playVictoryFanfareSynth(clearedSectorNum >= 5 && clearedSectorNum % 5 === 0);
   spawnVictoryDOMConfetti(26);
   if (typeof spawnConfettiShards === "function") {
     spawnConfettiShards(130);
@@ -3151,6 +3212,9 @@ function advanceToNextSector() {
   const nextTheme = getSectorTheme(nextSectorNum);
   currentContractOffers = dealBreachContractOffers(3);
   const flatlinePenaltyScore = Math.round(score * 0.65);
+  const isSafehouseCheckpoint = canExtractAtCurrentIntermission();
+  const nextSafehouseStage = Math.ceil(clearedSectorNum / 5) * 5;
+  const stagesLeftToSafehouse = nextSafehouseStage - clearedSectorNum;
 
   const contractsHTML = currentContractOffers.map((c, idx) => `
     <button type="button" class="breach-contract-card" data-contract-id="${c.id}" style="--contract-color: ${c.color};">
@@ -3163,6 +3227,22 @@ function advanceToNextSector() {
       <div class="contract-cta-pill">🔴 ENTER STAGE ${nextSectorNum} [${idx + 1}]</div>
     </button>
   `).join("");
+
+  const safehouseActionHTML = isSafehouseCheckpoint
+    ? `
+      <button type="button" id="intermission-extract-btn" class="intermission-continue-btn intermission-extract-btn">
+        🏠 RETURN TO SAFEHOUSE &amp; UPGRADE — BANK 100% (${formatArcadeScore(score)} PTS &amp; +${formatArcadeScore(runUnbankedCreds)}¢) [E]
+      </button>
+    `
+    : `
+      <div class="intermission-safehouse-locked-pill">
+        🔒 SAFEHOUSE LOCKED (${clearedSectorNum % 5}/5 STAGES) — CLEAR ${stagesLeftToSafehouse} MORE STAGE${stagesLeftToSafehouse === 1 ? "" : "S"} (STAGE ${nextSafehouseStage}) TO EXTRACT &amp; UPGRADE
+      </div>
+    `;
+
+  const modifierHeaderText = isSafehouseCheckpoint
+    ? `🔴 OR RISK 65% FOR ${nextTheme.emoji} STAGE ${nextSectorNum} (NEXT SAFEHOUSE AT STAGE ${clearedSectorNum + 5}): PICK 1 STAGE MODIFIER`
+    : `⚡ SELECT 1 STAGE MODIFIER FOR ${nextTheme.emoji} STAGE ${nextSectorNum} (SAFEHOUSE AT STAGE ${nextSafehouseStage})`;
 
   gameMessage.classList.remove("end-overlay-mode", "victory-celebration");
   gameMessage.classList.add("level-intermission-mode");
@@ -3186,13 +3266,11 @@ function advanceToNextSector() {
         </div>
       </div>
 
-      <button type="button" id="intermission-extract-btn" class="intermission-continue-btn intermission-extract-btn">
-        🟢 JACK OUT &amp; EXTRACT NOW — BANK 100% (${formatArcadeScore(score)} PTS &amp; +${formatArcadeScore(runUnbankedCreds)}¢) [E]
-      </button>
+      ${safehouseActionHTML}
 
       <div class="breach-contracts-section">
         <div class="breach-section-header">
-          <span>🔴 OR RISK 65% FOR ${nextTheme.emoji} STAGE ${nextSectorNum}: PICK 1 STAGE MODIFIER</span>
+          <span>${modifierHeaderText}</span>
           <span>KEYS [1] [2] [3]</span>
         </div>
         <div class="breach-contracts-grid">${contractsHTML}</div>
@@ -3200,10 +3278,10 @@ function advanceToNextSector() {
     </div>
   `;
   gameMessage.style.display = "block";
-  armModalInputGuard(950, "intermission-extract-btn");
+  armModalInputGuard(isSafehouseCheckpoint ? 950 : 650, "intermission-extract-btn");
 
   const extractBtn = document.getElementById("intermission-extract-btn");
-  if (extractBtn) {
+  if (extractBtn && isSafehouseCheckpoint) {
     extractBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
       extractFromSector(false);
@@ -3219,10 +3297,12 @@ function advanceToNextSector() {
 }
 
 function initGame(enterSafehouse = false) {
-    const openSafehouse = enterSafehouse === true;
+    const openSafehouse = enterSafehouse === true && safehouseUpgradesRemaining > 0;
     isSafehouseMode = openSafehouse;
     if (openSafehouse) {
       safehouseLeaderboardOpen = false;
+    } else {
+      safehouseUpgradesRemaining = 0;
     }
     initRogueProgression();
     isCatMode   = catModeArmed;
@@ -3596,18 +3676,6 @@ function setupGame() {
         startPrompt.addEventListener('click', (e) => {
             e.stopPropagation();
             if (gameOver && assetsReady) startGame();
-        });
-    }
-    const safehouseModeBtn = document.getElementById("safehouse-mode-toggle-btn");
-    if (safehouseModeBtn) {
-        safehouseModeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            isSafehouseMode = !isSafehouseMode;
-            if (isSafehouseMode) {
-                safehouseLeaderboardOpen = false;
-            }
-            soundManager.play("bounce", { pitch: isSafehouseMode ? 1.35 : 1.1, volume: 0.4 });
-            renderCallsignBuilder();
         });
     }
     const safehouseLbBtn = document.getElementById("safehouse-lb-toggle-btn");
@@ -4899,6 +4967,8 @@ function endGame(won) {
   scoreDisplay.textContent = `Score: ${formatArcadeScore(score)}`;
 
   const runnerCallsign = getLastInitials();
+  const earnedSafehouseAccess = Boolean(won && sectorsCleared >= 5 && sectorsCleared % 5 === 0);
+  safehouseUpgradesRemaining = earnedSafehouseAccess ? 1 : 0;
   // Persist banked Cyber-Creds & Best Extraction Stage to this Callsign's profile!
   const csProfile = getCallsignProfile(runnerCallsign);
   if (csProfile) {
@@ -5009,7 +5079,7 @@ function endGame(won) {
     </div>
     <div class="end-game-actions">
       <button type="button" id="end-play-again-btn" class="end-action-btn end-play-btn">${won ? "🚀 PLAY NEW RUN [SPACE]" : "▶ PLAY AGAIN [SPACE]"}</button>
-      <button type="button" id="end-safehouse-btn" class="end-action-btn end-switch-btn">🛠️ SAFEHOUSE [U]</button>
+      ${earnedSafehouseAccess ? `<button type="button" id="end-safehouse-btn" class="end-action-btn end-switch-btn">🏠 ENTER SAFEHOUSE (1 UPGRADE) [U]</button>` : ""}
       <button type="button" id="end-switch-runner-btn" class="end-action-btn end-switch-btn">🕹️ SWITCH RUNNER [C]</button>
     </div>
   `;
@@ -5305,9 +5375,9 @@ document.addEventListener("keydown", e => {
     isSpaceHeldDown = true;
   }
 
-  // Between-Sector Extraction / Breach Terminal: E/SPACE/ENTER extracts; 1/2/3 signs a Breach Contract!
+  // Between-Sector Extraction / Breach Terminal: E/SPACE/ENTER extracts ONLY at 5-stage checkpoints; 1/2/3 signs a Breach Contract!
   if (isLevelIntermissionOpen) {
-    if ("e" === t || " " === t || "enter" === t) {
+    if (("e" === t || " " === t || "enter" === t) && canExtractAtCurrentIntermission()) {
       e.preventDefault();
       if (!e.repeat && isModalInputReady(true)) {
         extractFromSector(true);
@@ -5322,6 +5392,10 @@ document.addEventListener("keydown", e => {
       }
       return;
     }
+    if (" " === t || "enter" === t || "e" === t) {
+      e.preventDefault();
+      return;
+    }
   }
 
   // When on the Start Screen, allow typing A-Z or Backspace/Arrows into the Callsign Keypad, or 1-4 to pick Class
@@ -5331,35 +5405,37 @@ document.addEventListener("keydown", e => {
       !e.repeat && assetsReady && startGame();
       return;
     }
-    if (["1", "2", "3", "4"].includes(t)) {
-      const cId = RUNNER_CLASS_ORDER[parseInt(t, 10) - 1];
-      if (cId) {
+    if (!isSafehouseMode) {
+      if (["1", "2", "3", "4"].includes(t)) {
+        const cId = RUNNER_CLASS_ORDER[parseInt(t, 10) - 1];
+        if (cId) {
+          e.preventDefault();
+          setRunnerClass(cId);
+          return;
+        }
+      }
+      if (e.key === "Backspace") {
         e.preventDefault();
-        setRunnerClass(cId);
+        backspaceCallsign();
         return;
       }
-    }
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      backspaceCallsign();
-      return;
-    }
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      activeCallsignSlot = (activeCallsignSlot + 2) % 3;
-      renderCallsignBuilder();
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      activeCallsignSlot = (activeCallsignSlot + 1) % 3;
-      renderCallsignBuilder();
-      return;
-    }
-    if (/^[a-z]$/.test(t) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      setCallsignLetter(t);
-      return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        activeCallsignSlot = (activeCallsignSlot + 2) % 3;
+        renderCallsignBuilder();
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        activeCallsignSlot = (activeCallsignSlot + 1) % 3;
+        renderCallsignBuilder();
+        return;
+      }
+      if (/^[a-z]$/.test(t) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setCallsignLetter(t);
+        return;
+      }
     }
   }
 
@@ -5369,7 +5445,7 @@ document.addEventListener("keydown", e => {
       if ("c" === t) {
         clearCallsignSlots();
         initGame(false);
-      } else {
+      } else if ("u" === t && safehouseUpgradesRemaining > 0) {
         initGame(true);
       }
     }

@@ -4953,15 +4953,87 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-max-pill,
-.safehouse-hint-pill {
+.safehouse-hint-pill,
+.safehouse-used-pill {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.42rem;
+  font-size: 0.4rem;
   padding: 4px 8px;
   border-radius: 4px;
   color: #ffd700;
   background: rgba(255, 215, 0, 0.12);
   border: 1px solid rgba(255, 215, 0, 0.4);
   white-space: nowrap;
+}
+
+.safehouse-used-pill {
+  color: #55ffaa;
+  background: rgba(57, 255, 20, 0.14);
+  border-color: rgba(57, 255, 20, 0.55);
+}
+
+.intermission-safehouse-locked-pill {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  line-height: 1.45;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.09);
+  border: 1.5px dashed rgba(255, 215, 0, 0.55);
+  text-align: center;
+}
+
+.safehouse-vault-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.safehouse-vault-card {
+  background: rgba(8, 18, 16, 0.92);
+  border: 1px solid rgba(57, 255, 20, 0.38);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.sv-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
+  color: #9dc2b8;
+  letter-spacing: 0.4px;
+}
+
+.sv-val {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.54rem;
+  color: #ffffff;
+}
+
+.sv-val.sv-green {
+  color: #39ff14;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.55);
+}
+
+.sv-val.sv-gold {
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
+}
+
+.sv-val.sv-cyan {
+  color: #00ffff;
+}
+
+.sv-val.sv-muted {
+  color: #7ee8aa;
 }
 
 .bound-class-actions {
