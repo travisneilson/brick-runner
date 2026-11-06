@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BRICK RUNNER</title>
-    <link rel="stylesheet" href="style.css?v=20261102b">
+    <link rel="stylesheet" href="style.css?v=20261106a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Press+Start+2P&family=Roboto+Mono:wght@500;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -65,15 +65,16 @@
         <div id="notifications-container"></div>
         
         <div id="start-screen">
-            <div id="safehouse-topbar" class="start-screen-topbar" style="display: none;">
-                <span id="safehouse-topbar-title" class="safehouse-banner-title">🏠 SAFEHOUSE ARMORY</span>
+            <div id="safehouse-topbar" class="start-screen-topbar">
+                <span id="safehouse-topbar-title" class="safehouse-banner-title">SELECT RUNNER &amp; CLASS</span>
                 <div class="start-screen-top-actions">
-                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button">🏆 SHOW LEADERBOARD</button>
+                    <span id="start-top-record-pill" class="start-top-record-pill"></span>
+                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button">🏆 HIGH SCORES</button>
                 </div>
             </div>
-            <div class="start-deck">
+            <div class="start-deck deck-single-col">
                 <div id="callsign-builder" class="callsign-panel"></div>
-                <div id="start-leaderboard" class="leaderboard-panel"></div>
+                <div id="start-leaderboard" class="leaderboard-panel" style="display: none;"></div>
             </div>
             <button id="start-play-btn" class="start-prompt start-play-btn" type="button">START</button>
         </div>
@@ -108,6 +109,6 @@
         </div>
     </div>
     
-    <script type="module" src="./js/script.js?v=20261102b"></script>
+    <script type="module" src="./js/script.js?v=20261106a"></script>
 </body>
 </html>

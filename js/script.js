@@ -1551,9 +1551,11 @@ let isCallsignKeypadOpen = true;
 
 function syncSafehouseAndStartScreenUI() {
   const startDeck = startScreen ? startScreen.querySelector(".start-deck") : null;
+  const builderPanel = document.getElementById("callsign-builder");
   const lbPanel = document.getElementById("start-leaderboard");
   const topbarEl = document.getElementById("safehouse-topbar");
   const topbarTitleEl = document.getElementById("safehouse-topbar-title");
+  const topRecordPill = document.getElementById("start-top-record-pill");
   const lbBtn = document.getElementById("safehouse-lb-toggle-btn");
   const code = isCallsignComplete() ? callsignSlots.join("") : "ARMORY";
 
@@ -1561,21 +1563,38 @@ function syncSafehouseAndStartScreenUI() {
     startScreen.classList.toggle("safehouse-mode", isSafehouseMode);
   }
   if (topbarEl) {
-    topbarEl.style.display = isSafehouseMode ? "flex" : "none";
+    topbarEl.style.display = "flex";
   }
   if (topbarTitleEl) {
-    topbarTitleEl.textContent = `🏠 SAFEHOUSE // ${code}`;
+    if (safehouseLeaderboardOpen) {
+      topbarTitleEl.textContent = "🏆 HALL OF FAME // HIGH SCORES";
+    } else if (isSafehouseMode) {
+      topbarTitleEl.textContent = `🏠 SAFEHOUSE // ${code}`;
+    } else {
+      topbarTitleEl.textContent = "SELECT RUNNER & CLASS";
+    }
+  }
+  if (topRecordPill) {
+    const board = typeof getLeaderboard === "function" ? getLeaderboard("legit") : [];
+    if (board.length > 0) {
+      topRecordPill.textContent = `👑 #1: ${formatArcadeScore(board[0].score)} (${board[0].initials})`;
+      topRecordPill.style.display = safehouseLeaderboardOpen ? "none" : "inline-flex";
+    } else {
+      topRecordPill.style.display = "none";
+    }
   }
   if (lbBtn) {
-    lbBtn.textContent = safehouseLeaderboardOpen ? "✕ HIDE LEADERBOARD" : "🏆 SHOW LEADERBOARD";
+    lbBtn.textContent = safehouseLeaderboardOpen ? "← BACK TO RUNNER" : "🏆 HIGH SCORES";
     lbBtn.classList.toggle("active-mode", safehouseLeaderboardOpen);
   }
-  const hideLb = isSafehouseMode && !safehouseLeaderboardOpen;
+  if (builderPanel) {
+    builderPanel.style.display = safehouseLeaderboardOpen ? "none" : "flex";
+  }
   if (lbPanel) {
-    lbPanel.style.display = hideLb ? "none" : "flex";
+    lbPanel.style.display = safehouseLeaderboardOpen ? "flex" : "none";
   }
   if (startDeck) {
-    startDeck.classList.toggle("deck-single-col", hideLb);
+    startDeck.classList.add("deck-single-col");
   }
 }
 
@@ -1637,18 +1656,52 @@ function renderCallsignBuilder() {
     : `<span class="no-saved-runners-hint">Type A–Z or click 🎲 to create your first Runner — characters save automatically!</span>`;
 
   const slotsHTML = chars.map((ch, idx) => `
-    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}" data-popover-callsign="1" title="Click to edit Callsign letters">
+    <div class="callsign-slot ${idx === activeCallsignSlot ? "active" : ""} ${!ch ? "slot-empty" : "slot-filled"}" data-slot="${idx}" data-popover-callsign="1" title="Type A–Z on keyboard or click to cycle letters">
       ${ch || `<span class="slot-placeholder">_</span>`}
     </div>
   `).join("");
 
-  const keysHTML = [
-    ...KEYPAD_LETTERS.map(letter => `<button type="button" class="keypad-key" data-key="${letter}">${letter}</button>`),
-    `<button type="button" class="keypad-key key-special" data-key="RANDOM" title="Roll Sci-Fi / Cyberpunk Callsign">🎲</button>`,
-    `<button type="button" class="keypad-key key-special" data-key="BACK" title="Backspace / Clear">⌫</button>`
-  ].join("");
+  const CLASS_SUMMARIES = {
+    striker: "Every bounce zaps bricks with Cyan Tesla Lightning; center catches fire Twin Rail Bolts.",
+    guardian: "Wide armored deck fires Emerald Mortar Bolts; center catches trigger a 2× Damage Parry.",
+    demolisher: "Supercharges the ball to plow straight through bricks (2× Dmg) & detonate Plasma Novas.",
+    highroller: "Every bounce rolls a 1D6 Chaos Die for Ricochet Sparks, Golden Piñata Bricks & Jackpots."
+  };
 
-  const classesHTML = Object.values(RUNNER_CLASSES).map(cls => {
+  const classCardsHTML = Object.values(RUNNER_CLASSES).map(cls => {
+    const isSel = cls.id === activeClass.id;
+    const isLockedOther = Boolean(boundClassId && boundClassId !== cls.id);
+    const clsRank = (complete && (!boundClassId || boundClassId === cls.id)) ? (profile.classRank || 1) : 1;
+    const activeTier = cls.tiers[Math.min(cls.tiers.length - 1, clsRank - 1)] || cls.tiers[0];
+    const pipsHTML = [1, 2, 3, 4, 5].map(lvl =>
+      `<span class="cls-lvl-pip ${lvl <= clsRank ? "pip-on" : "pip-off"}"></span>`
+    ).join("");
+    const summaryText = clsRank > 1
+      ? `<strong>L${clsRank} ${activeTier.label}:</strong> ${activeTier.short} — ${CLASS_SUMMARIES[cls.id] || cls.tagline}`
+      : (CLASS_SUMMARIES[cls.id] || cls.buff);
+
+    return `
+      <button type="button" class="class-card class-select-btn ${isSel ? "active" : ""} ${isLockedOther ? "class-locked-other" : ""}" data-runner-class="${cls.id}" data-popover-class-card="${cls.id}" style="--cls-color: ${cls.color};" ${isLockedOther ? `title="Callsign ${codeStr} is bound to ${activeClass.name}. Click Re-Spec to change class."` : ""}>
+        <div class="cls-card-top">
+          <span class="cls-card-identity">
+            <span class="cls-btn-emoji">${isLockedOther ? "🔒" : cls.emoji}</span>
+            <span class="cls-btn-name">${cls.name}</span>
+          </span>
+          <span class="cls-card-pips" title="Class Rank L${clsRank}/5">
+            <span class="cls-pips-row">${pipsHTML}</span>
+            <span class="cls-pip-lvl">LVL ${clsRank}</span>
+          </span>
+        </div>
+        <p class="cls-card-summary">${summaryText}</p>
+        <div class="cls-card-traits">
+          <span class="cls-trait-pill trait-buff">▲ ${cls.shortBuff}</span>
+          <span class="cls-trait-pill trait-nerf">▼ ${cls.shortHandicap}</span>
+        </div>
+      </button>
+    `;
+  }).join("");
+
+  const safehouseTabsHTML = Object.values(RUNNER_CLASSES).map(cls => {
     const isSel = cls.id === activeClass.id;
     const isLockedOther = Boolean(boundClassId && boundClassId !== cls.id);
     return `
@@ -1698,13 +1751,13 @@ function renderCallsignBuilder() {
   const lore = complete ? getCallsignLore(codeStr) : null;
   const loreOriginText = complete
     ? (lore ? `ARCHIVE // ${lore.origin.toUpperCase()}` : `CUSTOM RUNNER ID // ${codeStr}`)
-    : `AWAITING 3-LETTER CALLSIGN`;
+    : `TYPE [A–Z] ON KEYBOARD OR CLICK 🎲`;
   const loreTitleText = complete
     ? (lore ? lore.title : `Unregistered Grid Operator (${codeStr})`)
-    : `Type A–Z or press 🎲 to roll a Sci-Fi Legend`;
+    : `Enter any 3-letter callsign or roll a Sci-Fi Legend`;
 
   const boundStatusHTML = !complete
-    ? `<span class="deck-sec-badge badge-cyan">PICK CLASS</span>`
+    ? `<span class="deck-sec-badge badge-cyan">PICK CLASS [1–4]</span>`
     : (boundClassId
         ? `<div class="bound-class-actions">
              <span class="deck-sec-badge badge-bound">🔒 ${codeStr}: ${activeClass.name} L${profile.classRank}</span>
@@ -1721,8 +1774,6 @@ function renderCallsignBuilder() {
       </div>
     `
     : "";
-
-  const showKeypad = !complete || isCallsignKeypadOpen;
 
   const topSectionHTML = isSafehouseMode
     ? `
@@ -1765,46 +1816,59 @@ function renderCallsignBuilder() {
           <span class="deck-sec-title"><span class="sec-num">01</span> RUNNER CALLSIGN</span>
           <span class="deck-sec-badge">💰 ${formatArcadeScore(profile.credits)}¢ BANKED${profile.bestSector > 0 ? ` • 🏆 STG ${profile.bestSector}` : ""}</span>
         </div>
-        <div class="saved-runners-bar">
-          <span class="saved-runners-lbl">SAVED:</span>
-          <div class="saved-runners-scroll">${savedRunnersHTML}</div>
-        </div>
         <div class="callsign-identity-dock" data-popover-callsign="1">
           <div class="callsign-slots">${slotsHTML}</div>
           <div class="callsign-lore-readout ${complete ? "is-complete" : "is-incomplete"}">
             <span class="lore-origin-tag">${loreOriginText}</span>
             <span class="lore-char-title">${loreTitleText}</span>
           </div>
-          <div class="callsign-quick-tools">
-            <button type="button" class="identity-tool-btn" id="quick-random-callsign-btn" title="Roll Random Sci-Fi Callsign">🎲</button>
-            <button type="button" class="identity-tool-btn ${showKeypad ? "active" : ""}" id="toggle-keypad-btn" title="${showKeypad ? "Hide A-Z Keypad" : "Show A-Z Keypad to Edit Letters"}">⌨️</button>
+          <div class="callsign-action-btns">
+            <button type="button" class="callsign-action-btn btn-random" id="quick-random-callsign-btn" title="Roll Random Sci-Fi Callsign">🎲 RANDOM</button>
+            <button type="button" class="callsign-action-btn btn-clear" id="quick-clear-callsign-btn" title="Clear Letter [Backspace]">⌫</button>
           </div>
         </div>
+        <div class="saved-runners-bar">
+          <span class="saved-runners-lbl">SAVED:</span>
+          <div class="saved-runners-scroll">${savedRunnersHTML}</div>
+        </div>
         ${savedRunBannerHTML}
-        <div class="keypad-grid keypad-14col ${showKeypad ? "" : "keypad-collapsed"}">${keysHTML}</div>
+      </div>
+    `;
+
+  const bottomSectionHTML = isSafehouseMode
+    ? `
+      <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
+        <div class="deck-section-header">
+          <span class="deck-sec-title"><span class="sec-num">02</span> SAFEHOUSE ARMORY (MAX 1 UPGRADE)</span>
+          ${boundStatusHTML}
+        </div>
+        <div class="class-picker-grid">${safehouseTabsHTML}</div>
+        <div class="class-linear-preview">
+          <div class="class-spec-head" data-popover-class-card="${activeClass.id}">
+            <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">— ${activeClass.tagline}</span></span>
+            ${upgradeBtnHTML}
+          </div>
+          <div class="class-tradeoff-stack" data-popover-class-card="${activeClass.id}">
+            <div class="tradeoff-row buff-pill"><span class="tradeoff-tag">▲ BUFF</span> <span class="tradeoff-text">${activeClass.buff}</span></div>
+            <div class="tradeoff-row nerf-pill"><span class="tradeoff-tag">▼ NERF</span> <span class="tradeoff-text">${activeClass.handicap}</span></div>
+          </div>
+          <div class="class-path-track">${pathStepsHTML}</div>
+        </div>
+      </div>
+    `
+    : `
+      <div class="class-picker-box class-cards-container" style="--cls-color: ${activeClass.color};">
+        <div class="deck-section-header">
+          <span class="deck-sec-title"><span class="sec-num">02</span> COMBAT CLASS</span>
+          ${boundStatusHTML}
+        </div>
+        <div class="class-cards-grid">${classCardsHTML}</div>
       </div>
     `;
 
   container.innerHTML = `
     ${topSectionHTML}
-    <div class="class-picker-box" style="--cls-color: ${activeClass.color};">
-      <div class="deck-section-header">
-        <span class="deck-sec-title"><span class="sec-num">02</span> ${isSafehouseMode ? "SAFEHOUSE ARMORY (MAX 1 UPGRADE)" : "COMBAT CLASS"}</span>
-        ${boundStatusHTML}
-      </div>
-      <div class="class-picker-grid">${classesHTML}</div>
-      <div class="class-linear-preview">
-        <div class="class-spec-head" data-popover-class-card="${activeClass.id}">
-          <span class="class-spec-main">${activeClass.emoji} <strong>${activeClass.name} L${profile.classRank}</strong> <span class="class-spec-sub">— ${activeClass.tagline}</span></span>
-          ${upgradeBtnHTML}
-        </div>
-        <div class="class-tradeoff-stack" data-popover-class-card="${activeClass.id}">
-          <div class="tradeoff-row buff-pill"><span class="tradeoff-tag">▲ BUFF</span> <span class="tradeoff-text">${activeClass.buff}</span></div>
-          <div class="tradeoff-row nerf-pill"><span class="tradeoff-tag">▼ NERF</span> <span class="tradeoff-text">${activeClass.handicap}</span></div>
-        </div>
-        <div class="class-path-track">${pathStepsHTML}</div>
-      </div>
-    </div>
+    ${bottomSectionHTML}
   `;
 
   syncStartPlayButtonState();
@@ -1854,13 +1918,11 @@ function renderCallsignBuilder() {
     });
   }
 
-  const toggleKeypadBtn = container.querySelector("#toggle-keypad-btn");
-  if (toggleKeypadBtn) {
-    toggleKeypadBtn.addEventListener("click", (ev) => {
+  const quickClearBtn = container.querySelector("#quick-clear-callsign-btn");
+  if (quickClearBtn) {
+    quickClearBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      isCallsignKeypadOpen = !isCallsignKeypadOpen;
-      soundManager.play("bounce", { pitch: isCallsignKeypadOpen ? 1.35 : 1.05, volume: 0.35 });
-      renderCallsignBuilder();
+      backspaceCallsign();
     });
   }
 
@@ -1879,24 +1941,19 @@ function renderCallsignBuilder() {
   container.querySelectorAll(".callsign-slot").forEach(slotEl => {
     slotEl.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      activeCallsignSlot = parseInt(slotEl.dataset.slot, 10) || 0;
-      isCallsignKeypadOpen = true;
-      soundManager.play("bounce", { pitch: 1.25, volume: 0.3 });
-      renderCallsignBuilder();
-    });
-  });
-
-  container.querySelectorAll(".keypad-key").forEach(btn => {
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      const k = btn.dataset.key;
-      if (k === "RANDOM") {
-        randomizeCallsign();
-      } else if (k === "BACK") {
-        backspaceCallsign();
-      } else if (k && k.length === 1) {
-        setCallsignLetter(k);
+      const clickedIdx = parseInt(slotEl.dataset.slot, 10) || 0;
+      if (clickedIdx === activeCallsignSlot) {
+        const curChar = callsignSlots[clickedIdx] || "";
+        const curPos = KEYPAD_LETTERS.indexOf(curChar);
+        const nextChar = KEYPAD_LETTERS[(curPos + 1) % KEYPAD_LETTERS.length];
+        callsignSlots[clickedIdx] = nextChar;
+        soundManager.play("bounce", { pitch: 1.3 + clickedIdx * 0.15, volume: 0.35 });
+        updateHighScoreDisplay();
+      } else {
+        activeCallsignSlot = clickedIdx;
+        soundManager.play("bounce", { pitch: 1.25, volume: 0.3 });
       }
+      renderCallsignBuilder();
     });
   });
 
@@ -3717,9 +3774,8 @@ function advanceToNextSector() {
 function initGame(enterSafehouse = false) {
     const openSafehouse = enterSafehouse === true && safehouseUpgradesRemaining > 0;
     isSafehouseMode = openSafehouse;
-    if (openSafehouse) {
-      safehouseLeaderboardOpen = false;
-    } else {
+    safehouseLeaderboardOpen = false;
+    if (!openSafehouse) {
       safehouseUpgradesRemaining = 0;
     }
     initRogueProgression();

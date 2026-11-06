@@ -5575,6 +5575,365 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   color: #ffffff;
 }
 
+/* ==========================================================================
+   SIMPLIFIED ARCADE CABINET START SCREEN (NO ON-SCREEN KEYPAD + 2x2 CLASS CARDS)
+   ========================================================================== */
+
+#start-screen {
+  padding: 16px 26px 16px;
+  gap: 10px;
+}
+
+#start-screen .start-screen-topbar {
+  width: 848px;
+  min-width: 848px;
+  max-width: 848px;
+  height: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+#start-screen:not(.safehouse-mode) .safehouse-banner-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.72rem;
+  color: #00f5d4;
+  text-shadow: 0 0 10px rgba(0, 245, 212, 0.45);
+  letter-spacing: 1.2px;
+}
+
+.start-top-record-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.09);
+  border: 1px solid rgba(255, 215, 0, 0.38);
+  color: #ffd700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+#start-screen .start-deck,
+#start-screen.safehouse-mode .start-deck {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 454px;
+  height: 454px;
+  min-height: 454px;
+  max-height: 454px;
+  width: 848px;
+  min-width: 848px;
+  max-width: 848px;
+}
+
+#start-screen:not(.safehouse-mode) .start-deck.deck-single-col .callsign-top-section {
+  border-color: rgba(0, 245, 212, 0.38);
+  background: linear-gradient(180deg, rgba(12, 18, 32, 0.96) 0%, rgba(8, 12, 22, 0.98) 100%);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.55),
+    inset 0 0 20px rgba(0, 245, 212, 0.05);
+  padding: 12px 16px;
+  gap: 9px;
+}
+
+#start-screen:not(.safehouse-mode) .start-deck.deck-single-col .class-picker-box {
+  border-color: color-mix(in srgb, var(--cls-color, #00ffff) 48%, rgba(0, 255, 255, 0.3));
+  background: linear-gradient(180deg, rgba(12, 18, 32, 0.96) 0%, rgba(8, 12, 22, 0.98) 100%);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.55),
+    inset 0 0 20px color-mix(in srgb, var(--cls-color, #00ffff) 6%, transparent);
+  padding: 12px 16px;
+  gap: 10px;
+}
+
+/* Tactile 3-Slot Callsign Identity Dock */
+#start-screen .callsign-identity-dock {
+  height: 50px;
+  min-height: 50px;
+  max-height: 50px;
+  gap: 10px;
+}
+
+#start-screen .callsign-slots {
+  height: 50px;
+  gap: 6px;
+}
+
+#start-screen .callsign-slot {
+  width: 48px;
+  height: 50px;
+  font-size: 1.15rem;
+  border-radius: 8px;
+}
+
+#start-screen .callsign-lore-readout {
+  height: 50px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  gap: 3px;
+}
+
+#start-screen .lore-origin-tag {
+  font-size: 0.62rem;
+  letter-spacing: 0.8px;
+}
+
+#start-screen .lore-char-title {
+  font-size: 0.92rem;
+}
+
+.callsign-action-btns {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.callsign-action-btn {
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.52rem;
+  letter-spacing: 0.6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+  box-sizing: border-box;
+}
+
+.callsign-action-btn.btn-random {
+  color: #ffd700;
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 165, 0, 0.06) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+}
+
+.callsign-action-btn.btn-random:hover {
+  background: #ffd700;
+  color: #080c14;
+  border-color: #ffffff;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.75);
+  transform: translateY(-1px);
+}
+
+.callsign-action-btn.btn-clear {
+  width: 44px;
+  padding: 0;
+  font-size: 0.88rem;
+  color: #b8d4f2;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.callsign-action-btn.btn-clear:hover {
+  color: #ffffff;
+  background: rgba(255, 68, 119, 0.22);
+  border-color: #ff4477;
+  box-shadow: 0 0 12px rgba(255, 68, 119, 0.45);
+  transform: translateY(-1px);
+}
+
+#start-screen .saved-runners-bar {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
+#start-screen .runner-roster-chip {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.56rem;
+}
+
+/* 2x2 Breathable Class Cards Grid */
+.class-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.class-card.class-select-btn {
+  height: 100%;
+  min-height: 0;
+  padding: 11px 14px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(10, 15, 26, 0.94) 0%, rgba(7, 10, 18, 0.98) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.class-card.class-select-btn:hover {
+  border-color: color-mix(in srgb, var(--cls-color, #00ffff) 75%, #ffffff);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cls-color, #00ffff) 14%, rgba(10, 16, 28, 0.96)) 0%, rgba(8, 12, 22, 0.98) 100%);
+  transform: translateY(-1px);
+}
+
+.class-card.class-select-btn.active {
+  border-color: var(--cls-color, #00ffff);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cls-color, #00ffff) 22%, rgba(10, 16, 28, 0.96)) 0%, rgba(8, 12, 22, 0.98) 100%);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--cls-color, #00ffff) 38%, transparent),
+    inset 0 2px 0 var(--cls-color, #00ffff);
+}
+
+.class-card.class-select-btn.class-locked-other {
+  opacity: 0.48;
+}
+
+.cls-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.cls-card-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.class-card .cls-btn-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.class-card .cls-btn-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.62rem;
+  letter-spacing: 0.6px;
+  color: #eaf4ff;
+}
+
+.class-card.active .cls-btn-name {
+  color: var(--cls-color, #00ffff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cls-color, #00ffff) 65%, transparent);
+}
+
+.cls-card-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+}
+
+.class-card.active .cls-card-pips {
+  border-color: color-mix(in srgb, var(--cls-color, #00ffff) 55%, transparent);
+}
+
+.cls-pips-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cls-lvl-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.cls-lvl-pip.pip-on {
+  background: var(--cls-color, #00ffff);
+  box-shadow: 0 0 6px var(--cls-color, #00ffff);
+}
+
+.cls-lvl-pip.pip-off {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.cls-pip-lvl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: #dce8ff;
+  letter-spacing: 0.3px;
+}
+
+.class-card.active .cls-pip-lvl {
+  color: var(--cls-color, #00ffff);
+}
+
+.cls-card-summary {
+  margin: 0;
+  font-family: 'Chakra Petch', 'Roboto', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.32;
+  color: #d6e6fa;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cls-card-summary strong {
+  color: #ffffff;
+}
+
+.cls-card-traits {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cls-trait-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cls-trait-pill.trait-buff {
+  color: #6bff95;
+  background: rgba(57, 255, 20, 0.09);
+  border: 1px solid rgba(57, 255, 20, 0.3);
+}
+
+.cls-trait-pill.trait-nerf {
+  color: #ff8aa3;
+  background: rgba(255, 68, 119, 0.09);
+  border: 1px solid rgba(255, 68, 119, 0.3);
+}
+
+
 
 
 
