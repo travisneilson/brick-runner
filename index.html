@@ -4,39 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BRICK RUNNER</title>
-    <link rel="stylesheet" href="style.css?v=20261106a">
+    <link rel="stylesheet" href="style.css?v=20261111a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Press+Start+2P&family=Roboto+Mono:wght@500;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="game-header">
-        <div class="header-left">
-            <h1 class="game-title-glitch" data-text="BRICK RUNNER">BRICK RUNNER</h1>
-            <div id="high-score-display" class="high-score-header"></div>
-        </div>
-        <div id="hack-mode-hud" class="hack-mode-hud"></div>
-    </div>
+    <div id="cyberdeck-chassis" class="cyberdeck-unibody">
+        <div class="cyberdeck-grain-overlay"></div>
 
-    <div class="rogue-hud-row">
-        <div id="rogue-hud" class="rogue-hud" style="display: none;">
-            <div class="rogue-hud-top-line">
-                <span id="rogue-class-badge" class="rogue-class-badge">⚡ LEVEL 1/5 (×1)</span>
-                <div id="rogue-next-perk" class="rogue-next-perk"></div>
+        <!-- Bare-Silver Scratches & Edge Nicks (SVG Overlay) -->
+        <svg class="cyberdeck-wear-svg" viewBox="0 0 1024 780" preserveAspectRatio="none">
+            <path d="M42 18 L58 29 M45 21 L54 27" stroke="rgba(220,235,255,0.32)" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M965 145 L988 162 L978 188" stroke="rgba(0,0,0,0.75)" stroke-width="1.6" fill="none"/>
+            <path d="M310 96 L328 101 M680 94 L665 100" stroke="rgba(225,240,255,0.28)" stroke-width="1" stroke-linecap="round"/>
+            <path d="M180 758 L215 761 M740 759 L785 756" stroke="rgba(220,235,255,0.24)" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+
+        <!-- 3 Worn Chewed Torx T6 Screws + 1 Mismatched Brass Replacement Screw in Top-Right -->
+        <div class="torx-screw chassis-corner-screw tl"></div>
+        <div class="torx-screw brass-replacement chassis-corner-screw tr" title="Field-Replaced Brass Slotted Screw"></div>
+        <div class="torx-screw chassis-corner-screw bl"></div>
+        <div class="torx-screw chassis-corner-screw br"></div>
+
+        <!-- Left & Right Vertical Side-Rail Stencil Typography + Port Cutout + Dog-Eared Calibration Sticker -->
+        <div class="chassis-side-rail left">
+            <span class="rail-vert-text">SYSTEM: 77-A/DECK // PROTO: V1.2</span>
+            <div class="rail-jack-hole"></div>
+            <span class="rail-vert-text warn-orange">HV CAP // 40V MOD</span>
+            <span class="rail-vert-text">◀ AUX // 3.5MM OUT</span>
+        </div>
+
+        <div class="field-calibration-sticker">
+            <div class="sticker-text">
+                CAL. DUE: 07/77<br>
+                ASSET: 043 [OK]<br>
+                SEAL BROKEN
             </div>
-            <div id="frenzy-meter-bar" class="rogue-xp-track" title="Skill Rally Laser Frenzy Meter — Press [F] or [SPACE] at 100%!">
-                <span class="frenzy-bar-tag">⚡ LASER FRENZY</span>
-                <div class="frenzy-bar-well">
-                    <div id="rogue-xp-fill" class="rogue-xp-fill"></div>
-                    <div class="frenzy-bar-segments"></div>
-                    <span id="rogue-xp-text" class="rogue-xp-text">SKILL RALLY: 0%</span>
+        </div>
+
+        <div class="chassis-side-rail right">
+            <span class="rail-vert-text">SERIAL: 19770512 // FIELD-UNIT</span>
+            <span class="rail-vert-text warn-orange">BYPASS // ACTIVE</span>
+            <span class="rail-vert-text">RON COBB // SYD MEAD VISO</span>
+            <span class="rail-vert-text">DC 12V 2.5A ━━</span>
+        </div>
+
+        <!-- ─── 1. Top Hardware Bezel (Aligned 3-Tier Typographic Hierarchy + Full-Width Frenzy Capacitor) ─── -->
+        <div class="deck-top-bezel">
+            <div class="game-header deck-header-row">
+                <div class="header-left deck-brand-left">
+                    <h1 class="game-title-glitch silk-model-title" data-text="BRICK RUNNER">BRICK RUNNER</h1>
+                    <span class="brand-divider"></span>
+                    <div class="brand-meta-stack">
+                        <span class="meta-kicker">FIELD DECK // SYS 77-A</span>
+                        <div id="high-score-display" class="high-score-header meta-hi-score"></div>
+                    </div>
                 </div>
-                <span id="frenzy-bar-action-pill" class="frenzy-bar-action-pill">[F / SPACE]</span>
+                <div id="hack-mode-hud" class="hack-mode-hud"></div>
+                <div id="deck-telemetry-cluster" class="deck-telemetry-cluster">
+                    <div class="tel-cell">
+                        <span class="tel-cell-lbl">RUNNER // CLASS</span>
+                        <span id="tel-runner-class" class="tel-cell-val" style="color:#00f0ff;">---</span>
+                    </div>
+                    <div class="tel-cell">
+                        <span class="tel-cell-lbl">STAGE</span>
+                        <span id="tel-stage-val" class="tel-cell-val">01 (×1)</span>
+                    </div>
+                    <div class="tel-cell">
+                        <span class="tel-cell-lbl">VAULT BANK</span>
+                        <span id="tel-vault-val" class="tel-cell-val" style="color:#10f58c;">0¢</span>
+                    </div>
+                    <div class="tel-cell">
+                        <span class="tel-cell-lbl">SAFEHOUSE</span>
+                        <span id="tel-safehouse-val" class="tel-cell-val" style="color:#ffaa00;">STG 1 / 5</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rogue-hud-row">
+                <div id="rogue-hud" class="rogue-hud" style="display: none;">
+                    <div class="rogue-hud-top-line" style="display: none;">
+                        <span id="rogue-class-badge" class="rogue-class-badge">⚡ LEVEL 1/5 (×1)</span>
+                        <div id="rogue-next-perk" class="rogue-next-perk"></div>
+                    </div>
+                    <div id="frenzy-meter-bar" class="rogue-xp-track frenzy-capacitor-module" title="Skill Rally Laser Frenzy Capacitor — Press [F] or [SPACE] at 100%!">
+                        <div class="cap-label-block">
+                            <span class="cap-kicker">CAPACITOR BANK</span>
+                            <span class="frenzy-bar-tag cap-left-tag">LASER FRENZY</span>
+                        </div>
+                        <div class="frenzy-bar-well cap-glass-tube">
+                            <div id="rogue-xp-fill" class="rogue-xp-fill"></div>
+                            <div class="frenzy-bar-segments"></div>
+                            <span id="rogue-xp-text" class="rogue-xp-text">SKILL RALLY: 0%</span>
+                        </div>
+                        <div class="cap-status-block">
+                            <span class="cap-kicker">TRIGGER [F / SPACE]</span>
+                            <span id="frenzy-bar-action-pill" class="frenzy-bar-action-pill cap-right-readout">0% CHARGED</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="game-area">
+        <!-- ─── 2. Center 3-Step 45° Diamond-Chamfered 900×600 OLED Display Well ─── -->
+        <div class="display-outer-housing">
+            <div id="display-chamfer-wall" class="display-chamfer-wall">
+                <div class="chamfer-top-silk">
+                    <span>[DISPLAY: 900×600 OLED // FIELD-UNIT #049 // SYNC: LOCKED]</span>
+                    <span id="chamfer-perk-readout">60HZ VECTOR TELEMETRY</span>
+                </div>
+                <div id="game-area">
         <div id="click-to-start-overlay">
             <div class="attract-hero">
                 <h2 class="attract-title" data-text="BRICK RUNNER">BRICK RUNNER</h2>
@@ -85,30 +163,37 @@
         <div id="game-message"></div>
         <div id="arcade-guide-modal" class="arcade-guide-modal" style="display: none;"></div>
         <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
-    </div>
-
-    <!-- ─── Bottom Entry Points & Controls Bar ─── -->
-    <div id="tips-box" class="tips-box">
-        <div class="tip-actions">
-            <button id="pause-button" class="tip-next-btn tip-control-btn" type="button" style="display: none;">⏸ PAUSE [P]</button>
-            <button id="reset-button" class="tip-next-btn tip-control-btn tip-restart-btn" type="button" style="display: none;">↻ RESTART</button>
-            <button id="tip-console-btn" class="tip-next-btn tip-console-btn" type="button">💻 [~] HACK CONSOLE</button>
-            <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn" type="button">🕹️ [G] ARCADE MANUAL</button>
-            <div id="volume-control-widget" class="volume-control-widget" title="Audio Volume ([M] to Mute, [-] / [+] or click bars to adjust)">
-                <button id="volume-mute-btn" class="vol-mute-btn" type="button" title="Mute / Unmute Audio [M]" aria-label="Toggle Mute [M]">🔊</button>
-                <button id="volume-down-btn" class="vol-step-btn" type="button" title="Turn Volume Down (-25%)" aria-label="Volume Down">−</button>
-                <div class="vol-bars" role="group" aria-label="Volume Level">
-                    <button type="button" class="vol-bar-btn" data-vol="0.25" title="25% Volume"></button>
-                    <button type="button" class="vol-bar-btn" data-vol="0.50" title="50% Volume"></button>
-                    <button type="button" class="vol-bar-btn" data-vol="0.75" title="75% Volume"></button>
-                    <button type="button" class="vol-bar-btn" data-vol="1.00" title="100% Volume"></button>
+        <div class="vernier-ticks-top"></div>
+        <div class="vernier-ticks-bottom"></div>
                 </div>
-                <button id="volume-up-btn" class="vol-step-btn" type="button" title="Turn Volume Up (+25%)" aria-label="Volume Up">+</button>
-                <span id="volume-pct-label" class="vol-pct-label" title="Current Volume (Click to Mute/Unmute)">75%</span>
+            </div>
+        </div>
+
+        <!-- ─── 3. Bottom Sunken Mechanical Keybed (Warm Amber Switch-Plate Underglow) ─── -->
+        <div id="tips-box" class="tips-box lower-keybed-bay">
+            <div class="tip-actions">
+                <div class="recessed-switch-trench">
+                    <button id="pause-button" class="tip-next-btn tip-control-btn deck-keycap" type="button" style="display: none;">⏸ PAUSE [P]</button>
+                    <button id="reset-button" class="tip-next-btn tip-control-btn tip-restart-btn deck-keycap" type="button" style="display: none;">↻ RESTART</button>
+                    <button id="tip-console-btn" class="tip-next-btn tip-console-btn deck-keycap key-salvage-orange" type="button">[~] HACK CONSOLE</button>
+                    <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn deck-keycap" type="button">[G] ARCADE MANUAL</button>
+                </div>
+                <div id="volume-control-widget" class="volume-control-widget recessed-switch-trench" title="Audio Volume ([M] to Mute, [-] / [+] or click bars to adjust)">
+                    <button id="volume-mute-btn" class="vol-mute-btn deck-keycap key-mini" type="button" title="Mute / Unmute Audio [M]" aria-label="Toggle Mute [M]">🔊</button>
+                    <button id="volume-down-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Down (-25%)" aria-label="Volume Down">−</button>
+                    <div class="vol-bars" role="group" aria-label="Volume Level">
+                        <button type="button" class="vol-bar-btn" data-vol="0.25" title="25% Volume"></button>
+                        <button type="button" class="vol-bar-btn" data-vol="0.50" title="50% Volume"></button>
+                        <button type="button" class="vol-bar-btn" data-vol="0.75" title="75% Volume"></button>
+                        <button type="button" class="vol-bar-btn" data-vol="1.00" title="100% Volume"></button>
+                    </div>
+                    <button id="volume-up-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Up (+25%)" aria-label="Volume Up">+</button>
+                    <span id="volume-pct-label" class="vol-pct-label" title="Current Volume (Click to Mute/Unmute)">75%</span>
+                </div>
             </div>
         </div>
     </div>
     
-    <script type="module" src="./js/script.js?v=20261106a"></script>
+    <script type="module" src="./js/script.js?v=20261111a"></script>
 </body>
 </html>

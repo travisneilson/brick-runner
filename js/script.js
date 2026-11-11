@@ -358,7 +358,7 @@ const destroySounds = ['destroy1', 'destroy2', 'destroy3'];
 let destroySoundIndex = 0;
 let paddleX, paddleWidth = PADDLE_DEFAULT_WIDTH, leftPressed = false, rightPressed = false;
 let ballX, ballY, ballSpeedX, ballSpeedY;
-let BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","😡","🤢","🫠","💀","😭","🗿","😂","🤣","😏","🙄","😮","🤧","🤮","🤠","🥸","👽","🤖","👺","👻","🤓","🧐","🥺","😠","😲"];
+let BALL_EMOJI = "😊", CHAOTIC_EMOJIS = ["😵","🤪","🤯","😱","🥴","🫠","😭","😂","🤣","😏","🙄","😮","🤧","🤠","🥸","🤓","🧐","🥺","😠","😲","😵‍💫","😝","🤩","🥳"];
 // UPDATED: The 'bricks' array is now declared with 'let' instead of 'const'
 let bricks = [];
 let lastTime = 0,
@@ -2134,18 +2134,65 @@ function saveHighScore(e) {
   }
   updateHighScoreDisplay();
 }
+function syncCyberdeckTelemetry() {
+  const runner = getLastInitials() || "---";
+  const cDef = typeof getSelectedClassDef === "function" ? getSelectedClassDef() : { name: "STRIKER", color: "#00f0ff", tiers: [{ level: 1, label: "Tesla Arc I" }] };
+  const prof = (runner !== "---" && typeof getCallsignProfile === "function") ? getCallsignProfile(runner) : { classRank: 1, credits: 0 };
+  const rank = (!gameOver && typeof rogueLevel === "number") ? rogueLevel : (prof.classRank || 1);
+
+  const elRunner = document.getElementById("tel-runner-class");
+  const elStage = document.getElementById("tel-stage-val");
+  const elVault = document.getElementById("tel-vault-val");
+  const elSafe = document.getElementById("tel-safehouse-val");
+  const elChamferPerk = document.getElementById("chamfer-perk-readout");
+  const chassis = document.getElementById("cyberdeck-chassis");
+
+  if (elRunner) {
+    elRunner.textContent = `${runner} • ${cDef.name} L${rank}`;
+    elRunner.style.color = cDef.color || "#00f0ff";
+  }
+  if (elStage) {
+    const stg = typeof currentSector === "number" ? currentSector : 1;
+    const mult = typeof getSectorScoreMultiplier === "function" ? getSectorScoreMultiplier() : 1;
+    const extraRoll = (selectedRunnerClass === "highroller" && typeof highRollerLastRoll === "number" && highRollerLastRoll > 0) ? ` [${highRollerLastRoll}]` : "";
+    elStage.textContent = `${String(stg).padStart(2, "0")} (×${mult}${extraRoll})`;
+  }
+  if (elVault) {
+    const runCreds = (!gameOver && typeof runUnbankedCreds === "number") ? runUnbankedCreds : 0;
+    const banked = prof.credits || 0;
+    elVault.textContent = !gameOver ? `+${formatArcadeScore(runCreds)}¢` : `${formatArcadeScore(banked)}¢`;
+  }
+  if (elSafe) {
+    const stg = typeof currentSector === "number" ? currentSector : 1;
+    const nextSafe = Math.ceil(Math.max(1, stg) / 5) * 5;
+    elSafe.textContent = `STG ${stg} / ${nextSafe}`;
+  }
+  if (elChamferPerk) {
+    const activeTier = (cDef.tiers && cDef.tiers[Math.min(cDef.tiers.length - 1, rank - 1)]) || { level: 1, label: "ONLINE" };
+    const modNames = (typeof activeBreachContracts !== "undefined" && Array.isArray(activeBreachContracts) && activeBreachContracts.length > 0)
+      ? ` • ${activeBreachContracts.map(c => c.name).join(" + ")}`
+      : "";
+    elChamferPerk.textContent = `L${rank} ${activeTier.label.toUpperCase()}${modNames}`;
+  }
+  if (chassis) {
+    const isFrenzy = typeof frenzyTimerLeft === "number" && frenzyTimerLeft > 0;
+    chassis.classList.toggle("frenzy-overdrive", isFrenzy);
+    chassis.style.setProperty("--bezel-reflect", isFrenzy ? "rgba(255, 42, 85, 0.52)" : `color-mix(in srgb, ${cDef.color || "#00f0ff"} 28%, transparent)`);
+  }
+}
+
 function updateHighScoreDisplay() {
   const board = getLeaderboard("legit");
-  const runner = getLastInitials() || "---";
   const modeTag = (runUsedCheats || isAnyHackCurrentlyArmed())
-    ? ` • 💻 HACKED (${getArmedHackEmojis().join("") || getRunHackEmojis().join("")})`
+    ? ` • HACKED (${getArmedHackEmojis().join("") || getRunHackEmojis().join("")})`
     : "";
   if (board.length > 0) {
-    highScoreDisplay.textContent = `🏆 High Score: ${formatArcadeScore(board[0].score)} (${board[0].initials}) • Runner: ${runner}${modeTag}`;
+    highScoreDisplay.innerHTML = `HI-RECORD: <strong>${formatArcadeScore(board[0].score)} [${board[0].initials}]</strong>${modeTag}`;
   } else {
     const e = getHighScore();
-    highScoreDisplay.textContent = `🏆 High Score: ${formatArcadeScore(e)} • Runner: ${runner}${modeTag}`;
+    highScoreDisplay.innerHTML = `HI-RECORD: <strong>${formatArcadeScore(e)}</strong>${modeTag}`;
   }
+  syncCyberdeckTelemetry();
 }
 
 /**
@@ -2896,13 +2943,14 @@ function syncRogueHUD() {
   }
   if (frenzyActionPill) {
     if (frenzyTimerLeft > 0) {
-      frenzyActionPill.textContent = `🔥 ${frenzyTimerLeft.toFixed(1)}S`;
+      frenzyActionPill.textContent = `ACTIVE: ${frenzyTimerLeft.toFixed(1)}S`;
     } else if (frenzyReady || frenzyMeter >= 100) {
-      frenzyActionPill.textContent = `🚀 FIRE [F / SPACE]`;
+      frenzyActionPill.textContent = `READY TO FIRE!`;
     } else {
-      frenzyActionPill.textContent = `${Math.round(frenzyMeter)}%`;
+      frenzyActionPill.textContent = `${Math.round(frenzyMeter)}% CHARGED`;
     }
   }
+  syncCyberdeckTelemetry();
   const frenzyBanner = document.getElementById("frenzy-ready-banner");
   const showFrenzyPrompt = Boolean((frenzyReady || frenzyMeter >= 100) && frenzyTimerLeft <= 0 && !gameOver && !isLevelIntermissionOpen);
   if (frenzyBanner) {
@@ -2959,6 +3007,9 @@ function damageOrBreakBrickByAugment(brick, damageHits = 1, bonusFlatPts = 10) {
 
     brick.isBroken = true;
     brick.element.classList.add("broken");
+    if (typeof triggerBrickVectorShatter === "function") {
+      triggerBrickVectorShatter(brick);
+    }
     if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
       triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "brick");
     }
@@ -3953,7 +4004,7 @@ function createBricks() {
         if (POWER_UP_TYPES[powerUpType]) {
           const indicator = document.createElement('span');
           indicator.className = 'power-up-indicator';
-          indicator.textContent = POWER_UP_TYPES[powerUpType].emoji;
+          indicator.innerHTML = getPowerUpVectorSVG(powerUpType);
           el.appendChild(indicator);
         }
       }
@@ -4569,6 +4620,33 @@ function updatePaddleWidth() {
 
 
 
+function getPowerUpVectorSVG(type) {
+  if (type === "wide-paddle") {
+    return `<svg class="pu-vec-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
+  }
+  if (type === "slow-mo") {
+    return `<svg class="pu-vec-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="10.5" stroke-dasharray="2.5 2.5"/><path d="M12 7.5V12l3.2 2.2"/></svg>`;
+  }
+  if (type === "sticky-paddle") {
+    return `<svg class="pu-vec-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6v6.5a5.5 5.5 0 0 0 11 0V6"/><path d="M4.8 6h3.6M15.6 6h3.6"/><path d="M8.5 3.8a5 5 0 0 1 7 0" stroke-dasharray="2 2"/></svg>`;
+  }
+  if (type === "one-up") {
+    return `<svg class="pu-vec-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="12.5" width="7.8" height="5.5" rx="1"/><rect x="12.7" y="12.5" width="7.8" height="5.5" rx="1"/><rect x="8.1" y="5.5" width="7.8" height="5.5" rx="1"/></svg>`;
+  }
+  return `<svg class="pu-vec-svg" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3 20 12 12 21 4 12"/></svg>`;
+}
+
+function getPowerUpCapsuleHTML(type) {
+  const tags = {
+    "wide-paddle": "WIDE",
+    "slow-mo": "SLOW",
+    "sticky-paddle": "MAG",
+    "one-up": "+BRK"
+  };
+  const tag = tags[type] || "MOD";
+  return `<div class="holo-vial-shell"><span class="holo-vial-tag">${tag}</span>${getPowerUpVectorSVG(type)}<div class="holo-vial-cap"></div></div>`;
+}
+
 function spawnPowerUp(type, brick) {
   // play the spawn sound
   soundManager.play("powerUpSpawn", { pitch: 2 });
@@ -4576,10 +4654,10 @@ function spawnPowerUp(type, brick) {
   const def = POWER_UP_TYPES[type];
   if (!def) return;
 
-  // 1) Create the DOM element
+  // 1) Create the DOM element (Holographic Glass Capsule Vial with Vector Iconography)
   const el = document.createElement("div");
-  el.classList.add("power-up", def.cssClass);
-  el.textContent = def.emoji;
+  el.classList.add("power-up", "holo-capsule-vial", def.cssClass);
+  el.innerHTML = getPowerUpCapsuleHTML(type);
 
   // 2) If this is Expando (wide-paddle), tag it with the current grow level
   if (type === "wide-paddle") {
@@ -4943,7 +5021,7 @@ function updateStatusIndicators() {
 }
 
 
-function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${t.emoji}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
+function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${getPowerUpVectorSVG(e)}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
 
 function createOnionSkin() {
   const skin = document.createElement("div");
@@ -5060,6 +5138,9 @@ function updateLasers(dt) {
           // 5) Break the brick, evaluate row clear, spawn any power-up
           b.isBroken = true;
           b.element.classList.add('broken');
+          if (typeof triggerBrickVectorShatter === "function") {
+            triggerBrickVectorShatter(b);
+          }
           if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
             triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
           }
@@ -5333,6 +5414,9 @@ function checkCollisions() {
         // 2) Mark the brick as broken
         brick.isBroken = true;
         brick.element.classList.add("broken");
+        if (typeof triggerBrickVectorShatter === "function") {
+          triggerBrickVectorShatter(brick);
+        }
         if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
           triggerCollisionSparklers(brick.x + brick.width / 2, brick.y + brick.height / 2, "brick");
         }
@@ -6223,6 +6307,85 @@ function emitSparkParticle(x, y, vx, vy, color, maxLife, size, kind = 0) {
   s.spin = (Math.random() - 0.5) * 14;
 }
 
+const ROW_SHARD_PALETTE = [
+  "#ff0055",
+  "#ff5e00",
+  "#ffcc00",
+  "#39ff14",
+  "#00ffff",
+  "#7b2cbf",
+  "#ff00ff"
+];
+let bezelReflectTimer = null;
+
+function triggerBrickVectorShatter(brick) {
+  if (!brick) return;
+  const cx = brick.x + brick.width / 2;
+  const cy = brick.y + brick.height / 2;
+  const rowColor = (typeof brick.row === "number" && ROW_SHARD_PALETTE[brick.row % ROW_SHARD_PALETTE.length])
+    ? ROW_SHARD_PALETTE[brick.row % ROW_SHARD_PALETTE.length]
+    : "#00ffff";
+  const shardColor = brick.isVaultBrick ? "#ffd700" : rowColor;
+
+  // 1) Emit 9 tumbling CAD-wireframe & solid polygon shards (kind 3 & 4)
+  for (let i = 0; i < 9; i++) {
+    const angle = (Math.PI * 2 * i) / 9 + (Math.random() - 0.5) * 0.45;
+    const speed = 75 + Math.random() * 210;
+    const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 45;
+    const vy = Math.sin(angle) * speed - 40;
+    const kind = i % 2 === 0 ? 3 : 4; // 3 = wireframe triangle, 4 = solid polygon shard
+    const size = 4.5 + Math.random() * 4.5;
+    const maxLife = 0.34 + Math.random() * 0.32;
+    emitSparkParticle(
+      cx + (Math.random() - 0.5) * (brick.width * 0.65),
+      cy + (Math.random() - 0.5) * (brick.height * 0.5),
+      vx,
+      vy,
+      i === 0 ? "#ffffff" : shardColor,
+      maxLife,
+      size,
+      kind
+    );
+  }
+
+  // 2) Emit 6 high-velocity phosphor streaks (kind 0)
+  for (let j = 0; j < 6; j++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 150 + Math.random() * 260;
+    emitSparkParticle(
+      cx,
+      cy,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      j % 2 === 0 ? "#ffffff" : shardColor,
+      0.22 + Math.random() * 0.2,
+      1.8,
+      0
+    );
+  }
+
+  // 3) Pulse 45-degree chamfered bezel reflection + micro screen-jolt
+  const chassis = document.getElementById("cyberdeck-chassis");
+  if (chassis) {
+    chassis.style.setProperty("--bezel-reflect", shardColor);
+    if (bezelReflectTimer) clearTimeout(bezelReflectTimer);
+    bezelReflectTimer = setTimeout(() => {
+      const def = typeof RUNNER_CLASS_DEFS !== "undefined" && RUNNER_CLASS_DEFS[selectedRunnerClass];
+      chassis.style.setProperty("--bezel-reflect", (def && def.color) ? def.color : "#00f0ff");
+    }, 180);
+  }
+  const chamferWall = document.getElementById("display-chamfer-wall");
+  if (chamferWall) {
+    chamferWall.classList.remove("screen-jolt");
+    void chamferWall.offsetWidth;
+    chamferWall.classList.add("screen-jolt");
+  }
+
+  if (!gameRunning && typeof kickStandaloneSparkLoop === "function") {
+    kickStandaloneSparkLoop();
+  }
+}
+
 function triggerCollisionSparklers(x, y, hitType = "brick") {
   const burstCount = hitType === "brick" ? 68 : (hitType === "paddle" ? 56 : 44);
   for (let i = 0; i < burstCount; i++) {
@@ -6298,6 +6461,29 @@ function updateAndRenderSparklers(dt) {
       ctx.rotate(s.angle);
       ctx.fillStyle = s.color;
       ctx.fillRect(-s.size, -s.size * 0.45, s.size * 2, s.size * 0.9);
+      ctx.restore();
+    } else if (s.kind === 3 || s.kind === 4) {
+      // Tumbling geometric CAD polygon shard (3 = wireframe triangle, 4 = solid shard)
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.angle);
+      const r = s.size;
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r * 0.88, r * 0.72);
+      ctx.lineTo(-r * 0.88, r * 0.55);
+      ctx.closePath();
+      if (s.kind === 4) {
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 1.35;
+        ctx.stroke();
+      }
       ctx.restore();
     } else {
       // Twinkling crackle star at the tip

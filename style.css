@@ -5933,6 +5933,823 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border: 1px solid rgba(255, 68, 119, 0.3);
 }
 
+/* ==========================================================================
+   SYS 77-A // USED-FUTURE FIELD-REPAIRED CYBERDECK UNIBODY & OLED WELL
+   ========================================================================== */
+
+body {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(0, 240, 255, 0.06), transparent 60%),
+    radial-gradient(circle at 50% 88%, rgba(255, 79, 0, 0.05), transparent 55%),
+    #07080b;
+}
+
+.cyberdeck-unibody {
+  --bezel-reflect: #00f0ff;
+  position: relative;
+  width: 1004px;
+  padding: 20px 38px 20px;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 14% 8%, rgba(255, 255, 255, 0.07) 0%, transparent 42%),
+    radial-gradient(ellipse at 88% 92%, rgba(255, 130, 50, 0.05) 0%, transparent 45%),
+    linear-gradient(168deg, #323640 0%, #242830 38%, #1c1f26 75%, #161920 100%);
+  border-top: 2px solid rgba(255, 255, 255, 0.22);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-right: 1.5px solid rgba(0, 0, 0, 0.85);
+  border-bottom: 5px solid #0b0d11;
+  box-shadow:
+    0 34px 80px rgba(0, 0, 0, 0.92),
+    0 10px 26px rgba(0, 0, 0, 0.8),
+    inset 0 2px 3px rgba(255, 255, 255, 0.14),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.88),
+    inset 16px 0 24px -14px rgba(255, 255, 255, 0.09),
+    inset -16px 0 24px -14px rgba(0, 0, 0, 0.65);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+  user-select: none;
+}
+
+/* Brushed & bead-blasted aluminum surface texture + bare-metal wear scratches */
+.cyberdeck-grain-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0px,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(circle at 22% 16%, rgba(255, 255, 255, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 84%, rgba(0, 0, 0, 0.45), transparent 34%);
+}
+
+.cyberdeck-wear-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.85;
+}
+
+/* ─── 4 Corner Hardware Fasteners (3 Black-Oxide T6 Torx + 1 Field-Replaced Brass Flathead) ─── */
+.torx-screw {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3a3f4b 0%, #171a21 68%, #0b0d11 100%);
+  border: 1.5px solid #090b0e;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.85);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.torx-screw::after {
+  content: "✶";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(200, 212, 228, 0.42);
+  text-shadow: 0 1px 1px #000;
+}
+
+.torx-screw.tl { top: 12px; left: 12px; transform: rotate(18deg); }
+.torx-screw.tr { top: 12px; right: 12px; transform: rotate(-32deg); }
+.torx-screw.bl { bottom: 12px; left: 12px; transform: rotate(41deg); }
+.torx-screw.br { bottom: 12px; right: 12px; transform: rotate(-14deg); }
+
+.torx-screw.brass-replacement {
+  background: radial-gradient(circle at 32% 28%, #f4d068 0%, #b5892e 65%, #5c420e 100%);
+  border-color: #2b1d04;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 248, 210, 0.65),
+    0 0 6px rgba(235, 185, 65, 0.25),
+    0 2px 5px rgba(0, 0, 0, 0.9);
+}
+
+.torx-screw.brass-replacement::after {
+  content: "";
+  width: 10px;
+  height: 2px;
+  background: #2a1b04;
+  box-shadow: 0 1px 0 rgba(255, 230, 140, 0.45);
+  margin: auto;
+}
+
+/* ─── Left & Right Vertical Stencil Typography & Field Calibration Decal ─── */
+.chassis-side-rail {
+  position: absolute;
+  top: 44px;
+  bottom: 44px;
+  width: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.chassis-side-rail.left-rail {
+  left: 7px;
+}
+
+.chassis-side-rail.right-rail {
+  right: 7px;
+}
+
+.rail-vert-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(214, 206, 190, 0.42);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+}
+
+.chassis-side-rail.left-rail .rail-vert-text {
+  transform: rotate(180deg);
+}
+
+.rail-vert-text.stencil-warn {
+  color: rgba(255, 166, 48, 0.62);
+}
+
+.rail-vert-text.stencil-faded {
+  color: rgba(214, 206, 190, 0.25);
+}
+
+.rail-jack-port {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.rail-jack-hole {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #050608;
+  border: 1.5px solid #4c5362;
+  box-shadow:
+    inset 0 1px 3px #000,
+    0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Dog-eared yellow inspection sticker on lower-left bezel */
+.field-calibration-sticker {
+  position: absolute;
+  left: 6px;
+  bottom: 92px;
+  width: 26px;
+  padding: 6px 2px;
+  background: linear-gradient(155deg, #d8b532 0%, #b58d18 82%, #7e600c 100%);
+  color: #191406;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.15;
+  writing-mode: vertical-rl;
+  transform: rotate(178.5deg);
+  border-radius: 2px;
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 74% 100%, 0 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.88;
+}
+
+.field-calibration-sticker .cal-sub {
+  border-top: 1px solid rgba(25, 20, 6, 0.45);
+  padding-top: 3px;
+  color: #3a1204;
+}
+
+/* ─── TOP HARDWARE BEZEL: 3-LEVEL TYPOGRAPHIC HIERARCHY & RECESSED OLED TELEMETRY ─── */
+.deck-top-bezel {
+  position: relative;
+  z-index: 3;
+  width: 920px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deck-header-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+}
+
+.deck-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(16, 18, 24, 0.72) 0%, rgba(11, 13, 18, 0.88) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.85),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.silk-model-title {
+  margin: 0 !important;
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 1.55rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 2.2px !important;
+  line-height: 1 !important;
+  color: #f4f0e8 !important;
+  text-shadow:
+    0 0 12px rgba(0, 240, 255, 0.32),
+    0 2px 3px rgba(0, 0, 0, 0.9) !important;
+  white-space: nowrap;
+}
+
+.brand-divider {
+  width: 1.5px;
+  height: 28px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+  flex-shrink: 0;
+}
+
+.brand-meta-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.meta-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  color: #9ba5b8;
+  line-height: 1;
+}
+
+.meta-hi-score {
+  position: static !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  color: #ffb000 !important;
+  text-shadow: 0 0 8px rgba(255, 176, 0, 0.45) !important;
+  line-height: 1.1 !important;
+  cursor: pointer;
+}
+
+/* 4-Cell Recessed OLED Telemetry Cluster */
+.deck-telemetry-cluster {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.35fr 0.85fr 1fr 0.9fr;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: #07090d;
+  border: 1.5px solid #12161f;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tel-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.9) 0%, rgba(9, 13, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+
+.tel-cell-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  color: #7c899e;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tel-cell-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tel-cyan {
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.45);
+}
+
+.tel-amber {
+  color: #ffb000;
+  text-shadow: 0 0 8px rgba(255, 176, 0, 0.45);
+}
+
+.tel-green {
+  color: #39ff14;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+
+.tel-safe-cell {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tel-safe-cell:hover {
+  border-color: rgba(57, 255, 20, 0.55);
+  background: rgba(20, 38, 28, 0.92);
+}
+
+/* ─── Row 2: Flush 3-Column Borosilicate Laser Frenzy Capacitor Tube ─── */
+#frenzy-meter-bar.frenzy-capacitor-module {
+  width: 920px !important;
+  margin: 0 !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #12151c 0%, #0b0d12 100%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.92),
+    0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  display: grid !important;
+  grid-template-columns: 168px 1fr 168px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.cap-label-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.cap-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #7c899e;
+  line-height: 1;
+}
+
+.cap-left-tag {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.1px !important;
+  color: #eef4ff !important;
+  line-height: 1.15 !important;
+}
+
+.cap-glass-tube {
+  position: relative;
+  height: 14px !important;
+  border-radius: 999px !important;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.07) 0px,
+      rgba(255, 255, 255, 0.07) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    #05070b !important;
+  border: 1.5px solid rgba(0, 240, 255, 0.32) !important;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  overflow: hidden;
+}
+
+/* Cylindrical glass specular highlight + retaining rings */
+.cap-glass-tube::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.32));
+  pointer-events: none;
+}
+
+.cap-status-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: right;
+}
+
+.cap-right-readout {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  color: #00f0ff !important;
+}
+
+/* ─── 3-STEP 45° DIAMOND-CHAMFERED 900×600 OLED DISPLAY WELL ─── */
+.display-outer-housing {
+  position: relative;
+  z-index: 3;
+  padding: 5px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #0d0f14 0%, #191d26 100%);
+  border: 1.5px solid #08090c;
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.12),
+    inset 0 3px 8px rgba(0, 0, 0, 0.95);
+}
+
+.display-chamfer-wall {
+  position: relative;
+  padding: 20px 10px 12px;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--bezel-reflect, #00f0ff) 24%, transparent), transparent 65%),
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--bezel-reflect, #00f0ff) 18%, transparent), transparent 65%),
+    linear-gradient(180deg, #1b2029 0%, #0f1319 50%, #171c24 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 22px rgba(0, 0, 0, 0.92),
+    inset 0 0 12px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 22%, transparent);
+  transition: box-shadow 0.15s ease;
+}
+
+@keyframes chamferScreenJolt {
+  0%   { transform: translate(0, 0); }
+  30%  { transform: translate(-1.5px, 1.5px); }
+  65%  { transform: translate(1.5px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+.display-chamfer-wall.screen-jolt {
+  animation: chamferScreenJolt 95ms ease-out;
+}
+
+.chamfer-top-silk {
+  position: absolute;
+  top: 4px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  color: rgba(210, 224, 245, 0.58);
+  pointer-events: none;
+}
+
+#chamfer-perk-readout {
+  color: var(--bezel-reflect, #00f0ff);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 45%, transparent);
+}
+
+/* Top & Bottom Vernier Millimeter Ruler Ticks inside the OLED Glass Edge */
+.vernier-ticks-top,
+.vernier-ticks-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.36;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 240, 255, 0.65) 0px,
+      rgba(0, 240, 255, 0.65) 1px,
+      transparent 1px,
+      transparent 50px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.28) 0px,
+      rgba(255, 255, 255, 0.28) 1px,
+      transparent 1px,
+      transparent 10px
+    );
+}
+
+.vernier-ticks-top {
+  top: 0;
+}
+
+.vernier-ticks-bottom {
+  bottom: 0;
+}
+
+/* Keep #game-area at exact 900x600 coordinate geometry with deep optical OLED glass */
+#game-area {
+  margin: 0 !important;
+  border-radius: 6px !important;
+  border: 1.5px solid rgba(0, 240, 255, 0.35) !important;
+  background-color: #05070c !important;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, transparent 36%, transparent 68%, rgba(0, 240, 255, 0.025) 100%),
+    linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 30px 30px, 30px 30px !important;
+  box-shadow:
+    inset 0 0 38px rgba(0, 0, 0, 0.92),
+    0 0 18px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 22%, transparent) !important;
+}
+
+/* ─── Smoked-Glass Chamfered Bricks + 40ms White-Hot Shatter Flash ─── */
+.brick {
+  border-radius: 4px !important;
+  clip-path: polygon(
+    4px 0%,
+    calc(100% - 4px) 0%,
+    100% 4px,
+    100% calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    4px 100%,
+    0% calc(100% - 4px),
+    0% 4px
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.55) !important;
+}
+
+.brick::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+@keyframes brickWhiteHotFlash {
+  0% {
+    opacity: 1;
+    filter: brightness(3.5) contrast(1.4);
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(2);
+    transform: scale(0.75);
+  }
+}
+
+.brick.broken {
+  animation: brickWhiteHotFlash 95ms ease-out forwards !important;
+  pointer-events: none;
+}
+
+/* ─── Bespoke Vector SVG Icons Inside Power-Up Bricks & Falling Holographic Vials ─── */
+.power-up-indicator {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.power-up-indicator .pu-vec-svg {
+  width: 15px;
+  height: 15px;
+  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px currentColor);
+}
+
+.power-up.holo-capsule-vial {
+  width: 50px !important;
+  height: 24px !important;
+  margin-left: -9px;
+  border-radius: 6px !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.holo-vial-shell {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(10, 16, 28, 0.94) 0%, rgba(5, 9, 18, 0.96) 100%);
+  border: 1.5px solid var(--vial-color, #00f0ff);
+  box-shadow:
+    0 0 12px var(--vial-color, #00f0ff),
+    inset 0 0 8px color-mix(in srgb, var(--vial-color, #00f0ff) 38%, transparent);
+  color: var(--vial-color, #00f0ff);
+}
+
+.holo-vial-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.holo-vial-icon .pu-vec-svg {
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 0 4px var(--vial-color, #00f0ff));
+}
+
+.holo-vial-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  text-shadow: 0 0 6px var(--vial-color, #00f0ff);
+  line-height: 1;
+}
+
+.holo-vial-cap {
+  width: 2.5px;
+  height: 12px;
+  border-radius: 2px;
+  background: #dce6f7;
+  box-shadow: 0 0 4px var(--vial-color, #00f0ff);
+}
+
+.status-vec-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+
+.status-vec-icon .pu-vec-svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ─── Machined Thruster Paddle Bar ─── */
+#paddle {
+  border-radius: 5px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    0 0 16px rgba(0, 240, 255, 0.75),
+    inset 0 2px 3px rgba(255, 255, 255, 0.65),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.65) !important;
+}
+
+/* ─── SUNKEN SWITCH-PLATE MECHANICAL KEYBED (LOWER BEZEL) ─── */
+#tips-box.lower-keybed-bay {
+  position: relative;
+  z-index: 3;
+  width: 920px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.recessed-switch-trench {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 50% 60%, rgba(255, 140, 20, 0.22) 0%, rgba(255, 90, 0, 0.08) 55%, transparent 80%),
+    #080a0e;
+  border: 1.5px solid #0e1118;
+  box-shadow:
+    inset 0 4px 10px rgba(0, 0, 0, 0.96),
+    inset 0 0 16px rgba(255, 136, 0, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.hud-actions-group,
+.hud-Utilities-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Sculpted 3D PBT Mechanical Keycaps with Warm Amber Switch-Plate Underglow */
+.deck-keycap {
+  position: relative;
+  padding: 7px 13px !important;
+  border-radius: 6px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.64rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.7px !important;
+  color: #eae6df !important;
+  background: linear-gradient(180deg, #323742 0%, #232730 100%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.65) !important;
+  border-bottom: 4px solid #12151b !important;
+  box-shadow:
+    0 3px 7px rgba(0, 0, 0, 0.85),
+    0 0 10px rgba(255, 145, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.12s ease, border-bottom-width 0.08s ease !important;
+  cursor: pointer;
+}
+
+.deck-keycap:hover {
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #3b414e 0%, #2a2f3a 100%) !important;
+  box-shadow:
+    0 3px 9px rgba(0, 0, 0, 0.9),
+    0 0 14px rgba(0, 240, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+}
+
+.deck-keycap:active {
+  transform: translateY(2px) !important;
+  border-bottom-width: 2px !important;
+}
+
+/* Field-swapped salvage orange keycap for [~] HACK CONSOLE */
+.deck-keycap.key-salvage-orange {
+  background: linear-gradient(180deg, #e0531c 0%, #b3390c 100%) !important;
+  color: #fff8f0 !important;
+  border-top: 1px solid rgba(255, 220, 190, 0.48) !important;
+  border-bottom: 4px solid #5e1a03 !important;
+  box-shadow:
+    0 3px 7px rgba(0, 0, 0, 0.88),
+    0 0 12px rgba(255, 94, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+}
+
+.deck-keycap.key-salvage-orange:hover {
+  background: linear-gradient(180deg, #f25f24 0%, #c9410e 100%) !important;
+}
+
+
 
 
 
