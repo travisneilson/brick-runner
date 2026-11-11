@@ -96,7 +96,7 @@ body::before {
 .game-title-glitch {
     margin: 0;
     padding: 0;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     color: var(--clr-neon-blue);
     font-size: 1.75em;
     line-height: 1.05;
@@ -131,7 +131,7 @@ body::before {
 }
 
 .high-score-header {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.72em;
     line-height: 1.2;
     color: var(--clr-text-main);
@@ -146,7 +146,7 @@ body::before {
   justify-content: center;
   margin-left: 4px;
   padding: 5px 8px 4px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.82rem;
   font-weight: bold;
   line-height: 1;
@@ -167,7 +167,7 @@ body::before {
   position: absolute;
   pointer-events: none;
   font: bold 1rem var(--game-font, sans-serif);
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   color: #ffea00;               /* bright neon yellow */
   text-shadow: 0 0 4px rgba(0,0,0,0.7);
   opacity: 0;
@@ -192,7 +192,7 @@ body::before {
 }
 
 .reset-button {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.72em;
     background-color: transparent;
     border: 2px solid var(--clr-text-main);
@@ -361,7 +361,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .game-ui-text {
     color: var(--clr-neon-green);
     font-size: 1.5em;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     text-shadow: 0 0 8px var(--clr-neon-green);
 }
 
@@ -547,7 +547,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     max-width: 760px;
 }
 .attract-title {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 3.2rem;
     line-height: 1.15;
     margin: 0 0 28px 0;
@@ -566,7 +566,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     align-items: center;
     justify-content: center;
     gap: 12px;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 1.05rem;
     line-height: 1;
     letter-spacing: 1.5px;
@@ -636,7 +636,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     box-sizing: border-box;
 }
 #start-screen .game-title {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 2.15em;
     line-height: 1.1;
     margin: 0;
@@ -759,7 +759,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
         inset 0 0 65px rgba(255, 215, 0, 0.28) !important;
 }
 .game-message-prompt {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.62em;
     color: var(--clr-neon-green);
     text-shadow: 0 0 6px var(--clr-neon-green);
@@ -815,7 +815,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .notif-burst .burst-name {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 1.35rem;
     color: var(--notif-color, #00ff00);
     letter-spacing: 1px;
@@ -830,7 +830,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .notif-burst .burst-desc {
     margin-top: 4px;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.65rem;
     color: #ffffff;
     letter-spacing: 1.2px;
@@ -883,7 +883,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .notif-jumbotron .jumbo-kicker {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.95rem;
     color: #ffffff;
     letter-spacing: 4px;
@@ -892,7 +892,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .notif-jumbotron .jumbo-main {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 2.8rem;
     color: var(--notif-color, #00ffff);
     letter-spacing: 2px;
@@ -903,7 +903,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .notif-jumbotron .jumbo-sub {
     margin-top: 12px;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.85rem;
     color: #ffffff;
     letter-spacing: 2px;
@@ -936,15 +936,15 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 #game-message .title { font-family: 'Roboto', sans-serif; font-weight: bold; font-size: 0.95em; color: var(--clr-text-main); opacity: 0.72; display: block; letter-spacing: 2px; text-transform: uppercase; }
 #game-message .title.win-kicker {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.72rem;
     color: #ffd700;
     opacity: 1;
     letter-spacing: 1.5px;
     text-shadow: 0 0 12px rgba(255, 215, 0, 0.85), 0 0 24px rgba(255, 140, 0, 0.6);
 }
-#game-message .name { font-family: 'Press Start 2P', cursive; font-size: 1.55em; color: var(--clr-neon-green); text-shadow: 0 0 10px var(--clr-neon-green); margin: 8px 0 6px 0; display: flex; justify-content: center; align-items: center; gap: 10px; white-space: nowrap; }
-#game-message .description { font-family: 'Press Start 2P', cursive; font-size: 0.78em; color: var(--clr-text-main); display: block; margin-top: 6px; line-height: 1.5; }
+#game-message .name { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.55em; color: var(--clr-neon-green); text-shadow: 0 0 10px var(--clr-neon-green); margin: 8px 0 6px 0; display: flex; justify-content: center; align-items: center; gap: 10px; white-space: nowrap; }
+#game-message .description { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.78em; color: var(--clr-text-main); display: block; margin-top: 6px; line-height: 1.5; }
 #game-message .rating { color: var(--clr-neon-pink); text-shadow: 0 0 10px var(--clr-neon-pink); margin: 10px 0 6px 0; }
 @keyframes victoryTitleShimmer {
     0%, 100% {
@@ -966,7 +966,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
     display: inline-block;
     margin-top: 8px;
     padding: 6px 14px;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.56rem;
     color: var(--clr-gold-glow);
     background: rgba(255, 215, 0, 0.14);
@@ -1011,7 +1011,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .end-action-btn {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
     font-size: 0.5rem;
     height: 38px;
     padding: 0 8px;
@@ -1076,7 +1076,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 .status-indicator { display: flex; align-items: center; gap: 6px; background-color: rgba(26, 26, 26, 0.75); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.12); }
 .status-indicator .emoji { font-size: 18px; }
-.status-indicator .stack-count { font-family: 'Press Start 2P', cursive; font-size: 10px; color: var(--clr-dark-bg); background-color: var(--clr-text-main); padding: 2px 4px; border-radius: 3px; line-height: 1; }
+.status-indicator .stack-count { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 10px; color: var(--clr-dark-bg); background-color: var(--clr-text-main); padding: 2px 4px; border-radius: 3px; line-height: 1; }
 .timer-bar-container { width: 64px; height: 8px; background-color: var(--clr-medium-dark); overflow: hidden; border-radius: 3px; }
 .timer-bar { height: 100%; width: 100%; transition: width 0.1s linear; border-radius: 3px; }
 .timer-bar.wide-paddle { background-color: var(--clr-powerup-expando); }
@@ -1115,7 +1115,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border: none;
   box-shadow: none;
   padding: 0 16px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: var(--clr-text-main);
   width: 900px;
@@ -1129,7 +1129,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 .tip-badge {
   flex-shrink: 0;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.56rem;
   padding: 5px 9px 4px;
   border-radius: 4px;
@@ -1159,7 +1159,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 .tip-next-btn {
   flex-shrink: 0;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.58rem;
   color: var(--clr-neon-green);
   background: rgba(0, 255, 0, 0.08);
@@ -1325,7 +1325,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: #e8f4ff;
   letter-spacing: 0.8px;
@@ -1392,7 +1392,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.96rem;
   color: var(--clr-neon-green);
   background: #080c16;
@@ -1498,7 +1498,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .keypad-key {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   height: 22px;
   padding: 0;
@@ -1606,7 +1606,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .cls-btn-name,
 .class-btn-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.36rem;
   line-height: 1;
   color: #cbd9ee;
@@ -1662,7 +1662,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .class-spec-main strong {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   color: var(--cls-color, #00ffff);
   letter-spacing: 0.3px;
@@ -1713,7 +1713,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .tradeoff-tag {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.36rem;
   letter-spacing: 0.3px;
   flex-shrink: 0;
@@ -1778,7 +1778,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .class-path-lvl {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.36rem;
   color: #061018;
   background: var(--cls-color, #00ffff);
@@ -1825,7 +1825,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .lb-tab {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   height: 32px;
   padding: 0 8px;
@@ -1912,7 +1912,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   padding: 0 8px;
   box-sizing: border-box;
   border-radius: 4px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.38rem;
   letter-spacing: 0.3px;
   margin-bottom: 6px;
@@ -1928,7 +1928,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .lb-disable-hacks-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.38rem;
   padding: 2px 5px;
   border-radius: 3px;
@@ -2013,7 +2013,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   border-radius: 5px;
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.56rem;
   color: #b8d4f0;
 }
@@ -2051,7 +2051,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .leaderboard-row .lb-initials {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.72rem;
   color: var(--clr-neon-green);
   letter-spacing: 1px;
@@ -2096,7 +2096,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .leaderboard-row .lb-score {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.68rem;
   font-weight: bold;
   color: #ffffff;
@@ -2213,7 +2213,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-kicker {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.55rem;
   color: var(--clr-gold-glow);
   letter-spacing: 1.5px;
@@ -2222,7 +2222,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 1.15rem;
   color: var(--clr-neon-blue);
   text-shadow: 0 0 10px var(--clr-neon-blue);
@@ -2237,7 +2237,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-close-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: #0b0e14;
   background: var(--clr-neon-pink);
@@ -2255,7 +2255,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-section-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.72rem;
   color: var(--clr-neon-green);
   text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
@@ -2289,14 +2289,14 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-card-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.65rem;
   color: var(--card-accent, var(--clr-neon-blue));
   text-shadow: 0 0 6px var(--card-accent, var(--clr-neon-blue));
 }
 
 .advert-card-tag {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   padding: 3px 6px;
   border-radius: 3px;
@@ -2323,7 +2323,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-rank-col h4 {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.6rem;
   margin: 0 0 8px 0;
   color: var(--clr-neon-pink);
@@ -2352,7 +2352,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-rank-score {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.52rem;
   color: var(--clr-neon-blue);
 }
@@ -2373,7 +2373,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .advert-secret-strip code {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.55rem;
   color: var(--clr-neon-green);
   background: rgba(0, 0, 0, 0.55);
@@ -2441,14 +2441,14 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .console-kicker {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: var(--clr-gold-glow);
   letter-spacing: 1.2px;
 }
 
 .console-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.88rem;
   color: var(--clr-neon-green);
   text-shadow: 0 0 10px var(--clr-neon-green);
@@ -2483,7 +2483,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   color: var(--clr-neon-blue);
   margin-bottom: 7px;
@@ -2504,7 +2504,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .breach-target-label {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: #9deeff;
 }
@@ -2516,7 +2516,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .breach-seq-byte {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   padding: 4px 6px;
   border-radius: 4px;
@@ -2541,7 +2541,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .breach-hex-cell {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.64rem;
   padding: 8px 0;
   border-radius: 4px;
@@ -2646,7 +2646,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .daemon-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.54rem;
   color: #eafff2;
   display: flex;
@@ -2676,7 +2676,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .daemon-action-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   padding: 7px 9px;
   border-radius: 4px;
@@ -2722,7 +2722,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .console-prompt-prefix {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.56rem;
   color: var(--clr-neon-green);
   white-space: nowrap;
@@ -2733,14 +2733,14 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   background: transparent;
   border: none;
   outline: none;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.58rem;
   color: #ffffff;
   letter-spacing: 0.5px;
 }
 
 .console-cli-run {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.54rem;
   padding: 6px 10px;
   background: var(--clr-neon-green);
@@ -2789,7 +2789,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.56rem;
   letter-spacing: 0.6px;
   padding: 7px 11px;
@@ -2813,7 +2813,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: #ffffff;
   background: rgba(255, 42, 85, 0.88);
@@ -2837,7 +2837,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .hack-hud-clear-all {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   padding: 7px 10px;
   border-radius: 8px;
@@ -2895,7 +2895,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .hack-wm-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 1.3rem;
   letter-spacing: 3px;
   color: transparent;
@@ -3055,7 +3055,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   letter-spacing: 1.5px;
   color: #1a1100;
@@ -3312,7 +3312,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .rogue-class-badge {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: var(--class-color, #00ffff);
   letter-spacing: 0.4px;
@@ -3360,7 +3360,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .frenzy-bar-tag {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   color: #ffd700;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.65);
@@ -3409,7 +3409,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   color: #ffffff;
   text-shadow:
@@ -3421,7 +3421,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .frenzy-bar-action-pill {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.4rem;
   color: #b8d4f2;
   background: rgba(255, 255, 255, 0.08);
@@ -3478,7 +3478,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .hud-tier-pill strong {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.38rem;
   flex-shrink: 0;
 }
@@ -3534,7 +3534,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
   letter-spacing: 1.2px;
   z-index: 7;
@@ -3660,7 +3660,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .draft-reason-pill {
   display: inline-block;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.55rem;
   color: #061808;
   background: linear-gradient(90deg, #39ff14, #00ffff);
@@ -3672,7 +3672,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .draft-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 1.05rem;
   color: #ffffff;
   text-shadow: 0 0 12px #00ffff, 0 0 24px rgba(0, 255, 255, 0.45);
@@ -3731,7 +3731,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .draft-key-hint {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.52rem;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
@@ -3741,7 +3741,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .draft-rarity-pill {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   color: var(--card-color, #00ffff);
   letter-spacing: 0.8px;
@@ -3755,7 +3755,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .draft-card-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: var(--card-color, #00ffff);
   margin-bottom: 6px;
@@ -3765,7 +3765,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .draft-rank-badge {
   display: inline-block;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   padding: 3px 7px;
   border-radius: 4px;
@@ -3798,7 +3798,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .draft-card-cta {
   width: 100%;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   padding: 7px 8px;
   border-radius: 6px;
@@ -3860,7 +3860,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .pop-title,
 .cyber-pop-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   color: var(--pop-accent, #00ffff);
   text-shadow: 0 0 8px var(--pop-accent, #00ffff);
@@ -4139,7 +4139,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .intermission-kicker {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: #39ff14;
   letter-spacing: 1px;
@@ -4148,7 +4148,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .intermission-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 1.2rem;
   color: #ffffff;
   text-shadow: 0 0 14px var(--sector-accent, #00ffff), 0 0 28px var(--sector-accent, #00ffff);
@@ -4165,7 +4165,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .intermission-pill {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.56rem;
   color: #ffd700;
   background: rgba(255, 215, 0, 0.14);
@@ -4193,7 +4193,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .intermission-next-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.82rem;
   margin-bottom: 10px;
   text-shadow: 0 0 12px var(--sector-accent, #00ffff);
@@ -4210,7 +4210,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .intermission-stats-grid strong {
   display: block;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: #ffffff;
   margin-top: 4px;
@@ -4220,7 +4220,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   position: relative;
   overflow: hidden;
   width: 100%;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.76rem;
   padding: 14px 18px;
   color: #041208;
@@ -4297,7 +4297,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .reward-val {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   color: #ffd700;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
@@ -4405,7 +4405,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .v-stat-val.v-gold {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.64rem;
   color: #ffd700;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.65);
@@ -4480,7 +4480,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-max-pill {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
   color: #061808;
   background: linear-gradient(90deg, #ffd700, #39ff14);
@@ -4491,7 +4491,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-upgrade-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
   padding: 4px 7px;
   border-radius: 5px;
@@ -4540,7 +4540,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.38rem;
   color: #00e5ff;
   letter-spacing: 0.4px;
@@ -4629,7 +4629,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .mod-chip-status,
 .mod-chip-state {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.34rem;
   padding: 1px 4px;
   border-radius: 3px;
@@ -4727,7 +4727,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .breach-warning-pill {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.48rem;
   color: #ff4466;
   text-shadow: 0 0 10px rgba(255, 68, 102, 0.65);
@@ -4783,7 +4783,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .contract-card-key,
 .bc-key {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.16);
@@ -4794,7 +4794,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .contract-card-name,
 .bc-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   color: var(--contract-color, #00ffff);
   line-height: 1.3;
@@ -4825,7 +4825,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 .bc-sign-cta {
   margin-top: 3px;
   text-align: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
   padding: 5px 4px;
   border-radius: 5px;
@@ -4886,7 +4886,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .frenzy-ready-main {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.78rem;
   color: #ffd700;
   text-shadow: 0 0 10px #ffd700, 0 0 20px #ff0055;
@@ -4894,7 +4894,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .frenzy-ready-key {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.54rem;
   color: #090612;
   background: linear-gradient(90deg, #ffd700, #39ff14);
@@ -4918,7 +4918,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   bottom: calc(100% + 9px);
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   color: #ffd700;
   background: rgba(20, 6, 18, 0.94);
@@ -4951,7 +4951,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-top-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.5rem;
   height: 32px;
   padding: 0 12px;
@@ -4994,7 +4994,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-banner-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.95rem;
   color: #ffd700;
   text-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
@@ -5091,7 +5091,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .saved-runners-lbl {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.36rem;
   color: #7ea8cc;
   letter-spacing: 0.4px;
@@ -5132,7 +5132,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .runner-roster-chip strong {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.4rem;
   color: #ffffff;
   letter-spacing: 0.3px;
@@ -5159,7 +5159,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .runner-chip-stage {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.34rem;
   color: #051408;
   background: #39ff14;
@@ -5174,7 +5174,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .runner-roster-chip.runner-chip-new {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.36rem;
   color: #00ffff;
   border-style: dashed;
@@ -5252,7 +5252,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 
 .saved-run-info strong {
   color: #39ff14;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.42rem;
 }
 
@@ -5274,7 +5274,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   width: 100%;
   padding: 8px 12px;
   border-radius: 7px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   line-height: 1.35;
   color: #00ffff;
@@ -5407,7 +5407,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   color: #39ff14;
   background: rgba(5, 10, 18, 0.92);
@@ -5439,7 +5439,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .safehouse-upgrade-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.44rem;
   padding: 5px 9px 4px;
   border-radius: 5px;
@@ -5492,7 +5492,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   margin-bottom: 10px;
   padding: 9px 12px;
   border-radius: 8px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.46rem;
   line-height: 1.45;
   color: #ffd700;
@@ -5530,7 +5530,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .sv-val {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.54rem;
   color: #ffffff;
 }
@@ -5560,7 +5560,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .respec-mini-btn {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.38rem;
   padding: 3px 6px;
   border-radius: 4px;
@@ -5598,7 +5598,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 #start-screen:not(.safehouse-mode) .safehouse-banner-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.72rem;
   color: #00f5d4;
   text-shadow: 0 0 10px rgba(0, 245, 212, 0.45);
@@ -5700,7 +5700,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
   height: 50px;
   padding: 0 14px;
   border-radius: 8px;
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.52rem;
   letter-spacing: 0.6px;
   display: inline-flex;
@@ -5822,7 +5822,7 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 .class-card .cls-btn-name {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800;
   font-size: 0.62rem;
   letter-spacing: 0.6px;
   color: #eaf4ff;
@@ -5934,65 +5934,98 @@ body[data-board-level="5"] { background-color: #090612; transition: background-c
 }
 
 /* ==========================================================================
-   SYS 77-A // USED-FUTURE FIELD-REPAIRED CYBERDECK UNIBODY & OLED WELL
+   SYS 77-A // USED-FUTURE FIELD-REPAIRED CYBERDECK UNIBODY & OLED TERMINAL
    ========================================================================== */
 
-body {
-  background:
-    radial-gradient(circle at 50% 18%, rgba(0, 240, 255, 0.06), transparent 60%),
-    radial-gradient(circle at 50% 88%, rgba(255, 79, 0, 0.05), transparent 55%),
-    #07080b;
+:root {
+  --bg-mat: #07080a;
+  --alu-light: #2d323a;
+  --alu-mid: #1d2127;
+  --alu-dark: #121519;
+  --silk-white: #cfd6e0;
+  --silk-worn: rgba(207, 214, 224, 0.52);
+  --silk-dim: #737e8e;
+  --te-orange: #e85515;
+  --te-amber: #ffaa00;
+  --te-crimson: #ff2a55;
+  --te-cyan: #00f0ff;
+  --te-emerald: #10f58c;
+  --bezel-reflect: rgba(0, 240, 255, 0.24);
+  --keybed-glow: rgba(255, 136, 0, 0.72);
+}
+
+body,
+body[data-board-level="1"],
+body[data-board-level="2"],
+body[data-board-level="3"],
+body[data-board-level="4"],
+body[data-board-level="5"] {
+  background-color: var(--bg-mat) !important;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(255, 130, 0, 0.07) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 24px 24px, 24px 24px !important;
+  color: var(--silk-white) !important;
+  font-family: 'Inter', 'Chakra Petch', sans-serif !important;
+}
+
+body::before {
+  display: none !important;
+}
+
+@keyframes cabinetKnock {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4px, 2.5px); }
+  55% { transform: translate(4px, -2.5px); }
+  80% { transform: translate(-2px, -1px); }
+}
+
+@keyframes screenMicroJolt {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(-2px, 1.5px); }
+  75% { transform: translate(2px, -1px); }
 }
 
 .cyberdeck-unibody {
-  --bezel-reflect: #00f0ff;
   position: relative;
   width: 1004px;
-  padding: 20px 38px 20px;
-  border-radius: 18px;
+  max-width: 1004px;
+  margin: 0 auto;
   background:
-    radial-gradient(ellipse at 14% 8%, rgba(255, 255, 255, 0.07) 0%, transparent 42%),
-    radial-gradient(ellipse at 88% 92%, rgba(255, 130, 50, 0.05) 0%, transparent 45%),
-    linear-gradient(168deg, #323640 0%, #242830 38%, #1c1f26 75%, #161920 100%);
-  border-top: 2px solid rgba(255, 255, 255, 0.22);
-  border-left: 1.5px solid rgba(255, 255, 255, 0.14);
-  border-right: 1.5px solid rgba(0, 0, 0, 0.85);
-  border-bottom: 5px solid #0b0d11;
+    radial-gradient(circle at 12% 88%, rgba(255, 255, 255, 0.08) 0%, transparent 26%),
+    radial-gradient(circle at 88% 85%, rgba(255, 255, 255, 0.07) 0%, transparent 24%),
+    radial-gradient(circle at 75% 12%, rgba(0, 0, 0, 0.32) 0%, transparent 30%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, transparent 32%, rgba(0, 0, 0, 0.42) 100%),
+    linear-gradient(180deg, var(--alu-light) 0%, var(--alu-mid) 52%, var(--alu-dark) 100%);
+  border-radius: 18px;
+  border: 2px solid #454d59;
+  border-bottom: 9px solid #080a0d;
+  border-right: 4px solid #12151b;
+  border-left: 4px solid #2b313a;
+  padding: 16px 52px 20px;
   box-shadow:
-    0 34px 80px rgba(0, 0, 0, 0.92),
-    0 10px 26px rgba(0, 0, 0, 0.8),
-    inset 0 2px 3px rgba(255, 255, 255, 0.14),
-    inset 0 -4px 10px rgba(0, 0, 0, 0.88),
-    inset 16px 0 24px -14px rgba(255, 255, 255, 0.09),
-    inset -16px 0 24px -14px rgba(0, 0, 0, 0.65);
-  box-sizing: border-box;
+    0 35px 80px rgba(0, 0, 0, 0.92),
+    0 8px 20px rgba(0, 0, 0, 0.75),
+    inset 0 2px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 10px;
-  z-index: 2;
+  overflow: hidden;
+  box-sizing: border-box;
   user-select: none;
+  z-index: 2;
 }
 
-/* Brushed & bead-blasted aluminum surface texture + bare-metal wear scratches */
 .cyberdeck-grain-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 18px;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.22;
+  opacity: 0.075;
   mix-blend-mode: overlay;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.03) 0px,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
-    radial-gradient(circle at 22% 16%, rgba(255, 255, 255, 0.18), transparent 28%),
-    radial-gradient(circle at 82% 84%, rgba(0, 0, 0, 0.45), transparent 34%);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .cyberdeck-wear-svg {
@@ -6001,209 +6034,223 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 2;
-  opacity: 0.85;
+  z-index: 3;
 }
 
-/* ─── 4 Corner Hardware Fasteners (3 Black-Oxide T6 Torx + 1 Field-Replaced Brass Flathead) ─── */
+.cyberdeck-unibody.frenzy-overdrive {
+  --bezel-reflect: rgba(255, 42, 85, 0.55) !important;
+  --keybed-glow: rgba(255, 60, 0, 0.95);
+  box-shadow:
+    0 35px 80px rgba(0, 0, 0, 0.92),
+    0 0 45px rgba(255, 42, 85, 0.28),
+    inset 0 2px 1px rgba(255, 200, 210, 0.35);
+}
+
+/* ─── Corner Hardware Fasteners (3 Black-Oxide T6 Torx + 1 Brass Slotted Screw) ─── */
 .torx-screw {
-  position: absolute;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #3a3f4b 0%, #171a21 68%, #0b0d11 100%);
-  border: 1.5px solid #090b0e;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.12),
-    0 2px 5px rgba(0, 0, 0, 0.85);
-  z-index: 4;
+  background: radial-gradient(circle at 35% 35%, #1d2128 0%, #090b0e 78%);
+  border: 1.2px solid rgba(190, 205, 225, 0.32);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.14);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   pointer-events: none;
 }
 
 .torx-screw::after {
   content: "✶";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 9px;
   line-height: 1;
-  color: rgba(200, 212, 228, 0.42);
-  text-shadow: 0 1px 1px #000;
+  color: #040507;
+  text-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.22);
+  transform: rotate(var(--screw-rot, 18deg));
 }
 
-.torx-screw.tl { top: 12px; left: 12px; transform: rotate(18deg); }
-.torx-screw.tr { top: 12px; right: 12px; transform: rotate(-32deg); }
-.torx-screw.bl { bottom: 12px; left: 12px; transform: rotate(41deg); }
-.torx-screw.br { bottom: 12px; right: 12px; transform: rotate(-14deg); }
-
 .torx-screw.brass-replacement {
-  background: radial-gradient(circle at 32% 28%, #f4d068 0%, #b5892e 65%, #5c420e 100%);
-  border-color: #2b1d04;
-  box-shadow:
-    inset 0 1px 2px rgba(255, 248, 210, 0.65),
-    0 0 6px rgba(235, 185, 65, 0.25),
-    0 2px 5px rgba(0, 0, 0, 0.9);
+  background: radial-gradient(circle at 35% 35%, #d4a84f 0%, #6e4e16 82%);
+  border-color: rgba(255, 225, 150, 0.55);
 }
 
 .torx-screw.brass-replacement::after {
   content: "";
   width: 10px;
   height: 2px;
-  background: #2a1b04;
-  box-shadow: 0 1px 0 rgba(255, 230, 140, 0.45);
-  margin: auto;
+  background: #241704;
+  box-shadow: 0 0.5px 0 rgba(255, 230, 160, 0.4);
+  transform: rotate(-28deg);
 }
 
-/* ─── Left & Right Vertical Stencil Typography & Field Calibration Decal ─── */
-.chassis-side-rail {
+.chassis-corner-screw {
   position: absolute;
-  top: 44px;
-  bottom: 44px;
-  width: 24px;
+  z-index: 4;
+}
+.chassis-corner-screw.tl { top: 14px; left: 14px; --screw-rot: 17deg; }
+.chassis-corner-screw.tr { top: 14px; right: 14px; --screw-rot: 82deg; }
+.chassis-corner-screw.bl { bottom: 16px; left: 14px; --screw-rot: -34deg; }
+.chassis-corner-screw.br { bottom: 16px; right: 14px; }
+
+/* ─── Vertical Side-Rail Stencil Typography & Dog-Eared Calibration Sticker ─── */
+.field-calibration-sticker {
+  position: absolute;
+  bottom: 84px;
+  left: 6px;
+  width: 40px;
+  height: 112px;
+  background: linear-gradient(155deg, #d99b26 0%, #b87b14 78%, #704908 100%);
+  border: 1px solid rgba(0, 0, 0, 0.65);
+  border-radius: 2px;
+  clip-path: polygon(0 0, 76% 0, 100% 12%, 100% 100%, 0 100%);
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.75);
+  transform: rotate(1.6deg);
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  padding: 4px 2px;
   pointer-events: none;
+}
+
+.field-calibration-sticker::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 14px;
+  background: #e8c782;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  box-shadow: -2px 2px 3px rgba(0, 0, 0, 0.45);
+}
+
+.sticker-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.42rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.6px;
+  color: #171003;
+  opacity: 0.85;
+}
+
+.chassis-side-rail {
+  position: absolute;
+  top: 56px;
+  bottom: 36px;
+  width: 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
   z-index: 3;
+  pointer-events: none;
 }
 
-.chassis-side-rail.left-rail {
-  left: 7px;
+.chassis-side-rail.left {
+  left: 5px;
+  border-right: 1px solid rgba(0, 0, 0, 0.45);
 }
 
-.chassis-side-rail.right-rail {
-  right: 7px;
+.chassis-side-rail.right {
+  right: 5px;
+  border-left: 1px solid rgba(0, 0, 0, 0.45);
 }
 
 .rail-vert-text {
   writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: rgba(214, 206, 190, 0.42);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.85);
-  white-space: nowrap;
-}
-
-.chassis-side-rail.left-rail .rail-vert-text {
   transform: rotate(180deg);
-}
-
-.rail-vert-text.stencil-warn {
-  color: rgba(255, 166, 48, 0.62);
-}
-
-.rail-vert-text.stencil-faded {
-  color: rgba(214, 206, 190, 0.25);
-}
-
-.rail-jack-port {
-  display: flex;
-  flex-direction: column;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--silk-worn);
+  text-transform: uppercase;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  white-space: nowrap;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 42%, rgba(0,0,0,0.9) 68%, rgba(0,0,0,0.35) 88%, rgba(0,0,0,0.9) 100%);
+}
+
+.rail-vert-text.warn-orange {
+  color: rgba(232, 85, 21, 0.78);
 }
 
 .rail-jack-hole {
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #050608;
-  border: 1.5px solid #4c5362;
-  box-shadow:
-    inset 0 1px 3px #000,
-    0 1px 0 rgba(255, 255, 255, 0.18);
+  background: #040507;
+  border: 2px solid #5c6573;
+  box-shadow: inset 0 2px 4px #000, 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Dog-eared yellow inspection sticker on lower-left bezel */
-.field-calibration-sticker {
-  position: absolute;
-  left: 6px;
-  bottom: 92px;
-  width: 26px;
-  padding: 6px 2px;
-  background: linear-gradient(155deg, #d8b532 0%, #b58d18 82%, #7e600c 100%);
-  color: #191406;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 6.5px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  line-height: 1.15;
-  writing-mode: vertical-rl;
-  transform: rotate(178.5deg);
-  border-radius: 2px;
-  clip-path: polygon(0 0, 100% 0, 100% 88%, 74% 100%, 0 100%);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  z-index: 4;
-  pointer-events: none;
-  opacity: 0.88;
-}
-
-.field-calibration-sticker .cal-sub {
-  border-top: 1px solid rgba(25, 20, 6, 0.45);
-  padding-top: 3px;
-  color: #3a1204;
-}
-
-/* ─── TOP HARDWARE BEZEL: 3-LEVEL TYPOGRAPHIC HIERARCHY & RECESSED OLED TELEMETRY ─── */
+/* ─── 1. TOP PRODUCTION HARDWARE BEZEL (3-Tier Typographic Hierarchy + 24-Cell Capacitor) ─── */
 .deck-top-bezel {
   position: relative;
-  z-index: 3;
-  width: 920px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.deck-header-row {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 14px;
   width: 100%;
 }
 
-.deck-brand-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(16, 18, 24, 0.72) 0%, rgba(11, 13, 18, 0.88) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.85),
-    0 1px 0 rgba(255, 255, 255, 0.08);
+.game-header.deck-header-row {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  padding: 0 0 8px 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  gap: 14px !important;
+}
+
+.header-left.deck-brand-left,
+.header-left.deck-brand-left.title-page-hidden {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 .silk-model-title {
   margin: 0 !important;
+  padding: 0 !important;
   font-family: 'Chakra Petch', sans-serif !important;
   font-size: 1.55rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 2.2px !important;
+  font-weight: 700 !important;
+  letter-spacing: 3.5px !important;
   line-height: 1 !important;
-  color: #f4f0e8 !important;
-  text-shadow:
-    0 0 12px rgba(0, 240, 255, 0.32),
-    0 2px 3px rgba(0, 0, 0, 0.9) !important;
+  color: #f0f5fa !important;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.85) !important;
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.85) 40%, #000 75%, rgba(0,0,0,0.8) 100%);
   white-space: nowrap;
+}
+
+.silk-model-title::before,
+.silk-model-title::after {
+  display: none !important;
+  content: none !important;
 }
 
 .brand-divider {
   width: 1.5px;
   height: 28px;
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+  background: rgba(0, 0, 0, 0.65);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
 }
 
@@ -6216,43 +6263,42 @@ body {
 
 .meta-kicker {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-  color: #9ba5b8;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--silk-dim);
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.meta-hi-score {
-  position: static !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
+.meta-hi-score,
+#high-score-display.meta-hi-score {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.68rem !important;
+  font-size: 0.64rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.8px !important;
-  color: #ffb000 !important;
-  text-shadow: 0 0 8px rgba(255, 176, 0, 0.45) !important;
-  line-height: 1.1 !important;
-  cursor: pointer;
+  color: var(--silk-white) !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
+  margin: 0 !important;
 }
 
-/* 4-Cell Recessed OLED Telemetry Cluster */
+.meta-hi-score strong,
+#high-score-display.meta-hi-score strong {
+  color: var(--te-amber) !important;
+}
+
 .deck-telemetry-cluster {
-  flex: 1;
   display: grid;
-  grid-template-columns: 1.35fr 0.85fr 1fr 0.9fr;
-  gap: 6px;
-  padding: 5px 7px;
-  border-radius: 8px;
-  background: #07090d;
-  border: 1.5px solid #12161f;
+  grid-template-columns: repeat(4, auto);
+  align-items: center;
+  background: #06080b;
+  border: 1.5px solid #0e1218;
+  border-radius: 7px;
   box-shadow:
     inset 0 3px 8px rgba(0, 0, 0, 0.95),
-    0 1px 0 rgba(255, 255, 255, 0.1);
+    0 1px 0 rgba(255, 255, 255, 0.14);
+  overflow: hidden;
 }
 
 .tel-cell {
@@ -6260,21 +6306,23 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  padding: 4px 9px;
-  border-radius: 5px;
-  background: linear-gradient(180deg, rgba(16, 22, 32, 0.9) 0%, rgba(9, 13, 20, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  min-width: 0;
+  padding: 5px 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 102px;
+}
+
+.tel-cell:last-child {
+  border-right: none;
 }
 
 .tel-cell-lbl {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.5rem;
-  font-weight: 700;
-  letter-spacing: 1.1px;
-  color: #7c899e;
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  color: var(--silk-dim);
+  text-transform: uppercase;
   line-height: 1;
-  white-space: nowrap;
 }
 
 .tel-cell-val {
@@ -6282,282 +6330,436 @@ body {
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.6px;
-  line-height: 1.15;
+  color: #ffffff;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tel-cyan {
-  color: #00f0ff;
-  text-shadow: 0 0 8px rgba(0, 240, 255, 0.45);
-}
-
-.tel-amber {
-  color: #ffb000;
-  text-shadow: 0 0 8px rgba(255, 176, 0, 0.45);
-}
-
-.tel-green {
-  color: #39ff14;
-  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
 }
 
 .tel-safe-cell {
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: background 0.14s ease;
 }
 
 .tel-safe-cell:hover {
-  border-color: rgba(57, 255, 20, 0.55);
-  background: rgba(20, 38, 28, 0.92);
+  background: rgba(255, 170, 0, 0.1);
 }
 
-/* ─── Row 2: Flush 3-Column Borosilicate Laser Frenzy Capacitor Tube ─── */
-#frenzy-meter-bar.frenzy-capacitor-module {
-  width: 920px !important;
+/* Row 2: Full-Width Clamped Borosilicate Glass Laser Frenzy Capacitor (24-Cell Tube) */
+.rogue-hud-row {
+  width: 100% !important;
   margin: 0 !important;
-  padding: 6px 12px !important;
+  padding: 0 !important;
+}
+
+#rogue-hud.rogue-hud {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#frenzy-meter-bar.frenzy-capacitor-module {
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  background: #06080b !important;
+  border: 1.5px solid #0e1218 !important;
   border-radius: 8px !important;
-  background: linear-gradient(180deg, #12151c 0%, #0b0d12 100%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.92),
-    0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    inset 0 5px 12px rgba(0, 0, 0, 0.98),
+    0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  padding: 6px 14px !important;
   display: grid !important;
-  grid-template-columns: 168px 1fr 168px !important;
+  grid-template-columns: 142px 1fr 148px !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 14px !important;
+  cursor: pointer !important;
+  position: relative !important;
   box-sizing: border-box !important;
 }
 
 .cap-label-block {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   text-align: left;
 }
 
 .cap-kicker {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.48rem;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  color: #7c899e;
+  font-size: 0.44rem;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  color: var(--silk-dim);
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.cap-left-tag {
+.cap-left-tag,
+.frenzy-bar-tag.cap-left-tag {
   font-family: 'Chakra Petch', sans-serif !important;
-  font-size: 0.72rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 1.1px !important;
-  color: #eef4ff !important;
-  line-height: 1.15 !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.4px !important;
+  color: var(--silk-white) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  line-height: 1.1 !important;
+  white-space: nowrap;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
-.cap-glass-tube {
-  position: relative;
-  height: 14px !important;
-  border-radius: 999px !important;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.07) 0px,
-      rgba(255, 255, 255, 0.07) 1px,
-      transparent 1px,
-      transparent 24px
-    ),
-    #05070b !important;
-  border: 1.5px solid rgba(0, 240, 255, 0.32) !important;
-  box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.95),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
-  overflow: hidden;
+.cap-left-tag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--te-amber);
+  box-shadow: 0 0 8px var(--te-amber);
+  flex-shrink: 0;
 }
 
-/* Cylindrical glass specular highlight + retaining rings */
-.cap-glass-tube::after {
+#cap-glass-tube.cap-glass-tube {
+  width: 100% !important;
+  height: 22px !important;
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(24, 1fr) !important;
+  gap: 3px !important;
+  padding: 3px 5px !important;
+  background: #030406 !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#cap-glass-tube.cap-glass-tube::after {
   content: "";
   position: absolute;
-  top: 1px;
-  left: 8px;
-  right: 8px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.32));
+  inset: 0;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg,
+      transparent 24.5%, #2a313d 24.5%, #657285 25%, #161a20 25.5%, transparent 25.5%,
+      transparent 49.5%, #2a313d 49.5%, #657285 50%, #161a20 50.5%, transparent 50.5%,
+      transparent 74.5%, #2a313d 74.5%, #657285 75%, #161a20 75.5%, transparent 75.5%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.02) 35%, transparent 65%, rgba(0, 0, 0, 0.45) 100%);
   pointer-events: none;
+}
+
+.cap-cell {
+  border-radius: 1.5px;
+  background: #141820;
+  transition: all 0.1s ease;
+}
+
+.cap-cell.lit-gold {
+  background: linear-gradient(180deg, #fff099, #ffaa00);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.8);
+}
+
+.cap-cell.lit-orange {
+  background: linear-gradient(180deg, #ffd180, #ff5500);
+  box-shadow: 0 0 10px rgba(255, 85, 0, 0.85);
+}
+
+.cap-cell.lit-crimson {
+  background: linear-gradient(180deg, #ff99b3, #ff1e42);
+  box-shadow: 0 0 12px rgba(255, 30, 66, 0.95);
+}
+
+.cap-cell.strobe-white {
+  background: #ffffff !important;
+  box-shadow: 0 0 16px #ffffff, 0 0 26px #ff2a55 !important;
 }
 
 .cap-status-block {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  text-align: right;
+  align-items: flex-end;
+  gap: 2px;
 }
 
-.cap-right-readout {
+.cap-right-readout,
+#frenzy-bar-action-pill.cap-right-readout {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.68rem !important;
+  font-size: 0.7rem !important;
   font-weight: 800 !important;
-  letter-spacing: 0.8px !important;
-  color: #00f0ff !important;
+  letter-spacing: 0.6px !important;
+  color: var(--te-amber) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  line-height: 1.1 !important;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ─── 3-STEP 45° DIAMOND-CHAMFERED 900×600 OLED DISPLAY WELL ─── */
+/* ─── 2. CENTER 3-STEP 45° DIAMOND-CHAMFERED DIGITAL DISPLAY WELL (#game-area) ─── */
 .display-outer-housing {
   position: relative;
-  z-index: 3;
+  z-index: 2;
+  background: #14181f;
+  border-radius: 12px;
   padding: 5px;
-  border-radius: 13px;
-  background: linear-gradient(180deg, #0d0f14 0%, #191d26 100%);
-  border: 1.5px solid #08090c;
+  border: 1.5px solid #090b0e;
   box-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.12),
-    inset 0 3px 8px rgba(0, 0, 0, 0.95);
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 2px 5px rgba(0, 0, 0, 0.95);
 }
 
 .display-chamfer-wall {
   position: relative;
-  padding: 20px 10px 12px;
-  border-radius: 10px;
   background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--bezel-reflect, #00f0ff) 24%, transparent), transparent 65%),
-    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--bezel-reflect, #00f0ff) 18%, transparent), transparent 65%),
-    linear-gradient(180deg, #1b2029 0%, #0f1319 50%, #171c24 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    radial-gradient(circle at 50% 50%, var(--bezel-reflect), transparent 72%),
+    linear-gradient(135deg, #0d1015 0%, #242a34 48%, #12161c 52%, #2c333f 100%);
+  padding: 15px 14px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(210, 225, 245, 0.22);
   box-shadow:
-    inset 0 0 22px rgba(0, 0, 0, 0.92),
-    inset 0 0 12px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 22%, transparent);
-  transition: box-shadow 0.15s ease;
-}
-
-@keyframes chamferScreenJolt {
-  0%   { transform: translate(0, 0); }
-  30%  { transform: translate(-1.5px, 1.5px); }
-  65%  { transform: translate(1.5px, -1px); }
-  100% { transform: translate(0, 0); }
+    inset 0 4px 12px rgba(0, 0, 0, 0.9),
+    inset 0 0 26px var(--bezel-reflect);
+  transition: box-shadow 0.18s ease;
 }
 
 .display-chamfer-wall.screen-jolt {
-  animation: chamferScreenJolt 95ms ease-out;
+  animation: screenMicroJolt 0.12s ease-out;
 }
 
 .chamfer-top-silk {
   position: absolute;
-  top: 4px;
-  left: 16px;
-  right: 16px;
+  top: 2px;
+  left: 18px;
+  right: 18px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 1.1px;
-  color: rgba(210, 224, 245, 0.58);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  color: rgba(212, 220, 232, 0.58);
   pointer-events: none;
 }
 
 #chamfer-perk-readout {
-  color: var(--bezel-reflect, #00f0ff);
-  text-shadow: 0 0 6px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 45%, transparent);
+  color: #00f0ff;
 }
 
-/* Top & Bottom Vernier Millimeter Ruler Ticks inside the OLED Glass Edge */
+#game-area,
+#game-area[data-board-level="2"]:not([class*="hack-theme-"]),
+#game-area[data-board-level="3"]:not([class*="hack-theme-"]),
+#game-area[data-board-level="4"]:not([class*="hack-theme-"]),
+#game-area[data-board-level="5"]:not([class*="hack-theme-"]) {
+  position: relative;
+  width: 900px !important;
+  height: 600px !important;
+  margin: 0 !important;
+  background:
+    radial-gradient(circle at 50% 78%, rgba(0, 240, 255, 0.06), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    #030508 !important;
+  background-size: 100% 100%, 32px 32px, 32px 32px !important;
+  border-radius: 5px !important;
+  border: 1.5px solid #000000 !important;
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.95),
+    0 0 1px rgba(255, 255, 255, 0.25) !important;
+  overflow: hidden;
+}
+
+/* Optical OLED Glass Scanlines + Diagonal Specular Sheen */
+#game-area::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.032) 0%, transparent 36%, rgba(0, 240, 255, 0.015) 100%);
+  pointer-events: none;
+  z-index: 25;
+}
+
 .vernier-ticks-top,
 .vernier-ticks-bottom {
   position: absolute;
   left: 0;
   right: 0;
-  height: 5px;
+  height: 6px;
+  width: 100%;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(212, 228, 245, 0.38) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(90deg, rgba(212, 228, 245, 0.18) 0 1px, transparent 1px 4px);
   pointer-events: none;
-  z-index: 6;
-  opacity: 0.36;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 240, 255, 0.65) 0px,
-      rgba(0, 240, 255, 0.65) 1px,
-      transparent 1px,
-      transparent 50px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.28) 0px,
-      rgba(255, 255, 255, 0.28) 1px,
-      transparent 1px,
-      transparent 10px
-    );
+  z-index: 12;
 }
 
-.vernier-ticks-top {
-  top: 0;
+.vernier-ticks-top { top: 0; }
+.vernier-ticks-bottom { bottom: 0; }
+
+/* In-Screen OLED Top Telemetry Bar */
+.game-stats-container.oled-in-screen-hud {
+  position: absolute !important;
+  top: 6px !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 32px !important;
+  padding: 0 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(3, 6, 10, 0.88) !important;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.16) !important;
+  z-index: 10 !important;
+  box-sizing: border-box !important;
 }
 
-.vernier-ticks-bottom {
-  bottom: 0;
+.oled-score-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Keep #game-area at exact 900x600 coordinate geometry with deep optical OLED glass */
-#game-area {
-  margin: 0 !important;
-  border-radius: 6px !important;
-  border: 1.5px solid rgba(0, 240, 255, 0.35) !important;
-  background-color: #05070c !important;
-  background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, transparent 36%, transparent 68%, rgba(0, 240, 255, 0.025) 100%),
-    linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px) !important;
-  background-size: 100% 100%, 30px 30px, 30px 30px !important;
-  box-shadow:
-    inset 0 0 38px rgba(0, 0, 0, 0.92),
-    0 0 18px color-mix(in srgb, var(--bezel-reflect, #00f0ff) 22%, transparent) !important;
+#score.game-ui-text {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  color: var(--te-emerald) !important;
+  text-shadow: 0 0 10px rgba(16, 245, 140, 0.45) !important;
 }
 
-/* ─── Smoked-Glass Chamfered Bricks + 40ms White-Hot Shatter Flash ─── */
-.brick {
+.multiplier-badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  color: #041008 !important;
+  background: var(--te-emerald) !important;
+  padding: 2px 7px !important;
+  border-radius: 3px !important;
+  text-shadow: none !important;
+}
+
+#status-indicators {
+  position: static !important;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.status-indicator {
+  background: rgba(8, 13, 22, 0.92) !important;
+  border: 1px solid rgba(0, 240, 255, 0.28) !important;
   border-radius: 4px !important;
-  clip-path: polygon(
-    4px 0%,
-    calc(100% - 4px) 0%,
-    100% 4px,
-    100% calc(100% - 4px),
-    calc(100% - 4px) 100%,
-    4px 100%,
-    0% calc(100% - 4px),
-    0% 4px
-  );
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.55) !important;
+  padding: 3px 7px !important;
 }
 
-.brick::after {
+/* ─── Smoked-Glass CAD Vector Bricks (Matches Moodboard Canvas Bricks 1:1) ─── */
+.brick {
+  --brick-clr: #00f0ff;
+  border-radius: 3px !important;
+  background: rgba(10, 15, 24, 0.92) !important;
+  border: 1.5px solid var(--brick-clr) !important;
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--brick-clr) 55%, transparent),
+    inset 0 0 6px color-mix(in srgb, var(--brick-clr) 25%, transparent) !important;
+}
+
+/* Inner translucent phosphor core plate */
+.brick::before {
   content: "";
   position: absolute;
   inset: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 2px;
+  border-radius: 1.5px;
+  background: var(--brick-clr);
+  opacity: 0.22;
   pointer-events: none;
+}
+
+.brick-row-0 { --brick-clr: #ff2a55; }
+.brick-row-1 { --brick-clr: #ff5e00; }
+.brick-row-2 { --brick-clr: #ffaa00; }
+.brick-row-3 { --brick-clr: #10f58c; }
+.brick-row-4 { --brick-clr: #00f0ff; }
+.brick-row-5 { --brick-clr: #a855f7; }
+.brick-row-6 { --brick-clr: #ff00aa; }
+
+/* Armored 2-Hit Brick */
+.brick.multihit {
+  border-width: 2px !important;
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--brick-clr) 70%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35) !important;
+}
+
+.brick.multihit::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  width: auto !important;
+  height: auto !important;
+  top: 2px !important;
+  right: 2px !important;
+  background: transparent !important;
+  border: 1px dashed rgba(255, 255, 255, 0.42);
+  transform: none !important;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* Damaged fracture crack on multi-hit brick */
+.brick.damaged::after {
+  border: none !important;
+  background:
+    linear-gradient(115deg, transparent 43%, #ffffff 45%, #ffffff 48%, transparent 50%),
+    linear-gradient(62deg, transparent 46%, rgba(255, 255, 255, 0.8) 48%, transparent 51%) !important;
+  opacity: 0.95 !important;
+  transform: none !important;
+}
+
+/* Gold Cyber-Vault Brick */
+.brick.brick-vault,
+.brick.vault-brick {
+  --brick-clr: #ffaa00 !important;
+  background: rgba(255, 170, 0, 0.28) !important;
+  border: 2px solid #ffaa00 !important;
+  box-shadow:
+    0 0 12px rgba(255, 170, 0, 0.75),
+    inset 0 0 10px rgba(255, 170, 0, 0.35) !important;
 }
 
 @keyframes brickWhiteHotFlash {
   0% {
     opacity: 1;
-    filter: brightness(3.5) contrast(1.4);
-    transform: scale(1.06);
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 20px #ffffff !important;
+    transform: scale(1.05);
   }
   100% {
     opacity: 0;
-    filter: brightness(2);
     transform: scale(0.75);
   }
 }
 
 .brick.broken {
-  animation: brickWhiteHotFlash 95ms ease-out forwards !important;
+  animation: brickWhiteHotFlash 90ms ease-out forwards !important;
   pointer-events: none;
 }
 
@@ -6566,6 +6768,7 @@ body {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  opacity: 0.92 !important;
 }
 
 .power-up-indicator .pu-vec-svg {
@@ -6593,7 +6796,7 @@ body {
   gap: 3px;
   padding: 2px 5px;
   border-radius: 6px;
-  background: linear-gradient(180deg, rgba(10, 16, 28, 0.94) 0%, rgba(5, 9, 18, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(10, 16, 28, 0.95) 0%, rgba(5, 9, 18, 0.98) 100%);
   border: 1.5px solid var(--vial-color, #00f0ff);
   box-shadow:
     0 0 12px var(--vial-color, #00f0ff),
@@ -6647,112 +6850,419 @@ body {
   height: 15px;
 }
 
-/* ─── Machined Thruster Paddle Bar ─── */
-#paddle {
-  border-radius: 5px !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.72) !important;
+/* ─── Machined Gunmetal Thruster Paddle with Glowing Sweet-Spot Class Core ─── */
+#paddle,
+#paddle[data-runner-class="striker"],
+#paddle[data-runner-class="guardian"],
+#paddle[data-runner-class="demolisher"],
+#paddle[data-runner-class="highroller"] {
+  --pad-core-clr: #00f0ff;
+  background: #222834 !important;
+  border: 1.5px solid #9fb0c7 !important;
+  border-radius: 4px !important;
   box-shadow:
-    0 0 16px rgba(0, 240, 255, 0.75),
-    inset 0 2px 3px rgba(255, 255, 255, 0.65),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.65) !important;
+    0 4px 12px rgba(0, 0, 0, 0.85),
+    0 0 14px color-mix(in srgb, var(--pad-core-clr) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
 }
 
-/* ─── SUNKEN SWITCH-PLATE MECHANICAL KEYBED (LOWER BEZEL) ─── */
-#tips-box.lower-keybed-bay {
-  position: relative;
-  z-index: 3;
-  width: 920px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: none !important;
-  border: none !important;
+#paddle[data-runner-class="striker"]    { --pad-core-clr: #00f0ff; }
+#paddle[data-runner-class="guardian"]   { --pad-core-clr: #10f58c; }
+#paddle[data-runner-class="demolisher"] { --pad-core-clr: #ff5500; }
+#paddle[data-runner-class="highroller"] { --pad-core-clr: #ffaa00; }
+
+#paddle::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: 52px;
+  transform: translateX(-50%);
+  border-radius: 2.5px;
+  background: var(--pad-core-clr);
+  box-shadow: 0 0 14px var(--pad-core-clr), 0 0 6px #ffffff;
+  pointer-events: none;
+}
+
+/* ─── OLED TACTICAL TERMINAL START SCREEN & MODALS (Replaces Legacy 80s Arcade UI) ─── */
+#start-screen,
+#start-screen.safehouse-mode {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.06) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #04060a !important;
+  background-size: 100% 100%, 32px 32px, 32px 32px !important;
+  padding: 14px 24px 14px !important;
+}
+
+.start-screen-topbar {
+  background: #070a10;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid var(--te-orange);
+  border-radius: 5px;
+  padding: 0 12px;
+}
+
+#start-screen .safehouse-banner-title,
+#start-screen:not(.safehouse-mode) .safehouse-banner-title {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  color: #f0f5fa !important;
+  text-shadow: none !important;
+  text-transform: uppercase;
+}
+
+.safehouse-top-btn {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  height: 26px !important;
+  border-radius: 4px !important;
+  background: #141922 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: var(--silk-white) !important;
   box-shadow: none !important;
 }
 
-.recessed-switch-trench {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background:
-    radial-gradient(ellipse at 50% 60%, rgba(255, 140, 20, 0.22) 0%, rgba(255, 90, 0, 0.08) 55%, transparent 80%),
-    #080a0e;
-  border: 1.5px solid #0e1118;
-  box-shadow:
-    inset 0 4px 10px rgba(0, 0, 0, 0.96),
-    inset 0 0 16px rgba(255, 136, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  box-sizing: border-box;
+.safehouse-top-btn:hover,
+.safehouse-top-btn.active-mode {
+  background: var(--te-orange) !important;
+  border-color: #ff854d !important;
+  color: #0b0400 !important;
 }
 
-.hud-actions-group,
-.hud-Utilities-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Sculpted 3D PBT Mechanical Keycaps with Warm Amber Switch-Plate Underglow */
-.deck-keycap {
-  position: relative;
-  padding: 7px 13px !important;
+#start-screen .callsign-top-section,
+#start-screen:not(.safehouse-mode) .start-deck.deck-single-col .callsign-top-section,
+#start-screen .class-picker-box,
+#start-screen:not(.safehouse-mode) .start-deck.deck-single-col .class-picker-box,
+.leaderboard-panel {
+  background: #070a10 !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
   border-radius: 6px !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.64rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.7px !important;
-  color: #eae6df !important;
-  background: linear-gradient(180deg, #323742 0%, #232730 100%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.25) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-right: 1px solid rgba(0, 0, 0, 0.65) !important;
-  border-bottom: 4px solid #12151b !important;
-  box-shadow:
-    0 3px 7px rgba(0, 0, 0, 0.85),
-    0 0 10px rgba(255, 145, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
-  transform: translateY(0);
-  transition: transform 0.08s ease, box-shadow 0.12s ease, border-bottom-width 0.08s ease !important;
-  cursor: pointer;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.85) !important;
 }
 
-.deck-keycap:hover {
-  color: #ffffff !important;
-  background: linear-gradient(180deg, #3b414e 0%, #2a2f3a 100%) !important;
-  box-shadow:
-    0 3px 9px rgba(0, 0, 0, 0.9),
-    0 0 14px rgba(0, 240, 255, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+.deck-sec-title {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  color: var(--silk-white) !important;
+  text-transform: uppercase;
 }
 
-.deck-keycap:active {
+.deck-sec-title .sec-num {
+  background: var(--te-orange) !important;
+  color: #0c0400 !important;
+  border-radius: 2px !important;
+}
+
+#start-screen .callsign-slot {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  background: #030508 !important;
+  border: 1.5px solid rgba(0, 240, 255, 0.35) !important;
+  border-radius: 4px !important;
+  color: var(--te-emerald) !important;
+}
+
+.class-card.class-select-btn {
+  background: #0b0f17 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-left: 3px solid var(--cls-color, #00f0ff) !important;
+  border-radius: 5px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.class-card.class-select-btn.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cls-color, #00f0ff) 16%, #0b0f17) 0%, #0d131d 100%) !important;
+  border-color: var(--cls-color, #00f0ff) !important;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--cls-color, #00f0ff) 28%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--cls-color, #00f0ff) 12%, transparent) !important;
+}
+
+.class-card .cls-btn-name {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.2px !important;
+}
+
+/* Tactile Hardware Actuator START Button */
+.start-prompt.start-play-btn {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 3px !important;
+  color: #120500 !important;
+  background: linear-gradient(180deg, #ff6a26 0%, #e85515 65%, #c44108 100%) !important;
+  border: 1.5px solid #ff9d6e !important;
+  border-bottom: 4px solid #6e2002 !important;
+  border-radius: 5px !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.85),
+    0 0 18px rgba(232, 85, 21, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+.start-prompt.start-play-btn:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.1);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.9),
+    0 0 24px rgba(232, 85, 21, 0.7) !important;
+}
+
+.start-prompt.start-play-btn:active {
   transform: translateY(2px) !important;
   border-bottom-width: 2px !important;
 }
 
-/* Field-swapped salvage orange keycap for [~] HACK CONSOLE */
-.deck-keycap.key-salvage-orange {
-  background: linear-gradient(180deg, #e0531c 0%, #b3390c 100%) !important;
-  color: #fff8f0 !important;
-  border-top: 1px solid rgba(255, 220, 190, 0.48) !important;
-  border-bottom: 4px solid #5e1a03 !important;
+/* OLED Stencil Jumbotron & Floating Score Popups */
+.notif-jumbotron .jumbo-kicker {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 3.5px !important;
+}
+
+.notif-jumbotron .jumbo-main {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 2.65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 4px !important;
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px var(--notif-color, #00f0ff) !important;
+}
+
+.notif-burst .burst-name {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+}
+
+.notif-burst .burst-desc,
+.score-pop-up {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+/* Smoked-Glass OLED Modals (Pause, Intermission, End-of-Run, Arcade Manual, Hack Console, Popovers) */
+#game-message:not(.end-overlay-mode):not(.level-intermission-mode),
+.end-modal-card,
+.level-intermission-card,
+.guide-window,
+.console-window,
+.cyber-hover-popover {
+  background: linear-gradient(180deg, rgba(8, 12, 20, 0.98) 0%, rgba(5, 8, 14, 0.99) 100%) !important;
+  border: 1.5px solid rgba(0, 240, 255, 0.38) !important;
+  border-top: 3px solid var(--te-orange) !important;
+  border-radius: 6px !important;
   box-shadow:
-    0 3px 7px rgba(0, 0, 0, 0.88),
-    0 0 12px rgba(255, 94, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+    0 24px 60px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
-.deck-keycap.key-salvage-orange:hover {
-  background: linear-gradient(180deg, #f25f24 0%, #c9410e 100%) !important;
+.advert-title,
+.console-title,
+.intermission-title,
+#game-message .name {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase;
 }
 
+.intermission-continue-btn,
+.end-play-btn {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  color: #120500 !important;
+  background: linear-gradient(180deg, #ff6a26 0%, #e85515 65%, #c44108 100%) !important;
+  border: 1.5px solid #ff9d6e !important;
+  border-bottom: 4px solid #6e2002 !important;
+  border-radius: 5px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85), 0 0 16px rgba(232, 85, 21, 0.45) !important;
+}
 
+/* ─── 3. BOTTOM SUNKEN MECHANICAL KEYBED (Exact 3-Trench Hardware Layout) ─── */
+#tips-box.lower-keybed-bay {
+  position: relative;
+  z-index: 2;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
 
+#tips-box.lower-keybed-bay .recessed-switch-trench,
+#volume-control-widget.recessed-switch-trench {
+  width: auto !important;
+  height: auto !important;
+  background:
+    radial-gradient(circle at 50% 60%, var(--keybed-glow), rgba(255, 90, 0, 0.25) 68%, #050608 100%) !important;
+  border-radius: 8px !important;
+  border: 2px solid #090b0f !important;
+  box-shadow:
+    inset 0 4px 10px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 18px rgba(255, 130, 0, 0.15) !important;
+  padding: 6px !important;
+  display: flex !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
 
+.deck-keycap {
+  position: relative;
+  appearance: none;
+  height: 44px !important;
+  min-width: 96px !important;
+  padding: 0 14px !important;
+  border-radius: 5px !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    radial-gradient(circle at 50% 38%, #1e2229 0%, #2a303a 68%, #343b47 100%) !important;
+  border: 1px solid #454e5e !important;
+  border-bottom: 5px solid #0b0d11 !important;
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.9),
+    0 0 8px rgba(255, 140, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  color: #e6edf7 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.07s ease, border-bottom-width 0.07s ease, filter 0.12s ease !important;
+}
 
+.deck-keycap:hover {
+  filter: brightness(1.15);
+}
 
+.deck-keycap:active {
+  transform: translateY(3px) !important;
+  border-bottom-width: 2px !important;
+}
 
+.deck-keycap .k-sub {
+  font-size: 0.46rem;
+  color: #ffb366;
+  font-weight: 700;
+  line-height: 1;
+}
 
+.deck-keycap.key-salvage-orange {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.28) 0%, transparent 45%, rgba(0, 0, 0, 0.35) 100%),
+    radial-gradient(circle at 50% 38%, #d45214 0%, #b8410b 78%) !important;
+  border-color: #f08249 !important;
+  border-bottom-color: #4f1902 !important;
+  color: #140601 !important;
+}
+
+.deck-keycap.key-salvage-orange .k-sub {
+  color: #140601 !important;
+  background: rgba(255, 215, 0, 0.78);
+  padding: 1px 4px;
+  border-radius: 2px;
+  transform: rotate(-1.2deg);
+}
+
+.deck-keycap.key-mini {
+  min-width: 38px !important;
+  width: 38px !important;
+  padding: 0 8px !important;
+  font-size: 0.82rem !important;
+}
+
+.vol-hardware-bay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.vol-led-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vol-top-lbl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.48rem;
+  font-weight: 800;
+  color: var(--silk-white);
+  letter-spacing: 0.8px;
+}
+
+#volume-pct-label.vol-pct-label {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.5rem !important;
+  font-weight: 800 !important;
+  color: var(--te-emerald) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  text-shadow: none !important;
+}
+
+.vol-bars.vol-bars-well {
+  width: 88px !important;
+  height: 16px !important;
+  background: #040608 !important;
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  padding: 2px 3px !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  align-items: stretch !important;
+  gap: 3px !important;
+  box-sizing: border-box !important;
+}
+
+.vol-bar-btn.vol-step-cell {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 1.5px !important;
+  background: #161b22 !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.vol-bar-btn.vol-step-cell.active {
+  background: #10f58c !important;
+  box-shadow: 0 0 6px rgba(16, 245, 140, 0.8) !important;
+}

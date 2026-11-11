@@ -2179,6 +2179,38 @@ function syncCyberdeckTelemetry() {
     chassis.classList.toggle("frenzy-overdrive", isFrenzy);
     chassis.style.setProperty("--bezel-reflect", isFrenzy ? "rgba(255, 42, 85, 0.52)" : `color-mix(in srgb, ${cDef.color || "#00f0ff"} 28%, transparent)`);
   }
+
+  // Sync 24-cell Borosilicate Glass Capacitor Tube (#cap-glass-tube)
+  const capTube = document.getElementById("cap-glass-tube");
+  if (capTube) {
+    const cells = capTube.querySelectorAll(".cap-cell");
+    const isFrenzyActive = typeof frenzyTimerLeft === "number" && frenzyTimerLeft > 0;
+    const isReady = !isFrenzyActive && ((typeof frenzyReady !== "undefined" && frenzyReady) || (typeof frenzyMeter === "number" && frenzyMeter >= 100));
+    let pct = 0;
+    if (isFrenzyActive) {
+      const maxDur = (typeof frenzyMaxDuration === "number" && frenzyMaxDuration > 0.5) ? frenzyMaxDuration : 4.5;
+      pct = Math.max(0, Math.min(100, Math.round((frenzyTimerLeft / maxDur) * 100)));
+    } else if (isReady) {
+      pct = 100;
+    } else if (typeof frenzyMeter === "number") {
+      pct = Math.max(0, Math.min(100, Math.round(frenzyMeter)));
+    }
+    const litCount = Math.round((pct / 100) * cells.length);
+    cells.forEach((cell, idx) => {
+      cell.className = "cap-cell";
+      if (idx < litCount) {
+        if (isFrenzyActive || isReady) {
+          cell.classList.add(idx % 2 === 0 ? "strobe-white" : "lit-crimson");
+        } else if (idx < 10) {
+          cell.classList.add("lit-gold");
+        } else if (idx < 18) {
+          cell.classList.add("lit-orange");
+        } else {
+          cell.classList.add("lit-crimson");
+        }
+      }
+    });
+  }
 }
 
 function updateHighScoreDisplay() {
@@ -2851,7 +2883,7 @@ function initRogueProgression() {
   currentContractOffers = [];
   draftResumeGraceTimer = 0;
   const rogueHud = document.getElementById("rogue-hud");
-  if (rogueHud) rogueHud.style.display = "none";
+  if (rogueHud) rogueHud.style.display = "block";
   const aegisBar = document.getElementById("aegis-barrier-bar");
   if (aegisBar) aegisBar.style.display = "none";
   if (gameArea) gameArea.classList.remove("laser-frenzy-arena");
@@ -3895,10 +3927,11 @@ function initGame(enterSafehouse = false) {
      statusIndicatorsContainer.style.display = 'none';
     ball.style.display = 'none';
     if (pauseButton) {
-      pauseButton.style.display = 'none';
-      pauseButton.textContent = '⏸ PAUSE [P]';
+      pauseButton.style.display = 'inline-flex';
+      const pauseMain = document.getElementById('pause-btn-main');
+      if (pauseMain) pauseMain.textContent = '⏸ PAUSE';
     }
-    resetButton.style.display = 'none';
+    if (resetButton) resetButton.style.display = 'inline-flex';
     
     gameArea.classList.remove('hide-cursor', 'laser-frenzy-arena');
     lastTime = 0;
@@ -4116,6 +4149,9 @@ function startArenaAttractMode() {
                 b.isBroken = true;
                 b.element.classList.add('broken');
                 ballSpeedY *= -1;
+                if (typeof triggerBrickVectorShatter === "function") {
+                    triggerBrickVectorShatter(b);
+                }
                 if (typeof triggerCollisionSparklers === "function") {
                     triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
                 }
@@ -4162,6 +4198,9 @@ function startArenaAttractMode() {
                 if (isColliding(lRect, bRect)) {
                     b.isBroken = true;
                     b.element.classList.add('broken');
+                    if (typeof triggerBrickVectorShatter === "function") {
+                        triggerBrickVectorShatter(b);
+                    }
                     if (typeof triggerCollisionSparklers === "function") {
                         triggerCollisionSparklers(b.x + b.width / 2, b.y + b.height / 2, "brick");
                     }
@@ -4206,51 +4245,45 @@ function setupGame() {
     sanitizeAndMigrateLeaderboards();
     updateHighScoreDisplay();
     initGame();
-    startScreen.style.display = 'none';
-    clickToStartOverlay.style.display = 'flex';
-    startArenaAttractMode();
+    if (clickToStartOverlay) {
+        clickToStartOverlay.style.display = 'none';
+    }
+    startScreen.style.display = 'flex';
+    assetsReady = true;
+    syncStartPlayButtonState();
+    syncRogueHUD();
 
-    clickToStartOverlay.addEventListener('click', () => {
-        clearInterval(emojiCycleInterval);
-        stopArenaAttractMode();
-        if (loadingEmoji) loadingEmoji.style.display = 'none';
-        clickToStartOverlay.style.opacity = '0';
-        setTimeout(() => {
-            clickToStartOverlay.style.display = 'none';
-        }, 500);
-
+    let audioBooted = false;
+    const ensureAudioReady = () => {
+        if (audioBooted) return;
+        audioBooted = true;
         try {
             soundManager.init();
             if (soundManager.context && soundManager.context.state === 'suspended') {
                 soundManager.context.resume().catch(() => {});
             }
+            soundManager.loadAll(soundsToLoad).catch(() => {});
         } catch (err) {
             console.warn('AudioContext init failed:', err);
         }
-        startScreen.style.display = 'flex';
-        startPrompt.textContent = "Loading...";
-        startPrompt.classList.add('loading');
+    };
+    document.addEventListener('pointerdown', ensureAudioReady, { once: true });
+    document.addEventListener('keydown', ensureAudioReady, { once: true });
 
-        const markReady = () => {
-            if (assetsReady) return;
-            assetsReady = true;
-            syncStartPlayButtonState();
-        };
-        const safetyTimer = setTimeout(markReady, 1500);
-
-        soundManager.loadAll(soundsToLoad).then(() => {
-            clearTimeout(safetyTimer);
-            markReady();
-        }).catch(() => {
-            clearTimeout(safetyTimer);
-            markReady();
-        });
-    }, { once: true });
-    
     if (startPrompt) {
         startPrompt.addEventListener('click', (e) => {
             e.stopPropagation();
+            ensureAudioReady();
             if (gameOver && assetsReady) startGame();
+        });
+    }
+    const telSafeCell = document.querySelector(".tel-safe-cell");
+    if (telSafeCell) {
+        telSafeCell.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!gameOver) return;
+            safehouseLeaderboardOpen = false;
+            syncSafehouseAndStartScreenUI();
         });
     }
     const safehouseLbBtn = document.getElementById("safehouse-lb-toggle-btn");
@@ -4395,9 +4428,10 @@ function startGame() {
         ball.style.display = 'block';
         if (pauseButton) {
             pauseButton.style.display = 'inline-flex';
-            pauseButton.textContent = '⏸ PAUSE [P]';
+            const pauseMain = document.getElementById('pause-btn-main');
+            if (pauseMain) pauseMain.textContent = '⏸ PAUSE';
         }
-        resetButton.style.display = 'inline-flex';
+        if (resetButton) resetButton.style.display = 'inline-flex';
         
         ballIsStuck = true;
         caughtByMagLock = false;
@@ -4439,7 +4473,8 @@ function togglePause() {
       }
       pauseStartTime = null;
     }
-    if (pauseButton) pauseButton.textContent = "⏸ PAUSE [P]";
+    const pauseMainResume = document.getElementById("pause-btn-main");
+    if (pauseMainResume) pauseMainResume.textContent = "⏸ PAUSE";
     gameMessage.style.display = "none";
     gameArea.classList.add("hide-cursor");
     lastTime = 0;
@@ -4447,7 +4482,8 @@ function togglePause() {
   } else {
     pauseStartTime = Date.now();
     cancelAnimationFrame(animationFrameId);
-    if (pauseButton) pauseButton.textContent = "▶ RESUME [P]";
+    const pauseMainPause = document.getElementById("pause-btn-main");
+    if (pauseMainPause) pauseMainPause.textContent = "▶ RESUME";
     gameMessage.classList.remove("end-overlay-mode", "victory-celebration", "level-intermission-mode");
     gameMessage.innerHTML = `<span class="name">PAUSED</span><p class="game-message-prompt">Press P / ESC or Click to Resume</p>`;
     gameMessage.style.display = "block";
@@ -5621,7 +5657,7 @@ function endGame(won) {
   cancelAnimationFrame(animationFrameId);
   soundManager.stopAll();
   notificationsContainer.innerHTML = "";
-  if (pauseButton) pauseButton.style.display = "none";
+  if (pauseButton) pauseButton.style.display = "inline-flex";
   if (won) {
     soundManager.play("winSong");
     playVictoryFanfareSynth(true);

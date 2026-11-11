@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRICK RUNNER</title>
-    <link rel="stylesheet" href="style.css?v=20261111a">
+    <title>BRICK RUNNER // SYS 77-A Cyberdeck</title>
+    <link rel="stylesheet" href="style.css?v=20261111b">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Press+Start+2P&family=Roboto+Mono:wght@500;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
-<body>
+<body data-finish="gunmetal">
     <div id="cyberdeck-chassis" class="cyberdeck-unibody">
         <div class="cyberdeck-grain-overlay"></div>
 
         <!-- Bare-Silver Scratches & Edge Nicks (SVG Overlay) -->
-        <svg class="cyberdeck-wear-svg" viewBox="0 0 1024 780" preserveAspectRatio="none">
+        <svg class="cyberdeck-wear-svg" viewBox="0 0 1004 780" preserveAspectRatio="none">
             <path d="M42 18 L58 29 M45 21 L54 27" stroke="rgba(220,235,255,0.32)" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M965 145 L988 162 L978 188" stroke="rgba(0,0,0,0.75)" stroke-width="1.6" fill="none"/>
+            <path d="M945 145 L968 162 L958 188" stroke="rgba(0,0,0,0.75)" stroke-width="1.6" fill="none"/>
             <path d="M310 96 L328 101 M680 94 L665 100" stroke="rgba(225,240,255,0.28)" stroke-width="1" stroke-linecap="round"/>
             <path d="M180 758 L215 761 M740 759 L785 756" stroke="rgba(220,235,255,0.24)" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
@@ -27,7 +27,7 @@
         <div class="torx-screw chassis-corner-screw bl"></div>
         <div class="torx-screw chassis-corner-screw br"></div>
 
-        <!-- Left & Right Vertical Side-Rail Stencil Typography + Port Cutout + Dog-Eared Calibration Sticker -->
+        <!-- Left Vertical Side-Rail Stencil Typography + Port Cutout + Dog-Eared Calibration Sticker -->
         <div class="chassis-side-rail left">
             <span class="rail-vert-text">SYSTEM: 77-A/DECK // PROTO: V1.2</span>
             <div class="rail-jack-hole"></div>
@@ -43,6 +43,7 @@
             </div>
         </div>
 
+        <!-- Right Vertical Side-Rail Stencil Typography -->
         <div class="chassis-side-rail right">
             <span class="rail-vert-text">SERIAL: 19770512 // FIELD-UNIT</span>
             <span class="rail-vert-text warn-orange">BYPASS // ACTIVE</span>
@@ -50,11 +51,11 @@
             <span class="rail-vert-text">DC 12V 2.5A ━━</span>
         </div>
 
-        <!-- ─── 1. Top Hardware Bezel (Aligned 3-Tier Typographic Hierarchy + Full-Width Frenzy Capacitor) ─── -->
+        <!-- ─── 1. Top Hardware Bezel (Aligned 3-Tier Typographic Hierarchy + Full-Width 24-Cell Frenzy Capacitor) ─── -->
         <div class="deck-top-bezel">
             <div class="game-header deck-header-row">
                 <div class="header-left deck-brand-left">
-                    <h1 class="game-title-glitch silk-model-title" data-text="BRICK RUNNER">BRICK RUNNER</h1>
+                    <h1 class="silk-model-title" data-text="BRICK RUNNER">BRICK RUNNER</h1>
                     <span class="brand-divider"></span>
                     <div class="brand-meta-stack">
                         <span class="meta-kicker">FIELD DECK // SYS 77-A</span>
@@ -75,7 +76,7 @@
                         <span class="tel-cell-lbl">VAULT BANK</span>
                         <span id="tel-vault-val" class="tel-cell-val" style="color:#10f58c;">0¢</span>
                     </div>
-                    <div class="tel-cell">
+                    <div class="tel-cell tel-safe-cell" title="Click to open Safehouse &amp; Class Upgrades">
                         <span class="tel-cell-lbl">SAFEHOUSE</span>
                         <span id="tel-safehouse-val" class="tel-cell-val" style="color:#ffaa00;">STG 1 / 5</span>
                     </div>
@@ -83,7 +84,7 @@
             </div>
 
             <div class="rogue-hud-row">
-                <div id="rogue-hud" class="rogue-hud" style="display: none;">
+                <div id="rogue-hud" class="rogue-hud">
                     <div class="rogue-hud-top-line" style="display: none;">
                         <span id="rogue-class-badge" class="rogue-class-badge">⚡ LEVEL 1/5 (×1)</span>
                         <div id="rogue-next-perk" class="rogue-next-perk"></div>
@@ -93,10 +94,13 @@
                             <span class="cap-kicker">CAPACITOR BANK</span>
                             <span class="frenzy-bar-tag cap-left-tag">LASER FRENZY</span>
                         </div>
-                        <div class="frenzy-bar-well cap-glass-tube">
-                            <div id="rogue-xp-fill" class="rogue-xp-fill"></div>
-                            <div class="frenzy-bar-segments"></div>
-                            <span id="rogue-xp-text" class="rogue-xp-text">SKILL RALLY: 0%</span>
+                        <div id="cap-glass-tube" class="frenzy-bar-well cap-glass-tube">
+                            <div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div>
+                            <div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div>
+                            <div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div>
+                            <div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div><div class="cap-cell"></div>
+                            <div id="rogue-xp-fill" class="rogue-xp-fill" style="display: none;"></div>
+                            <span id="rogue-xp-text" class="rogue-xp-text" style="display: none;">SKILL RALLY: 0%</span>
                         </div>
                         <div class="cap-status-block">
                             <span class="cap-kicker">TRIGGER [F / SPACE]</span>
@@ -115,85 +119,114 @@
                     <span id="chamfer-perk-readout">60HZ VECTOR TELEMETRY</span>
                 </div>
                 <div id="game-area">
-        <div id="click-to-start-overlay">
-            <div class="attract-hero">
-                <h2 class="attract-title" data-text="BRICK RUNNER">BRICK RUNNER</h2>
-                <button type="button" class="attract-cta start-play-btn">CLICK TO BEGIN</button>
-            </div>
-        </div>
+                    <div class="vernier-ticks-top"></div>
 
-        <div class="game-stats-container">
-            <span id="score" class="game-ui-text">Score: 0</span>
-            <span id="score-multiplier" class="multiplier-badge" style="display: none;">2X</span>
-        </div>
-
-        <div id="frenzy-ready-banner" class="frenzy-ready-banner" style="display: none;">
-            <span class="frenzy-banner-icon">🚨</span>
-            <span class="frenzy-banner-text">FRENZY READY! — PRESS <kbd>[F]</kbd> OR <kbd>[SPACE]</kbd></span>
-            <span class="frenzy-banner-icon">🚨</span>
-        </div>
-
-        <div id="aegis-barrier-bar" class="aegis-barrier-bar" style="display: none;"></div>
-
-        <div id="hack-lighting-overlay" class="hack-lighting-overlay"></div>
-        <canvas id="party-sparkler-canvas" class="party-sparkler-canvas" width="900" height="600"></canvas>
-        <div id="hack-floor-watermark" class="hack-floor-watermark"></div>
-
-        <div id="status-indicators"></div>
-        <div id="notifications-container"></div>
-        
-        <div id="start-screen">
-            <div id="safehouse-topbar" class="start-screen-topbar">
-                <span id="safehouse-topbar-title" class="safehouse-banner-title">SELECT RUNNER &amp; CLASS</span>
-                <div class="start-screen-top-actions">
-                    <span id="start-top-record-pill" class="start-top-record-pill"></span>
-                    <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button">🏆 HIGH SCORES</button>
-                </div>
-            </div>
-            <div class="start-deck deck-single-col">
-                <div id="callsign-builder" class="callsign-panel"></div>
-                <div id="start-leaderboard" class="leaderboard-panel" style="display: none;"></div>
-            </div>
-            <button id="start-play-btn" class="start-prompt start-play-btn" type="button">START</button>
-        </div>
-        
-        <div id="ball"></div>
-        <div id="paddle"></div>
-        <div id="bricks-container"></div>
-        <div id="game-message"></div>
-        <div id="arcade-guide-modal" class="arcade-guide-modal" style="display: none;"></div>
-        <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
-        <div class="vernier-ticks-top"></div>
-        <div class="vernier-ticks-bottom"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ─── 3. Bottom Sunken Mechanical Keybed (Warm Amber Switch-Plate Underglow) ─── -->
-        <div id="tips-box" class="tips-box lower-keybed-bay">
-            <div class="tip-actions">
-                <div class="recessed-switch-trench">
-                    <button id="pause-button" class="tip-next-btn tip-control-btn deck-keycap" type="button" style="display: none;">⏸ PAUSE [P]</button>
-                    <button id="reset-button" class="tip-next-btn tip-control-btn tip-restart-btn deck-keycap" type="button" style="display: none;">↻ RESTART</button>
-                    <button id="tip-console-btn" class="tip-next-btn tip-console-btn deck-keycap key-salvage-orange" type="button">[~] HACK CONSOLE</button>
-                    <button id="tip-guide-btn" class="tip-next-btn tip-guide-btn deck-keycap" type="button">[G] ARCADE MANUAL</button>
-                </div>
-                <div id="volume-control-widget" class="volume-control-widget recessed-switch-trench" title="Audio Volume ([M] to Mute, [-] / [+] or click bars to adjust)">
-                    <button id="volume-mute-btn" class="vol-mute-btn deck-keycap key-mini" type="button" title="Mute / Unmute Audio [M]" aria-label="Toggle Mute [M]">🔊</button>
-                    <button id="volume-down-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Down (-25%)" aria-label="Volume Down">−</button>
-                    <div class="vol-bars" role="group" aria-label="Volume Level">
-                        <button type="button" class="vol-bar-btn" data-vol="0.25" title="25% Volume"></button>
-                        <button type="button" class="vol-bar-btn" data-vol="0.50" title="50% Volume"></button>
-                        <button type="button" class="vol-bar-btn" data-vol="0.75" title="75% Volume"></button>
-                        <button type="button" class="vol-bar-btn" data-vol="1.00" title="100% Volume"></button>
+                    <div id="click-to-start-overlay">
+                        <div class="attract-hero">
+                            <span class="attract-kicker">SYS 77-A // OPTICAL DISPLAY TERMINAL STANDBY</span>
+                            <h2 class="attract-title" data-text="BRICK RUNNER">BRICK RUNNER</h2>
+                            <p class="attract-sub">FIELD-MODDED VECTOR BREAKOUT DECK // 60HZ TELEMETRY LINK</p>
+                            <button type="button" class="attract-cta start-play-btn">INITIALIZE DECK</button>
+                        </div>
                     </div>
-                    <button id="volume-up-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Up (+25%)" aria-label="Volume Up">+</button>
-                    <span id="volume-pct-label" class="vol-pct-label" title="Current Volume (Click to Mute/Unmute)">75%</span>
+
+                    <div class="game-stats-container oled-in-screen-hud">
+                        <div class="oled-score-left">
+                            <span id="score" class="game-ui-text">SCORE: 0</span>
+                            <span id="score-multiplier" class="multiplier-badge" style="display: none;">2X</span>
+                        </div>
+                        <div id="status-indicators"></div>
+                    </div>
+
+                    <div id="frenzy-ready-banner" class="frenzy-ready-banner" style="display: none;">
+                        <span class="frenzy-banner-icon">⚡</span>
+                        <span class="frenzy-banner-text">CAPACITOR 100% — PRESS <kbd>[F]</kbd> OR <kbd>[SPACE]</kbd> FOR LASER FRENZY</span>
+                        <span class="frenzy-banner-icon">⚡</span>
+                    </div>
+
+                    <div id="aegis-barrier-bar" class="aegis-barrier-bar" style="display: none;"></div>
+
+                    <div id="hack-lighting-overlay" class="hack-lighting-overlay"></div>
+                    <canvas id="party-sparkler-canvas" class="party-sparkler-canvas" width="900" height="600"></canvas>
+                    <div id="hack-floor-watermark" class="hack-floor-watermark"></div>
+
+                    <div id="notifications-container"></div>
+
+                    <div id="start-screen">
+                        <div id="safehouse-topbar" class="start-screen-topbar">
+                            <span id="safehouse-topbar-title" class="safehouse-banner-title">SELECT RUNNER &amp; CLASS</span>
+                            <div class="start-screen-top-actions">
+                                <span id="start-top-record-pill" class="start-top-record-pill"></span>
+                                <button id="safehouse-lb-toggle-btn" class="safehouse-top-btn" type="button">🏆 HIGH SCORES</button>
+                            </div>
+                        </div>
+                        <div class="start-deck deck-single-col">
+                            <div id="callsign-builder" class="callsign-panel"></div>
+                            <div id="start-leaderboard" class="leaderboard-panel" style="display: none;"></div>
+                        </div>
+                        <button id="start-play-btn" class="start-prompt start-play-btn" type="button">START</button>
+                    </div>
+
+                    <div id="ball"></div>
+                    <div id="paddle"></div>
+                    <div id="bricks-container"></div>
+                    <div id="game-message"></div>
+                    <div id="arcade-guide-modal" class="arcade-guide-modal" style="display: none;"></div>
+                    <div id="cyber-console-modal" class="cyber-console-modal" style="display: none;"></div>
+                    <div class="vernier-ticks-bottom"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ─── 3. Bottom Sunken Mechanical Keybed (3 Recessed Switch Trenches with Warm Amber Underglow) ─── -->
+        <div id="tips-box" class="tips-box lower-keybed-bay">
+            <!-- Left Gameplay Control Keys (#pause-button, #reset-button) -->
+            <div class="recessed-switch-trench">
+                <button id="pause-button" class="deck-keycap" type="button">
+                    <span id="pause-btn-main">⏸ PAUSE</span>
+                    <span class="k-sub">[P / ESC]</span>
+                </button>
+                <button id="reset-button" class="deck-keycap" type="button">
+                    <span>↻ RESTART</span>
+                    <span class="k-sub">RESET STAGE</span>
+                </button>
+            </div>
+
+            <!-- Center Modal Entry Keys (#tip-console-btn with Salvage Orange Keycap, #tip-guide-btn) -->
+            <div class="recessed-switch-trench">
+                <button id="tip-console-btn" class="deck-keycap key-salvage-orange" type="button">
+                    <span>[~] HACK CONSOLE</span>
+                    <span class="k-sub">ICE BREACH</span>
+                </button>
+                <button id="tip-guide-btn" class="deck-keycap" type="button">
+                    <span>[G] ARCADE MANUAL</span>
+                    <span class="k-sub">FIELD GUIDE</span>
+                </button>
+            </div>
+
+            <!-- Right Hardware Audio Attenuator (#volume-control-widget) -->
+            <div id="volume-control-widget" class="volume-control-widget recessed-switch-trench" title="Audio Volume ([M] to Mute, [-] / [+] or click bars to adjust)">
+                <button id="volume-mute-btn" class="vol-mute-btn deck-keycap key-mini" type="button" title="Mute / Unmute Audio [M]" aria-label="Toggle Mute [M]">🔊</button>
+                <button id="volume-down-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Down (-25%)" aria-label="Volume Down">−</button>
+                <div class="vol-hardware-bay">
+                    <div class="vol-led-stack">
+                        <div class="vol-top-lbl">
+                            <span>GAIN</span>
+                            <span id="volume-pct-label" class="vol-pct-label" title="Current Volume (Click to Mute/Unmute)">75%</span>
+                        </div>
+                        <div class="vol-bars vol-bars-well" role="group" aria-label="Volume Level">
+                            <button type="button" class="vol-bar-btn vol-step-cell" data-vol="0.25" title="25% Volume"></button>
+                            <button type="button" class="vol-bar-btn vol-step-cell" data-vol="0.50" title="50% Volume"></button>
+                            <button type="button" class="vol-bar-btn vol-step-cell" data-vol="0.75" title="75% Volume"></button>
+                            <button type="button" class="vol-bar-btn vol-step-cell" data-vol="1.00" title="100% Volume"></button>
+                        </div>
+                    </div>
+                </div>
+                <button id="volume-up-btn" class="vol-step-btn deck-keycap key-mini" type="button" title="Turn Volume Up (+25%)" aria-label="Volume Up">+</button>
             </div>
         </div>
     </div>
-    
-    <script type="module" src="./js/script.js?v=20261111a"></script>
+
+    <script type="module" src="./js/script.js?v=20261111b"></script>
 </body>
 </html>
