@@ -3110,19 +3110,9 @@ function triggerTeslaArcBolts(overrideCount = 0) {
     const sx = paddleX + (idx - (targets.length - 1) / 2) * 18;
     const sy = padTop;
 
-    const dx = tx - sx;
-    const dy = ty - sy;
-    const length = Math.hypot(dx, dy);
-    const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-
-    const boltEl = document.createElement("div");
-    boltEl.className = "tesla-bolt-line";
-    boltEl.style.width = `${length}px`;
-    boltEl.style.left = `${sx}px`;
-    boltEl.style.top = `${sy}px`;
-    boltEl.style.transform = `rotate(${angleDeg}deg)`;
-    gameArea.appendChild(boltEl);
-    setTimeout(() => boltEl.remove(), 260);
+    if (typeof emitCadLightningArc === "function") {
+      emitCadLightningArc(sx, sy, tx, ty, "#00f0ff");
+    }
 
     damageOrBreakBrickByAugment(target, 1, 10);
   });
@@ -3137,6 +3127,9 @@ function triggerPlasmaNova(originBrick) {
   const cy = originBrick.y + originBrick.height / 2;
   const blastRadius = 115 + rank * 22;
 
+  if (typeof emitOscilloscopeShockwave === "function") {
+    emitOscilloscopeShockwave(cx, cy, blastRadius, "#ff5500", true);
+  }
   const ring = document.createElement("div");
   ring.className = "plasma-nova-ring";
   ring.style.left = `${cx}px`;
@@ -4018,6 +4011,9 @@ function createBricks() {
       const el = document.createElement('div');
       const colorRow = row % BRICK_ROWS;
       el.classList.add('brick', `brick-row-${colorRow}`);
+      const circuitSpan = document.createElement('span');
+      circuitSpan.className = 'brick-circuit-trace';
+      el.appendChild(circuitSpan);
 
       // 2) set brick tier: Standard (1-hit), Armored (2-hit), or Gold Cyber-Vault (3-hit)
       let hitsRequired = tier;
@@ -4680,7 +4676,17 @@ function getPowerUpCapsuleHTML(type) {
     "one-up": "+BRK"
   };
   const tag = tags[type] || "MOD";
-  return `<div class="holo-vial-shell"><span class="holo-vial-tag">${tag}</span>${getPowerUpVectorSVG(type)}<div class="holo-vial-cap"></div></div>`;
+  return `
+    <div class="holo-vial-3d">
+      <span class="holo-vial-float-lbl">${tag}</span>
+      <div class="holo-vial-cylinder">
+        <span class="holo-vial-dome"></span>
+        <span class="holo-vial-liquid"></span>
+        <span class="holo-vial-rune">${getPowerUpVectorSVG(type)}</span>
+        <span class="holo-vial-base-cap"></span>
+      </div>
+    </div>
+  `;
 }
 
 function spawnPowerUp(type, brick) {
@@ -5060,21 +5066,7 @@ function updateStatusIndicators() {
 function createOrUpdateStatusIndicator(e){if(document.getElementById(`status-${e}`))return;const t=POWER_UP_TYPES[e],o=document.createElement("div");o.id=`status-${e}`,o.className="status-indicator",o.innerHTML=`<span class="emoji">${getPowerUpVectorSVG(e)}</span><span class="stack-count"></span><div class="timer-bar-container"><div class="timer-bar ${t.cssClass}"></div></div>`,statusIndicatorsContainer.appendChild(o)}
 
 function createOnionSkin() {
-  const skin = document.createElement("div");
-  skin.className = "onion-skin";
-
-  // If we’re in cat mode, lock it to the cat emoji
-  if (isCatMode) {
-    skin.textContent = BALL_EMOJI;  // '🐱'
-  } else {
-    skin.textContent = ball.textContent;
-  }
-
-  skin.style.left = `${ballX}px`;
-  skin.style.top  = `${ballY}px`;
-  gameArea.appendChild(skin);
-
-  setTimeout(() => skin.remove(), 500);
+  // Replaced by the 60FPS Canvas Plasma Comet Ribbon & Rotating CAD Reticle in updateAndRenderSparklers
 }
 
 
@@ -5279,6 +5271,9 @@ function checkCollisions() {
       isRoofBonusActive = true;
       ball.classList.add("bonus-active");
       soundManager.play("powerUpSpawn", { pitch: 2.5, volume: 0.5 });
+      if (typeof emitOscilloscopeShockwave === "function") {
+        emitOscilloscopeShockwave(ballX + BALL_SIZE / 2, 12, 92, "#ffaa00", true);
+      }
     }
     if (getAugmentRank("pierce") > 0) {
       pierceChargesLeft = getAugmentRank("pierce");
@@ -5309,6 +5304,15 @@ function checkCollisions() {
     soundManager.play("bounce");
     // Charge the Skill Rally Frenzy Meter on every paddle return (+24% on Sweet-Spot center hit, +15% on wing return)!
     addSkillRallyFrenzyCharge(absImpact <= 0.40 ? 24 : 15, true);
+    if (typeof emitOscilloscopeShockwave === "function") {
+      emitOscilloscopeShockwave(
+        ballX + BALL_SIZE / 2,
+        padRect.top,
+        absImpact <= 0.40 ? 84 : 52,
+        absImpact <= 0.40 ? "#00f0ff" : "#10f58c",
+        absImpact <= 0.40
+      );
+    }
 
     if (typeof isHackModeActive === "function" && isHackModeActive("party") && typeof triggerCollisionSparklers === "function") {
       triggerCollisionSparklers(ballX + BALL_SIZE / 2, padRect.top, "paddle");
@@ -6344,15 +6348,64 @@ function emitSparkParticle(x, y, vx, vy, color, maxLife, size, kind = 0) {
 }
 
 const ROW_SHARD_PALETTE = [
-  "#ff0055",
+  "#ff2a55",
   "#ff5e00",
-  "#ffcc00",
-  "#39ff14",
-  "#00ffff",
-  "#7b2cbf",
-  "#ff00ff"
+  "#ffaa00",
+  "#10f58c",
+  "#00f0ff",
+  "#a855f7",
+  "#ff00aa"
 ];
 let bezelReflectTimer = null;
+const oscilloscopeShockwaves = [];
+const cadLightningBolts = [];
+const impactFlares = [];
+const ballCometTrail = [];
+let ballReticleAngle = 0;
+
+function emitOscilloscopeShockwave(x, y, maxR = 68, color = "#00f0ff", isHeavy = false) {
+  oscilloscopeShockwaves.push({
+    x,
+    y,
+    r: 8,
+    maxR,
+    color,
+    isHeavy,
+    life: 0,
+    maxLife: isHeavy ? 0.44 : 0.32
+  });
+  impactFlares.push({
+    x,
+    y,
+    r: isHeavy ? 34 : 22,
+    color,
+    life: 0,
+    maxLife: 0.14
+  });
+  if (oscilloscopeShockwaves.length > 24) oscilloscopeShockwaves.shift();
+  if (impactFlares.length > 20) impactFlares.shift();
+}
+
+function emitCadLightningArc(x1, y1, x2, y2, color = "#00f0ff") {
+  const segs = 5;
+  const pts = [{ x: x1, y: y1 }];
+  for (let i = 1; i < segs; i++) {
+    const t = i / segs;
+    const jitter = (Math.random() - 0.5) * 34;
+    pts.push({
+      x: x1 + (x2 - x1) * t + jitter,
+      y: y1 + (y2 - y1) * t + (Math.random() - 0.5) * 14
+    });
+  }
+  pts.push({ x: x2, y: y2 });
+  cadLightningBolts.push({
+    pts,
+    color,
+    life: 0,
+    maxLife: 0.22
+  });
+  emitOscilloscopeShockwave(x2, y2, 48, color, false);
+}
 
 function triggerBrickVectorShatter(brick) {
   if (!brick) return;
@@ -6360,54 +6413,63 @@ function triggerBrickVectorShatter(brick) {
   const cy = brick.y + brick.height / 2;
   const rowColor = (typeof brick.row === "number" && ROW_SHARD_PALETTE[brick.row % ROW_SHARD_PALETTE.length])
     ? ROW_SHARD_PALETTE[brick.row % ROW_SHARD_PALETTE.length]
-    : "#00ffff";
-  const shardColor = brick.isVaultBrick ? "#ffd700" : rowColor;
+    : "#00f0ff";
+  const shardColor = brick.isVaultBrick ? "#ffaa00" : rowColor;
 
-  // 1) Emit 9 tumbling CAD-wireframe & solid polygon shards (kind 3 & 4)
-  for (let i = 0; i < 9; i++) {
-    const angle = (Math.PI * 2 * i) / 9 + (Math.random() - 0.5) * 0.45;
-    const speed = 75 + Math.random() * 210;
-    const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 45;
-    const vy = Math.sin(angle) * speed - 40;
+  // 1) Emit Concentric Oscilloscope Shockwave + White-Hot Impact Starburst Flare (Plate 6)
+  emitOscilloscopeShockwave(
+    cx,
+    cy,
+    brick.isVaultBrick ? 128 : (brick.hitsRequired > 1 ? 88 : 62),
+    shardColor,
+    Boolean(brick.isVaultBrick || brick.hitsRequired > 1)
+  );
+
+  // 2) Emit 16 tumbling CAD-wireframe & solid polygon shards (kind 3 & 4)
+  for (let i = 0; i < 16; i++) {
+    const angle = (Math.PI * 2 * i) / 16 + (Math.random() - 0.5) * 0.4;
+    const speed = 85 + Math.random() * 255;
+    const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 55;
+    const vy = Math.sin(angle) * speed - 55;
     const kind = i % 2 === 0 ? 3 : 4; // 3 = wireframe triangle, 4 = solid polygon shard
-    const size = 4.5 + Math.random() * 4.5;
-    const maxLife = 0.34 + Math.random() * 0.32;
+    const size = 5 + Math.random() * 6.5;
+    const maxLife = 0.42 + Math.random() * 0.36;
     emitSparkParticle(
-      cx + (Math.random() - 0.5) * (brick.width * 0.65),
-      cy + (Math.random() - 0.5) * (brick.height * 0.5),
+      cx + (Math.random() - 0.5) * (brick.width * 0.7),
+      cy + (Math.random() - 0.5) * (brick.height * 0.55),
       vx,
       vy,
-      i === 0 ? "#ffffff" : shardColor,
+      i % 4 === 0 ? "#ffffff" : shardColor,
       maxLife,
       size,
       kind
     );
   }
 
-  // 2) Emit 6 high-velocity phosphor streaks (kind 0)
-  for (let j = 0; j < 6; j++) {
+  // 3) Emit 10 high-velocity phosphor streaks (kind 0)
+  for (let j = 0; j < 10; j++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 150 + Math.random() * 260;
+    const speed = 170 + Math.random() * 310;
     emitSparkParticle(
       cx,
       cy,
       Math.cos(angle) * speed,
       Math.sin(angle) * speed,
       j % 2 === 0 ? "#ffffff" : shardColor,
-      0.22 + Math.random() * 0.2,
-      1.8,
+      0.26 + Math.random() * 0.24,
+      2.1,
       0
     );
   }
 
-  // 3) Pulse 45-degree chamfered bezel reflection + micro screen-jolt
+  // 4) Pulse 45-degree chamfered bezel reflection + micro screen-jolt
   const chassis = document.getElementById("cyberdeck-chassis");
   if (chassis) {
     chassis.style.setProperty("--bezel-reflect", shardColor);
     if (bezelReflectTimer) clearTimeout(bezelReflectTimer);
     bezelReflectTimer = setTimeout(() => {
-      const def = typeof RUNNER_CLASS_DEFS !== "undefined" && RUNNER_CLASS_DEFS[selectedRunnerClass];
-      chassis.style.setProperty("--bezel-reflect", (def && def.color) ? def.color : "#00f0ff");
+      const def = typeof getSelectedClassDef === "function" ? getSelectedClassDef() : { color: "#00f0ff" };
+      chassis.style.setProperty("--bezel-reflect", `color-mix(in srgb, ${(def && def.color) ? def.color : "#00f0ff"} 28%, transparent)`);
     }, 180);
   }
   const chamferWall = document.getElementById("display-chamfer-wall");
@@ -6450,10 +6512,252 @@ function updateAndRenderSparklers(dt) {
 
   ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+  const cDef = typeof getSelectedClassDef === "function" ? getSelectedClassDef() : { color: "#00f0ff" };
+  const classColor = (cDef && cDef.color) ? cDef.color : "#00f0ff";
+  const isFrenzy = typeof frenzyTimerLeft === "number" && frenzyTimerLeft > 0;
+  const activeColor = isRoofBonusActive ? "#ffaa00" : (isFrenzy ? "#ff2a55" : classColor);
+
+  // ─── LAYER 1: 3D Perspective CAD Horizon Grid, Corner Registration Crosshairs & Under-Paddle Repulsor Glow (Plates 1, 6, 8) ───
+  if (!gameOver) {
+    ctx.save();
+    const horizonY = 310;
+    const vanishX = GAME_WIDTH / 2 + (paddleX - GAME_WIDTH / 2) * 0.12;
+
+    // Perspective radial CAD floor lines converging toward horizon
+    ctx.strokeStyle = isFrenzy ? "rgba(255, 42, 85, 0.14)" : "rgba(0, 240, 255, 0.11)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = -9; i <= 9; i++) {
+      const botX = GAME_WIDTH / 2 + i * 78;
+      const topX = vanishX + i * 24;
+      ctx.moveTo(topX, horizonY);
+      ctx.lineTo(botX, GAME_HEIGHT);
+    }
+    // Horizontal perspective depth rungs
+    const depthRungs = [310, 342, 378, 418, 464, 516, 574];
+    depthRungs.forEach(ry => {
+      ctx.moveTo(0, ry);
+      ctx.lineTo(GAME_WIDTH, ry);
+    });
+    ctx.stroke();
+
+    // 4 Corner CAD Registration Crosshairs (+)
+    ctx.strokeStyle = "rgba(210, 228, 248, 0.38)";
+    ctx.lineWidth = 1;
+    [[22, 48], [GAME_WIDTH - 22, 48], [22, GAME_HEIGHT - 22], [GAME_WIDTH - 22, GAME_HEIGHT - 22]].forEach(([cx, cy]) => {
+      ctx.beginPath();
+      ctx.moveTo(cx - 6, cy);
+      ctx.lineTo(cx + 6, cy);
+      ctx.moveTo(cx, cy - 6);
+      ctx.lineTo(cx, cy + 6);
+      ctx.stroke();
+    });
+
+    // Under-Paddle Thruster Repulsor Floor Pool
+    const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+    const repGrad = ctx.createRadialGradient(paddleX, padTop + 14, 4, paddleX, padTop + 18, Math.max(85, paddleWidth * 0.72));
+    repGrad.addColorStop(0, isFrenzy ? "rgba(255, 42, 85, 0.42)" : "rgba(0, 240, 255, 0.34)");
+    repGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = repGrad;
+    ctx.fillRect(paddleX - paddleWidth, padTop - 8, paddleWidth * 2, 52);
+    ctx.restore();
+  }
+
   let anyActive = false;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
+  // ─── LAYER 2: Tapering Multi-Layer Plasma Comet Ribbon & Rotating CAD Ball Reticle (Plate 1) ───
+  if (!gameOver && ball && ball.style.display !== "none") {
+    const bx = ballX + BALL_SIZE / 2;
+    const by = ballY + BALL_SIZE / 2;
+    ballReticleAngle += dt * 3.2;
+
+    if (!ballIsStuck) {
+      ballCometTrail.push({ x: bx, y: by });
+      if (ballCometTrail.length > 16) ballCometTrail.shift();
+    } else {
+      ballCometTrail.length = 0;
+    }
+
+    if (ballCometTrail.length > 2) {
+      for (let i = 1; i < ballCometTrail.length; i++) {
+        const p0 = ballCometTrail[i - 1];
+        const p1 = ballCometTrail[i];
+        const frac = i / ballCometTrail.length;
+
+        // Outer glowing plasma ribbon
+        ctx.save();
+        ctx.strokeStyle = activeColor;
+        ctx.shadowColor = activeColor;
+        ctx.shadowBlur = 16;
+        ctx.globalAlpha = frac * 0.58;
+        ctx.lineWidth = Math.max(2, 26 * frac);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+
+        // Inner white-hot core spline
+        ctx.strokeStyle = "#ffffff";
+        ctx.globalAlpha = frac * 0.82;
+        ctx.lineWidth = Math.max(1, 8.5 * frac);
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Rotating CAD Vector Reticle Ring around the Ball
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(ballReticleAngle);
+    const retR = (isRoofBonusActive ? 35 : 25);
+    ctx.strokeStyle = activeColor;
+    ctx.shadowColor = activeColor;
+    ctx.shadowBlur = 12;
+    ctx.globalAlpha = 0.78;
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([7, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, retR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (let k = 0; k < 4; k++) {
+      const a = (Math.PI / 2) * k;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * (retR - 4), Math.sin(a) * (retR - 4));
+      ctx.lineTo(Math.cos(a) * (retR + 5), Math.sin(a) * (retR + 5));
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else {
+    ballCometTrail.length = 0;
+  }
+
+  // ─── LAYER 3: High-Intensity Laser Plasma Beams & Muzzle Flares (Plate 6) ───
+  if (typeof lasers !== "undefined" && lasers.length > 0) {
+    const padTop = GAME_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_OFFSET;
+    lasers.forEach(l => {
+      const lx = l.x + (l.width || 6) / 2;
+      const ly = l.y;
+      const beamClr = l.source === "guardian-mortar" ? "#10f58c" : (isFrenzy ? "#ff2a55" : "#ff5e00");
+      ctx.save();
+      ctx.strokeStyle = beamClr;
+      ctx.shadowColor = beamClr;
+      ctx.shadowBlur = 18;
+      ctx.globalAlpha = 0.85;
+      ctx.lineWidth = (l.width || 6) + 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx, Math.min(padTop, ly + 46));
+      ctx.stroke();
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(2, (l.width || 6) * 0.55);
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx, Math.min(padTop, ly + 32));
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  // ─── LAYER 4: Concentric Oscilloscope Shockwave Rings & White-Hot Impact Starbursts (Plate 6) ───
+  for (let i = impactFlares.length - 1; i >= 0; i--) {
+    const fl = impactFlares[i];
+    fl.life += dt;
+    if (fl.life >= fl.maxLife) {
+      impactFlares.splice(i, 1);
+      continue;
+    }
+    anyActive = true;
+    const p = 1 - fl.life / fl.maxLife;
+    ctx.save();
+    ctx.globalAlpha = p;
+    const grad = ctx.createRadialGradient(fl.x, fl.y, 1, fl.x, fl.y, fl.r);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.45, fl.color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(fl.x, fl.y, fl.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  for (let i = oscilloscopeShockwaves.length - 1; i >= 0; i--) {
+    const sw = oscilloscopeShockwaves[i];
+    sw.life += dt;
+    if (sw.life >= sw.maxLife) {
+      oscilloscopeShockwaves.splice(i, 1);
+      continue;
+    }
+    anyActive = true;
+    const p = sw.life / sw.maxLife;
+    const curR = sw.r + (sw.maxR - sw.r) * (1 - Math.pow(1 - p, 3));
+    ctx.save();
+    ctx.strokeStyle = sw.color;
+    ctx.shadowColor = sw.color;
+    ctx.shadowBlur = 14;
+    ctx.globalAlpha = (1 - p) * 0.92;
+    ctx.lineWidth = sw.isHeavy ? 2.6 : 2.0;
+    ctx.beginPath();
+    ctx.arc(sw.x, sw.y, curR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Dashed inner harmonic ring
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(sw.x, sw.y, curR * 0.68, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (sw.isHeavy) {
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1.0;
+      ctx.strokeStyle = sw.color;
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, curR * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ─── LAYER 5: Jagged Multi-Segment CAD Lightning Arcs ───
+  for (let i = cadLightningBolts.length - 1; i >= 0; i--) {
+    const lb = cadLightningBolts[i];
+    lb.life += dt;
+    if (lb.life >= lb.maxLife) {
+      cadLightningBolts.splice(i, 1);
+      continue;
+    }
+    anyActive = true;
+    const alpha = 1 - lb.life / lb.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = lb.color;
+    ctx.shadowColor = lb.color;
+    ctx.shadowBlur = 16;
+    ctx.lineWidth = 4.2;
+    ctx.beginPath();
+    lb.pts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+    ctx.stroke();
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    lb.pts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ─── LAYER 6: Tumbling CAD Polygon Shards & Phosphor Sparks ───
   for (let i = 0; i < MAX_SPARKS; i++) {
     const s = sparkPool[i];
     if (!s.active) continue;
@@ -6503,21 +6807,23 @@ function updateAndRenderSparklers(dt) {
       ctx.save();
       ctx.translate(s.x, s.y);
       ctx.rotate(s.angle);
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = 10;
       const r = s.size;
       ctx.beginPath();
       ctx.moveTo(0, -r);
-      ctx.lineTo(r * 0.88, r * 0.72);
+      ctx.lineTo(r * 0.9, r * 0.72);
       ctx.lineTo(-r * 0.88, r * 0.55);
       ctx.closePath();
       if (s.kind === 4) {
         ctx.fillStyle = s.color;
         ctx.fill();
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 0.8;
+        ctx.lineWidth = 0.9;
         ctx.stroke();
       } else {
         ctx.strokeStyle = s.color;
-        ctx.lineWidth = 1.35;
+        ctx.lineWidth = 1.6;
         ctx.stroke();
       }
       ctx.restore();
